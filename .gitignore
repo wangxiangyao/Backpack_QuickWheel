@@ -1,0 +1,59 @@
+# Unity 临时文件
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+
+# Visual Studio 文件
+*.csproj
+*.user
+*.sln
+*.suo
+*.aps
+*.pdb
+*.opusfilter
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 游戏相关文件（避免提交游戏本体的文件）
+[Dd]uckov_Data/
+*.dll
+*.pdb
+*.mdb
+
+# 编译输出
+/bin/
+/obj/
+
+# 本地配置文件
+appsettings.json
+appsettings.*.json
+
+# 日志文件
+*.log
+
+# 备份文件
+*.backup
+*.bak
+
+# IDE 文件
+.vs/
+.idea/
+*.swp
+*.swo
+
+# NuGet 包
+packages/
+
+# 临时文件
+*.tmp
+*.temp
