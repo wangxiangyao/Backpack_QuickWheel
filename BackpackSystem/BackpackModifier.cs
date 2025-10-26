@@ -3,6 +3,7 @@ using ItemStatsSystem.Items;
 using UnityEngine;
 using System.Collections.Generic;
 using Great_backpack.AttachmentSystem;
+using Duckov.Utilities;
 
 namespace Great_backpack.BackpackSystem
 {
@@ -90,6 +91,20 @@ namespace Great_backpack.BackpackSystem
                         newSlot.requireTags = new List<Tag>();
 
                     newSlot.requireTags.Add(slotTag);
+                }
+
+                // 设置插槽的内容限制
+                if (config.RestrictTags != null && config.RestrictTags.Count > 0)
+                {
+                    foreach (string restrictTagName in config.RestrictTags)
+                    {
+                        if (createdTags.TryGetValue(restrictTagName, out Tag restrictTag))
+                        {
+                            if (newSlot.requireTags == null)
+                                newSlot.requireTags = new List<Tag>();
+                            newSlot.requireTags.Add(restrictTag);
+                        }
+                    }
                 }
 
                 slotCollection.Add(newSlot);

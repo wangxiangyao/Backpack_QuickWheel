@@ -12,10 +12,11 @@ namespace Great_backpack.AttachmentSystem
         public int Value { get; set; }
         public string RequiredTag { get; set; }
         public List<SlotConfig> SlotConfigs { get; set; }
+        public string EmbeddedSpritePath { get; set; }
 
         public AttachmentItemConfig(string itemName, string displayName, string description,
                                    int typeID, float weight, int value, string requiredTag,
-                                   List<SlotConfig> slotConfigs)
+                                   List<SlotConfig> slotConfigs, string embeddedSpritePath = null)
         {
             ItemName = itemName;
             DisplayName = displayName;
@@ -25,6 +26,7 @@ namespace Great_backpack.AttachmentSystem
             Value = value;
             RequiredTag = requiredTag;
             SlotConfigs = slotConfigs;
+            EmbeddedSpritePath = embeddedSpritePath;
         }
     }
 }

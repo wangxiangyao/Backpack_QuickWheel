@@ -3,6 +3,8 @@ using ItemStatsSystem;
 using ItemStatsSystem.Items;
 using UnityEngine;
 using System.Collections.Generic;
+using System;
+using System.Linq;
 
 namespace Great_backpack.AttachmentSystem
 {
@@ -10,10 +12,30 @@ namespace Great_backpack.AttachmentSystem
     {
         private Dictionary<string, Item> attachmentItems = new Dictionary<string, Item>();
         private Dictionary<string, Tag> createdTags;
+        private Dictionary<string, Tag> systemTags;   // 游戏系统的Tag（用于物品限制）
 
         public AttachmentManager(Dictionary<string, Tag> tags)
         {
             createdTags = tags;
+            LoadSystemTags();
+        }
+        // 加载游戏系统的所有Tag
+        private void LoadSystemTags()
+        {
+            systemTags = new Dictionary<string, Tag>();
+            Tag[] allSystemTags = Resources.FindObjectsOfTypeAll<Tag>();
+
+            foreach (Tag tag in allSystemTags)
+            {
+                if (!systemTags.ContainsKey(tag.name))
+                {
+                    systemTags[tag.name] = tag;
+                }
+            }
+
+            Debug.Log($"已加载 {systemTags.Count} 个系统Tag");
+
+            
         }
 
         public void CreateAllAttachmentItems()
@@ -32,22 +54,46 @@ namespace Great_backpack.AttachmentSystem
         {
             try
             {
-                GameObject itemObject = new GameObject(config.ItemName);
-                Item newItem = itemObject.AddComponent<Item>();
+                // 1. 选择基础物品进行克隆（参考MOD使用135作为基础）
+                int baseItemId = 135; // 或者根据是否有插槽选择不同的基础物品
+                if (config.SlotConfigs.Count > 0)
+                {
+                    baseItemId = 1255; // 有插槽的物品使用容器类基础物品
+                }
 
-                // 配置基础属性
-                ConfigureItemProperties(newItem, config);
+                Item basePrefab = ItemAssetsCollection.GetPrefab(baseItemId);
+                if (basePrefab == null)
+                {
+                    Debug.LogError($"未找到基础物品ID: {baseItemId}");
+                    return;
+                }
 
-                // 设置配件Tag
+                // 2. 克隆基础物品
+                GameObject itemObject = UnityEngine.Object.Instantiate(basePrefab.gameObject);
+                itemObject.name = config.ItemName;
+                UnityEngine.Object.DontDestroyOnLoad(itemObject);
+
+                Item newItem = itemObject.GetComponent<Item>();
+
+                // 3. 使用反射设置物品属性
+                SetItemProperties(newItem, config);
+
+                // 4. 设置标签
                 SetAttachmentTag(newItem, config.RequiredTag);
 
-                // 创建插槽
-                CreateItemSlots(newItem, config.SlotConfigs);
+                // 5. 配置插槽（如果有）
+                if (config.SlotConfigs.Count > 0)
+                {
+                    ConfigureItemSlots(newItem, config.SlotConfigs);
+                }
 
-                // 添加效果组件
-                AddAttachmentEffect(itemObject, config);
+                // 6. 设置本地化
+                SetItemLocalization(config);
 
-                // 注册到游戏
+                // 设置物品图标
+                SetItemIcon(newItem, config);
+
+                // 7. 注册到游戏
                 ItemStatsSystem.ItemAssetsCollection.AddDynamicEntry(newItem);
 
                 attachmentItems[config.ItemName] = newItem;
@@ -59,13 +105,55 @@ namespace Great_backpack.AttachmentSystem
             }
         }
 
-        private void ConfigureItemProperties(Item item, AttachmentItemConfig config)
+        private void SetItemProperties(Item item, AttachmentItemConfig config)
         {
-            item.TypeID = config.TypeID;
-            item.DisplayNameRaw = config.DisplayName;
-            item.Weight = config.Weight;
-            item.Value = config.Value;
+            // 使用反射设置私有字段
+            item.SetPrivateField("typeID", config.TypeID);
+            item.SetPrivateField("weight", config.Weight);
+            item.SetPrivateField("value", config.Value);
+            item.SetPrivateField("displayName", config.DisplayName);
+
+            // 设置其他属性
             item.MaxStackCount = 1;
+            item.DisplayQuality = DisplayQuality.None; // 或者根据需要设置品质
+        }
+
+        private void ConfigureItemSlots(Item item, List<SlotConfig> slotConfigs)
+        {
+            if (slotConfigs.Count == 0) return;
+            // 清除原有插槽
+            if (item.Slots != null)
+            {
+                item.Slots.Clear();
+            }
+            else
+            {
+                item.CreateSlotsComponent();
+            }
+
+            // 为每个插槽配置创建新的Slot
+            for (int i = 0; i < slotConfigs.Count; i++)
+            {
+                AddSlotToItem(item, slotConfigs[i], i + 1);
+            }
+        }
+
+        private void SetItemLocalization(AttachmentItemConfig config)
+        {
+            try
+            {
+                // 设置物品名称本地化
+                string nameKey = "Item_" + config.ItemName;
+                SodaCraft.Localizations.LocalizationManager.SetOverrideText(nameKey, config.DisplayName);
+
+                // 设置物品描述本地化  
+                string descKey = "Item_" + config.ItemName + "_Desc";
+                SodaCraft.Localizations.LocalizationManager.SetOverrideText(descKey, config.Description);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"设置物品本地化时出错: {e.Message}");
+            }
         }
 
         private void SetAttachmentTag(Item item, string requiredTag)
@@ -76,30 +164,18 @@ namespace Great_backpack.AttachmentSystem
             }
         }
 
-        private void CreateItemSlots(Item item, List<SlotConfig> slotConfigs)
-        {
-            if (slotConfigs.Count == 0) return;
-
-            if (item.Slots == null)
-            {
-                item.CreateSlotsComponent();
-            }
-
-            foreach (var slotConfig in slotConfigs)
-            {
-                AddSlotToItem(item, slotConfig);
-            }
-        }
-
-        private void AddSlotToItem(Item item, SlotConfig slotConfig)
+        private void AddSlotToItem(Item item, SlotConfig slotConfig, int slotIndex)
         {
             try
             {
                 SlotCollection slotCollection = item.Slots;
                 if (slotCollection == null) return;
 
-                Slot newSlot = new Slot(slotConfig.Key);
+                // 为每个插槽生成唯一的键名，使用索引确保唯一性
+                string uniqueSlotKey = $"wxy_{slotConfig.Key}_{slotIndex}";
+                Slot newSlot = new Slot(uniqueSlotKey);
                 newSlot.Initialize(slotCollection);
+
 
                 // 设置显示名称Tag
                 if (createdTags.TryGetValue(slotConfig.Key, out Tag displayTag))
@@ -110,8 +186,37 @@ namespace Great_backpack.AttachmentSystem
                     newSlot.requireTags.Add(displayTag);
                 }
 
-                // TODO: 设置插槽的内容限制Tag
-                // 这里需要等我们研究游戏中的物品Tag系统
+                // 设置插槽的内容限制Tag - 使用系统Tag
+                if (slotConfig.RestrictTags != null && slotConfig.RestrictTags.Count > 0)
+                {
+                    foreach (string restrictTagName in slotConfig.RestrictTags)
+                    {
+                        Tag restrictTag = FindSystemTag(restrictTagName);
+                        if (restrictTag != null)
+                        {
+                            if (newSlot.requireTags == null)
+                                newSlot.requireTags = new List<Tag>();
+
+                            // 确保不重复添加同一个Tag
+                            if (!newSlot.requireTags.Contains(restrictTag))
+                            {
+                                newSlot.requireTags.Add(restrictTag);
+                                Debug.Log($"成功为插槽添加限制Tag: {restrictTagName}");
+                            }
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"未找到系统限制Tag: {restrictTagName}");
+
+                            // 输出类似的系统Tag供参考
+                            string similarTags = FindSimilarSystemTags(restrictTagName);
+                            if (!string.IsNullOrEmpty(similarTags))
+                            {
+                                Debug.Log($"建议使用以下类似Tag: {similarTags}");
+                            }
+                        }
+                    }
+                }
 
                 slotCollection.Add(newSlot);
                 Debug.Log($"为物品 {item.DisplayName} 添加插槽: {slotConfig.Key}");
@@ -121,11 +226,59 @@ namespace Great_backpack.AttachmentSystem
                 Debug.LogError($"为物品添加插槽时出错: {e.Message}");
             }
         }
-
-        private void AddAttachmentEffect(GameObject itemObject, AttachmentItemConfig config)
+        // 在系统Tag中查找
+        private Tag FindSystemTag(string tagName)
         {
-            var attachmentEffect = itemObject.AddComponent<BackpackAttachmentEffect>();
-            attachmentEffect.Initialize(config.RequiredTag, config.Weight, config.Value, config.SlotConfigs.Count);
+            // 先尝试直接查找
+            if (systemTags.TryGetValue(tagName, out Tag tag))
+                return tag;
+
+            // 尝试忽略大小写查找
+            var found = systemTags.FirstOrDefault(kvp =>
+                kvp.Key.Equals(tagName, StringComparison.OrdinalIgnoreCase));
+            if (found.Value != null)
+                return found.Value;
+
+            return null;
         }
+
+        // 查找类似的系统Tag
+        private string FindSimilarSystemTags(string tagName)
+        {
+            var similar = systemTags.Keys.Where(k =>
+                k.IndexOf(tagName, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+
+            if (similar.Any())
+                return string.Join(", ", similar.Take(5));
+
+            return null;
+        }
+
+        private void SetItemIcon(Item newItem, AttachmentItemConfig config)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(config.EmbeddedSpritePath))
+                {
+                    Sprite customSprite = ResourceLoader.LoadEmbeddedSprite(config.EmbeddedSpritePath, config.ItemName);
+                    if (customSprite != null)
+                    {
+                        // 使用反射设置Item的私有icon字段
+                        newItem.SetPrivateField("icon", customSprite);
+                        Debug.Log($"成功为 {config.DisplayName} 设置自定义图标");
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"设置物品图标时出错: {e.Message}");
+            }
+        }
+
+        //private void AddAttachmentEffect(GameObject itemObject, AttachmentItemConfig config)
+        //{
+        //    var attachmentEffect = itemObject.AddComponent<BackpackAttachmentEffect>();
+        //    attachmentEffect.Initialize(config.RequiredTag, config.Weight, config.Value, config.SlotConfigs.Count);
+        //}
     }
 }

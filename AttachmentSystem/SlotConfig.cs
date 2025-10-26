@@ -17,11 +17,12 @@ namespace Great_backpack.AttachmentSystem
             RestrictTags = new List<string>();
         }
 
-        public SlotConfig(string key, string displayName, List<string> restrictTags)
+        public SlotConfig(string displayName, string key, string description, List<string> restrictTags)
         {
-            Key = key;
             DisplayName = displayName;
-            RestrictTags = restrictTags;
+            Key = key;
+            Description = description;
+            RestrictTags = restrictTags ?? new List<string>();
         }
     }
 }

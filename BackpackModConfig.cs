@@ -31,130 +31,170 @@ namespace Great_backpack
             { 40, new List<string> { "SidePocket_Large", "TacticalPouch_Small", "TacticalPouch_Large", "LockBuckle", "LockBuckle", "AmmoPouch", "AmmoPouch", "ShoulderStrap", "ShoulderPouch", "SidePocket_Large" } } // 行军背包MAX
         };
 
-        // 配件物品配置
+        // 定义统一的插槽类型 - 确保每个都有正确的限制Tag
+        public static readonly Dictionary<string, SlotConfig> UnifiedSlotTypes = new Dictionary<string, SlotConfig>
+        {
+            {
+                "Food",
+                new SlotConfig("食物", "Food", "存放食物", new List<string> { "Food" })
+            },
+            {
+                "Small",
+                new SlotConfig("小物件", "Small", "存放钥匙、注射器等小物件",
+                    new List<string> { "key", "SpecialKey", "Injector" })
+            },
+            {
+                "Large",
+                new SlotConfig("大物件", "Large", "存放各种大尺寸物品",
+                    new List<string> { "key", "SpecialKey", "Injector", "Healing", "Drink", "Food", "Explosive", "MeleeWeapon" })
+            },
+            {
+                "Key",
+                new SlotConfig("钥匙", "Key", "专门存放钥匙",
+                    new List<string> { "key", "SpecialKey" })
+            },
+            {
+                "Hook",
+                new SlotConfig("挂钩", "Hook", "可挂载手雷、钥匙等物品",
+                    new List<string> { "key", "SpecialKey", "Explosive", "MeleeWeapon" })
+            },
+            {
+                "Explosive",
+                new SlotConfig("手雷", "Explosive", "专门存放手雷",
+                    new List<string> { "Explosive" })
+            },
+            {
+                "Magazine",
+                new SlotConfig("弹夹", "Magazine", "专门存放弹夹",
+                    new List<string> { "Magazine" })
+            }
+        };
+
+        // 配件物品配置 - 使用统一的插槽类型
         public static readonly List<AttachmentItemConfig> AttachmentItemConfigs = new List<AttachmentItemConfig>
         {
             // === 侧面小包 ===
             new AttachmentItemConfig(
-                "NetPocket_Item", "网兜", "网眼侧袋，可存放各种小物件",
-                1001, 0.3f, 200, "SidePocket_Small",
+                "NetPocket_Item", "网兜", "网眼侧袋，可存放食物",
+                349100, 0.3f, 200, "SidePocket_Small",
                 new List<SlotConfig>
                 {
-                    new SlotConfig("NetSlot1", "网兜插槽", new List<string> { "TODO: 水", "TODO: 食物", "TODO: 钥匙" })
-                }
+                    UnifiedSlotTypes["Food"]
+                },
+                "Textures.NetPocket_Item.png"
             ),
             new AttachmentItemConfig(
-                "CanteenPocket_Item", "水壶袋", "专门用于存放水壶的侧袋",
-                1002, 0.4f, 250, "SidePocket_Small",
+                "CanteenPocket_Item", "水壶袋", "专门用于存放水壶和食物的侧袋",
+                349101, 0.4f, 250, "SidePocket_Small",
                 new List<SlotConfig>
                 {
-                    new SlotConfig("CanteenSlot1", "水壶插槽1", new List<string> { "TODO: 小物件" }),
-                    new SlotConfig("CanteenSlot2", "水壶插槽2", new List<string> { "TODO: 小物件" })
-                }
+                    UnifiedSlotTypes["Food"],
+                    UnifiedSlotTypes["Small"]
+                },
+                "Textures.CanteenPocket_Item.png"
             ),
 
             // === 侧面大包 ===
             new AttachmentItemConfig(
                 "BianFengStorage_Item", "边锋收纳包", "多功能收纳包，提供灵活的存储方案",
-                1011, 0.8f, 500, "SidePocket_Large",
+                349120, 0.8f, 500, "SidePocket_Large",
                 new List<SlotConfig>
                 {
-                    new SlotConfig("StorageSlot1", "通用插槽", new List<string> { "TODO: 所有" }),
-                    new SlotConfig("StorageSlot2", "小物件插槽", new List<string> { "TODO: 小物件" }),
-                    new SlotConfig("StorageSlot3", "小物件插槽", new List<string> { "TODO: 小物件" })
+                    UnifiedSlotTypes["Small"],
+                    UnifiedSlotTypes["Large"],
+                    UnifiedSlotTypes["Small"]
                 }
             ),
 
             // === 战术小包 ===
             new AttachmentItemConfig(
                 "SmallKeyPouch_Item", "小钥匙袋", "专门存放钥匙的小袋",
-                1021, 0.2f, 150, "TacticalPouch_Small",
+                349130, 0.2f, 150, "TacticalPouch_Small",
                 new List<SlotConfig>
                 {
-                    new SlotConfig("KeySlot1", "钥匙插槽1", new List<string> { "TODO: 钥匙" }),
-                    new SlotConfig("KeySlot2", "钥匙插槽2", new List<string> { "TODO: 钥匙" })
+                    UnifiedSlotTypes["Key"],
+                    UnifiedSlotTypes["Key"]
                 }
             ),
             new AttachmentItemConfig(
                 "TacticalTransparent_Item", "战术小透明", "透明战术包，方便查看内容",
-                1022, 0.5f, 300, "TacticalPouch_Small",
+                349131, 0.5f, 300, "TacticalPouch_Small",
                 new List<SlotConfig>
                 {
-                    new SlotConfig("TransparentSlot1", "透明插槽1", new List<string> { "TODO: 小物件" }),
-                    new SlotConfig("TransparentSlot2", "透明插槽2", new List<string> { "TODO: 小物件" }),
-                    new SlotConfig("TransparentSlot3", "透明插槽3", new List<string> { "TODO: 小物件" }),
-                    new SlotConfig("TransparentSlot4", "透明插槽4", new List<string> { "TODO: 小物件" }),
-                    new SlotConfig("TransparentSlot5", "透明插槽5", new List<string> { "TODO: 小物件" })
+                    UnifiedSlotTypes["Small"],
+                    UnifiedSlotTypes["Small"],
+                    UnifiedSlotTypes["Small"],
+                    UnifiedSlotTypes["Small"]
                 }
             ),
 
             // === 战术大包 ===
             new AttachmentItemConfig(
                 "ToolBox_Item", "工具箱", "用于存放各种工具的箱子",
-                1031, 1.5f, 800, "TacticalPouch_Large",
+                349140, 1.5f, 800, "TacticalPouch_Large",
                 new List<SlotConfig>
                 {
-                    new SlotConfig("ToolSlot1", "工具插槽1", new List<string> { "TODO: 锤子", "TODO: 铲子", "TODO: 手雷" }),
-                    new SlotConfig("ToolSlot2", "工具插槽2", new List<string> { "TODO: 锤子", "TODO: 铲子", "TODO: 手雷" }),
-                    new SlotConfig("ToolSlot3", "工具插槽3", new List<string> { "TODO: 锤子", "TODO: 铲子", "TODO: 手雷" })
+                    UnifiedSlotTypes["Large"],
+                    UnifiedSlotTypes["Large"],
+                    UnifiedSlotTypes["Large"]
                 }
             ),
             new AttachmentItemConfig(
                 "BianFengTactical_Item", "边锋战术包", "专业战术包，提供多种存储方案",
-                1032, 1.2f, 1000, "TacticalPouch_Large",
+                349141, 1.2f, 1000, "TacticalPouch_Large",
                 new List<SlotConfig>
                 {
-                    new SlotConfig("GrenadeSlot1", "手雷插槽1", new List<string> { "TODO: 手雷" }),
-                    new SlotConfig("GrenadeSlot2", "手雷插槽2", new List<string> { "TODO: 手雷" }),
-                    new SlotConfig("GrenadeSlot3", "手雷插槽3", new List<string> { "TODO: 手雷" }),
-                    new SlotConfig("MixedSlot4", "混合插槽4", new List<string> { "TODO: 小物件", "TODO: 手雷" }),
-                    new SlotConfig("MixedSlot5", "混合插槽5", new List<string> { "TODO: 小物件", "TODO: 手雷" })
+                    UnifiedSlotTypes["Explosive"],
+                    UnifiedSlotTypes["Explosive"],
+                    UnifiedSlotTypes["Large"],
+                    UnifiedSlotTypes["Explosive"],
+                    UnifiedSlotTypes["Explosive"]
                 }
             ),
 
             // === 锁扣 ===
             new AttachmentItemConfig(
                 "MagneticLock_Item", "磁吸锁扣", "磁性锁扣，方便快速开合",
-                1041, 0.1f, 100, "LockBuckle",
+                349150, 0.1f, 100, "LockBuckle",
                 new List<SlotConfig>() // 无插槽
             ),
             new AttachmentItemConfig(
                 "ToolLock_Item", "工具锁扣", "带有工具挂载点的锁扣",
-                1042, 0.3f, 200, "LockBuckle",
+                349151, 0.3f, 200, "LockBuckle",
                 new List<SlotConfig>
                 {
-                    new SlotConfig("ToolLockSlot1", "工具锁插槽1", new List<string> { "TODO: 手雷", "TODO: 钥匙" }),
-                    new SlotConfig("ToolLockSlot2", "工具锁插槽2", new List<string> { "TODO: 手雷", "TODO: 钥匙" })
+                    UnifiedSlotTypes["Hook"],
+                    UnifiedSlotTypes["Hook"]
                 }
             ),
 
             // === 肩带 ===
             new AttachmentItemConfig(
                 "ZeroGravityStrap_Item", "边锋零重力肩带", "采用零重力技术的舒适肩带",
-                1051, 0.4f, 600, "ShoulderStrap",
+                349160, 0.4f, 600, "ShoulderStrap",
                 new List<SlotConfig>() // 无插槽
             ),
 
             // === 肩带包 ===
             new AttachmentItemConfig(
-                "PhonePocket_Item", "手机袋", "肩带上的手机袋，方便取用",
-                1061, 0.2f, 150, "ShoulderPouch",
+                "PhonePocket_Item", "手机袋", "肩带上的手机袋，方便取用小物件",
+                349170, 0.2f, 150, "ShoulderPouch",
                 new List<SlotConfig>
                 {
-                    new SlotConfig("PhoneSlot", "手机插槽", new List<string> { "TODO: 手电", "TODO: 打火机", "TODO: 香烟" })
+                    UnifiedSlotTypes["Small"]
                 }
             ),
 
             // === 子弹袋 ===
             new AttachmentItemConfig(
                 "TacticalAmmoPouch_Item", "战术子弹袋", "专业子弹袋，增加弹药携带效率",
-                1071, 0.7f, 400, "AmmoPouch",
+                349180, 0.7f, 400, "AmmoPouch",
                 new List<SlotConfig>
                 {
-                    new SlotConfig("AmmoSlot1", "弹夹插槽1", new List<string> { "TODO: 弹夹" }),
-                    new SlotConfig("AmmoSlot2", "弹夹插槽2", new List<string> { "TODO: 弹夹" }),
-                    new SlotConfig("AmmoSlot3", "弹夹插槽3", new List<string> { "TODO: 弹夹" }),
-                    new SlotConfig("AmmoSlot4", "弹夹插槽4", new List<string> { "TODO: 弹夹" })
+                    UnifiedSlotTypes["Magazine"],
+                    UnifiedSlotTypes["Magazine"],
+                    UnifiedSlotTypes["Magazine"],
+                    UnifiedSlotTypes["Magazine"]
                 }
             )
         };
