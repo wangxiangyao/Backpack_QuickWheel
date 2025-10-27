@@ -22,6 +22,13 @@ namespace Great_backpack
             harmony.PatchAll(); // 自动补丁所有带有[HarmonyPatch]的类
             Debug.Log("Harmony补丁已应用");
 
+            // 检测并导出支持的语言（开发时使用，完成后注释掉）
+            // LanguageDetector.ExportSupportedLanguages();
+
+            // 初始化本地化系统
+            SystemLanguage currentLanguage = Application.systemLanguage; // 或者从游戏设置获取
+            Great_backpack.Localization.LocalizationManager.Initialize(currentLanguage);
+
             // 初始化管理器
             tagManager = new TagManager();
             backpackModifier = new BackpackModifier(tagManager.CreatedTags);
@@ -33,23 +40,24 @@ namespace Great_backpack
 
         void InitializeBackpackSystem()
         {
-            // 1. 创建所有需要的Tag
+            //  创建所有需要的Tag
             tagManager.CreateRequiredTags();
 
-            // 2. 检查我们需要的限制Tag是否存在
+            // 检查我们需要的限制Tag是否存在
             TagExporter.CheckSpecificTags();
 
-            // 2. 导出所有Tag到文件（开发时使用）
+            // 导出所有Tag到文件（开发时使用）
             ExportAllTagsForDevelopment();
 
-            // 2. 创建配件物品
+            // 创建配件物品
             attachmentManager.CreateAllAttachmentItems();
 
-            // 3. 修改现有背包
+            // 修改现有背包
             backpackModifier.ModifyAllBackpacks();
 
             Debug.Log("行军包配件系统初始化完成");
         }
+
 
         void ExportAllTagsForDevelopment()
         {

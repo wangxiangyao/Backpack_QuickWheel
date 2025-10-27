@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using Great_backpack.AttachmentSystem;
+using Great_backpack.Localization;
 
 namespace Great_backpack
 {
@@ -75,128 +76,333 @@ namespace Great_backpack
         {
             // === 侧面小包 ===
             new AttachmentItemConfig(
-                "NetPocket_Item", "网兜", "网眼侧袋，可存放食物",
+                "NetPocket_Item", "ITEM_NET_POCKET_NAME",
                 349100, 0.3f, 200, "SidePocket_Small",
-                new List<SlotConfig>
-                {
-                    UnifiedSlotTypes["Food"]
-                },
+                new List<SlotConfig> { UnifiedSlotTypes["Food"] },
                 "Textures.NetPocket_Item.png"
-            ),
-            new AttachmentItemConfig(
-                "CanteenPocket_Item", "水壶袋", "专门用于存放水壶和食物的侧袋",
-                349101, 0.4f, 250, "SidePocket_Small",
-                new List<SlotConfig>
+            ){
+                Localization = new LocalizationData
                 {
-                    UnifiedSlotTypes["Food"],
-                    UnifiedSlotTypes["Small"]
-                },
+                    LanguageMappings = new Dictionary<string, Dictionary<string, string>>
+                    {
+                        {
+                            "zh-CN", new Dictionary<string, string>
+                            {
+                                { "ITEM_NET_POCKET_NAME", "网兜" },
+                                { "ITEM_NET_POCKET_NAME_Desc", "网眼侧袋，可存放食物" }
+                            }
+                        },
+                        {
+                            "en-US", new Dictionary<string, string>
+                            {
+                                { "ITEM_NET_POCKET_NAME", "Net Pocket" },
+                                { "ITEM_NET_POCKET_NAME_Desc", "Mesh side pocket for storing food" }
+                            }
+                        }
+                    }
+                }
+            },
+            new AttachmentItemConfig(
+                "CanteenPocket_Item", "ITEM_CANTEEN_POCKET_NAME",
+                349101, 0.4f, 250, "SidePocket_Small",
+                new List<SlotConfig> { UnifiedSlotTypes["Food"], UnifiedSlotTypes["Small"] },
                 "Textures.CanteenPocket_Item.png"
-            ),
+            ){
+                Localization = new LocalizationData
+                {
+                    LanguageMappings = new Dictionary<string, Dictionary<string, string>>
+                    {
+                        {
+                            "zh-CN", new Dictionary<string, string>
+                            {
+                                { "ITEM_CANTEEN_POCKET_NAME", "水壶袋" },
+                                { "ITEM_CANTEEN_POCKET_NAME_Desc", "专门用于存放水壶和食物的侧袋" }
+                            }
+                        },
+                        {
+                            "en-US", new Dictionary<string, string>
+                            {
+                                { "ITEM_CANTEEN_POCKET_NAME", "Canteen Pocket" },
+                                { "ITEM_CANTEEN_POCKET_NAME_Desc", "Special pocket for canteens and food" }
+                            }
+                        }
+                    }
+                }
+            },
 
             // === 侧面大包 ===
             new AttachmentItemConfig(
-                "BianFengStorage_Item", "边锋收纳包", "多功能收纳包，提供灵活的存储方案",
+                "BianFengStorage_Item", "ITEM_BIANFENG_STORAGE_NAME",
                 349120, 0.8f, 500, "SidePocket_Large",
-                new List<SlotConfig>
+                new List<SlotConfig> { UnifiedSlotTypes["Small"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Small"] }
+            ){
+                Localization = new LocalizationData
                 {
-                    UnifiedSlotTypes["Small"],
-                    UnifiedSlotTypes["Large"],
-                    UnifiedSlotTypes["Small"]
+                    LanguageMappings = new Dictionary<string, Dictionary<string, string>>
+                    {
+                        {
+                            "zh-CN", new Dictionary<string, string>
+                            {
+                                { "ITEM_BIANFENG_STORAGE_NAME", "边锋收纳包" },
+                                { "ITEM_BIANFENG_STORAGE_NAME_Desc", "多功能收纳包，提供灵活的存储方案" }
+                            }
+                        },
+                        {
+                            "en-US", new Dictionary<string, string>
+                            {
+                                { "ITEM_BIANFENG_STORAGE_NAME", "BianFeng Storage" },
+                                { "ITEM_BIANFENG_STORAGE_NAME_Desc", "Multi-functional storage bag providing flexible storage solutions" }
+                            }
+                        }
+                    }
                 }
-            ),
+            },
 
             // === 战术小包 ===
             new AttachmentItemConfig(
-                "SmallKeyPouch_Item", "小钥匙袋", "专门存放钥匙的小袋",
+                "SmallKeyPouch_Item", "ITEM_SMALL_KEY_POUCH_NAME",
                 349130, 0.2f, 150, "TacticalPouch_Small",
-                new List<SlotConfig>
+                new List<SlotConfig> { UnifiedSlotTypes["Key"], UnifiedSlotTypes["Key"] }
+            ){
+                Localization = new LocalizationData
                 {
-                    UnifiedSlotTypes["Key"],
-                    UnifiedSlotTypes["Key"]
+                    LanguageMappings = new Dictionary<string, Dictionary<string, string>>
+                    {
+                        {
+                            "zh-CN", new Dictionary<string, string>
+                            {
+                                { "ITEM_SMALL_KEY_POUCH_NAME", "小钥匙袋" },
+                                { "ITEM_SMALL_KEY_POUCH_NAME_Desc", "专门存放钥匙的小袋" }
+                            }
+                        },
+                        {
+                            "en-US", new Dictionary<string, string>
+                            {
+                                { "ITEM_SMALL_KEY_POUCH_NAME", "Small Key Pouch" },
+                                { "ITEM_SMALL_KEY_POUCH_NAME_Desc", "Small pouch specifically for keys" }
+                            }
+                        }
+                    }
                 }
-            ),
+            },
             new AttachmentItemConfig(
-                "TacticalTransparent_Item", "战术小透明", "透明战术包，方便查看内容",
+                "TacticalTransparent_Item", "ITEM_TACTICAL_TRANSPARENT_NAME",
                 349131, 0.5f, 300, "TacticalPouch_Small",
-                new List<SlotConfig>
+                new List<SlotConfig> { UnifiedSlotTypes["Small"], UnifiedSlotTypes["Small"], UnifiedSlotTypes["Small"], UnifiedSlotTypes["Small"] }
+            ){
+                Localization = new LocalizationData
                 {
-                    UnifiedSlotTypes["Small"],
-                    UnifiedSlotTypes["Small"],
-                    UnifiedSlotTypes["Small"],
-                    UnifiedSlotTypes["Small"]
+                    LanguageMappings = new Dictionary<string, Dictionary<string, string>>
+                    {
+                        {
+                            "zh-CN", new Dictionary<string, string>
+                            {
+                                { "ITEM_TACTICAL_TRANSPARENT_NAME", "战术小透明" },
+                                { "ITEM_TACTICAL_TRANSPARENT_NAME_Desc", "透明战术包，方便查看内容" }
+                            }
+                        },
+                        {
+                            "en-US", new Dictionary<string, string>
+                            {
+                                { "ITEM_TACTICAL_TRANSPARENT_NAME", "Tactical Transparent" },
+                                { "ITEM_TACTICAL_TRANSPARENT_NAME_Desc", "Transparent tactical bag for easy content viewing" }
+                            }
+                        }
+                    }
                 }
-            ),
+            },
 
             // === 战术大包 ===
             new AttachmentItemConfig(
-                "ToolBox_Item", "工具箱", "用于存放各种工具的箱子",
+                "ToolBox_Item", "ITEM_TOOL_BOX_NAME",
                 349140, 1.5f, 800, "TacticalPouch_Large",
-                new List<SlotConfig>
+                new List<SlotConfig> { UnifiedSlotTypes["Large"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Large"] }
+            ){
+                Localization = new LocalizationData
                 {
-                    UnifiedSlotTypes["Large"],
-                    UnifiedSlotTypes["Large"],
-                    UnifiedSlotTypes["Large"]
+                    LanguageMappings = new Dictionary<string, Dictionary<string, string>>
+                    {
+                        {
+                            "zh-CN", new Dictionary<string, string>
+                            {
+                                { "ITEM_TOOL_BOX_NAME", "工具箱" },
+                                { "ITEM_TOOL_BOX_NAME_Desc", "用于存放各种工具的箱子" }
+                            }
+                        },
+                        {
+                            "en-US", new Dictionary<string, string>
+                            {
+                                { "ITEM_TOOL_BOX_NAME", "Tool Box" },
+                                { "ITEM_TOOL_BOX_NAME_Desc", "Box for storing various tools" }
+                            }
+                        }
+                    }
                 }
-            ),
+            },
             new AttachmentItemConfig(
-                "BianFengTactical_Item", "边锋战术包", "专业战术包，提供多种存储方案",
+                "BianFengTactical_Item", "ITEM_BIANFENG_TACTICAL_NAME",
                 349141, 1.2f, 1000, "TacticalPouch_Large",
-                new List<SlotConfig>
+                new List<SlotConfig> { UnifiedSlotTypes["Explosive"], UnifiedSlotTypes["Explosive"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Explosive"], UnifiedSlotTypes["Explosive"] }
+            ){
+                Localization = new LocalizationData
                 {
-                    UnifiedSlotTypes["Explosive"],
-                    UnifiedSlotTypes["Explosive"],
-                    UnifiedSlotTypes["Large"],
-                    UnifiedSlotTypes["Explosive"],
-                    UnifiedSlotTypes["Explosive"]
+                    LanguageMappings = new Dictionary<string, Dictionary<string, string>>
+                    {
+                        {
+                            "zh-CN", new Dictionary<string, string>
+                            {
+                                { "ITEM_BIANFENG_TACTICAL_NAME", "边锋战术包" },
+                                { "ITEM_BIANFENG_TACTICAL_NAME_Desc", "专业战术包，提供多种存储方案" }
+                            }
+                        },
+                        {
+                            "en-US", new Dictionary<string, string>
+                            {
+                                { "ITEM_BIANFENG_TACTICAL_NAME", "BianFeng Tactical" },
+                                { "ITEM_BIANFENG_TACTICAL_NAME_Desc", "Professional tactical bag with multiple storage solutions" }
+                            }
+                        }
+                    }
                 }
-            ),
+            },
 
             // === 锁扣 ===
             new AttachmentItemConfig(
-                "MagneticLock_Item", "磁吸锁扣", "磁性锁扣，方便快速开合",
+                "MagneticLock_Item", "ITEM_MAGNETIC_LOCK_NAME",
                 349150, 0.1f, 100, "LockBuckle",
                 new List<SlotConfig>() // 无插槽
-            ),
-            new AttachmentItemConfig(
-                "ToolLock_Item", "工具锁扣", "带有工具挂载点的锁扣",
-                349151, 0.3f, 200, "LockBuckle",
-                new List<SlotConfig>
+            ){
+                Localization = new LocalizationData
                 {
-                    UnifiedSlotTypes["Hook"],
-                    UnifiedSlotTypes["Hook"]
+                    LanguageMappings = new Dictionary<string, Dictionary<string, string>>
+                    {
+                        {
+                            "zh-CN", new Dictionary<string, string>
+                            {
+                                { "ITEM_MAGNETIC_LOCK_NAME", "磁吸锁扣" },
+                                { "ITEM_MAGNETIC_LOCK_NAME_Desc", "磁性锁扣，方便快速开合" }
+                            }
+                        },
+                        {
+                            "en-US", new Dictionary<string, string>
+                            {
+                                { "ITEM_MAGNETIC_LOCK_NAME", "Magnetic Lock" },
+                                { "ITEM_MAGNETIC_LOCK_NAME_Desc", "Magnetic lock for quick opening and closing" }
+                            }
+                        }
+                    }
                 }
-            ),
+            },
+            new AttachmentItemConfig(
+                "ToolLock_Item", "ITEM_TOOL_LOCK_NAME",
+                349151, 0.3f, 200, "LockBuckle",
+                new List<SlotConfig> { UnifiedSlotTypes["Hook"], UnifiedSlotTypes["Hook"] }
+            ){
+                Localization = new LocalizationData
+                {
+                    LanguageMappings = new Dictionary<string, Dictionary<string, string>>
+                    {
+                        {
+                            "zh-CN", new Dictionary<string, string>
+                            {
+                                { "ITEM_TOOL_LOCK_NAME", "工具锁扣" },
+                                { "ITEM_TOOL_LOCK_NAME_Desc", "带有工具挂载点的锁扣" }
+                            }
+                        },
+                        {
+                            "en-US", new Dictionary<string, string>
+                            {
+                                { "ITEM_TOOL_LOCK_NAME", "Tool Lock" },
+                                { "ITEM_TOOL_LOCK_NAME_Desc", "Lock with tool mounting points" }
+                            }
+                        }
+                    }
+                }
+            },
 
             // === 肩带 ===
             new AttachmentItemConfig(
-                "ZeroGravityStrap_Item", "边锋零重力肩带", "采用零重力技术的舒适肩带",
+                "ZeroGravityStrap_Item", "ITEM_ZERO_GRAVITY_STRAP_NAME",
                 349160, 0.4f, 600, "ShoulderStrap",
                 new List<SlotConfig>() // 无插槽
-            ),
+            ){
+                Localization = new LocalizationData
+                {
+                    LanguageMappings = new Dictionary<string, Dictionary<string, string>>
+                    {
+                        {
+                            "zh-CN", new Dictionary<string, string>
+                            {
+                                { "ITEM_ZERO_GRAVITY_STRAP_NAME", "边锋零重力肩带" },
+                                { "ITEM_ZERO_GRAVITY_STRAP_NAME_Desc", "采用零重力技术的舒适肩带" }
+                            }
+                        },
+                        {
+                            "en-US", new Dictionary<string, string>
+                            {
+                                { "ITEM_ZERO_GRAVITY_STRAP_NAME", "BianFeng Zero Gravity Strap" },
+                                { "ITEM_ZERO_GRAVITY_STRAP_NAME_Desc", "Comfortable shoulder strap using zero-gravity technology" }
+                            }
+                        }
+                    }
+                }
+            },
 
             // === 肩带包 ===
             new AttachmentItemConfig(
-                "PhonePocket_Item", "手机袋", "肩带上的手机袋，方便取用小物件",
+                "PhonePocket_Item", "ITEM_PHONE_POCKET_NAME",
                 349170, 0.2f, 150, "ShoulderPouch",
-                new List<SlotConfig>
+                new List<SlotConfig> { UnifiedSlotTypes["Small"] }
+            ){
+                Localization = new LocalizationData
                 {
-                    UnifiedSlotTypes["Small"]
+                    LanguageMappings = new Dictionary<string, Dictionary<string, string>>
+                    {
+                        {
+                            "zh-CN", new Dictionary<string, string>
+                            {
+                                { "ITEM_PHONE_POCKET_NAME", "手机袋" },
+                                { "ITEM_PHONE_POCKET_NAME_Desc", "肩带上的手机袋，方便取用小物件" }
+                            }
+                        },
+                        {
+                            "en-US", new Dictionary<string, string>
+                            {
+                                { "ITEM_PHONE_POCKET_NAME", "Phone Pocket" },
+                                { "ITEM_PHONE_POCKET_NAME_Desc", "Shoulder pocket for easy access to small items" }
+                            }
+                        }
+                    }
                 }
-            ),
+            },
 
             // === 子弹袋 ===
             new AttachmentItemConfig(
-                "TacticalAmmoPouch_Item", "战术子弹袋", "专业子弹袋，增加弹药携带效率",
+                "TacticalAmmoPouch_Item", "ITEM_TACTICAL_AMMO_POUCH_NAME",
                 349180, 0.7f, 400, "AmmoPouch",
-                new List<SlotConfig>
+                new List<SlotConfig> { UnifiedSlotTypes["Magazine"], UnifiedSlotTypes["Magazine"], UnifiedSlotTypes["Magazine"], UnifiedSlotTypes["Magazine"] }
+            ){
+                Localization = new LocalizationData
                 {
-                    UnifiedSlotTypes["Magazine"],
-                    UnifiedSlotTypes["Magazine"],
-                    UnifiedSlotTypes["Magazine"],
-                    UnifiedSlotTypes["Magazine"]
+                    LanguageMappings = new Dictionary<string, Dictionary<string, string>>
+                    {
+                        {
+                            "zh-CN", new Dictionary<string, string>
+                            {
+                                { "ITEM_TACTICAL_AMMO_POUCH_NAME", "战术子弹袋" },
+                                { "ITEM_TACTICAL_AMMO_POUCH_NAME_Desc", "专业子弹袋，增加弹药携带效率" }
+                            }
+                        },
+                        {
+                            "en-US", new Dictionary<string, string>
+                            {
+                                { "ITEM_TACTICAL_AMMO_POUCH_NAME", "Tactical Ammo Pouch" },
+                                { "ITEM_TACTICAL_AMMO_POUCH_NAME_Desc", "Professional ammo pouch for increased ammunition carrying efficiency" }
+                            }
+                        }
+                    }
                 }
-            )
+            }
         };
     }
 }

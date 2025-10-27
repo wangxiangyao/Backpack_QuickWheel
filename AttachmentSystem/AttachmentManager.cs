@@ -54,7 +54,7 @@ namespace Great_backpack.AttachmentSystem
         {
             try
             {
-                // 1. 选择基础物品进行克隆（参考MOD使用135作为基础）
+                // 选择基础物品进行克隆（参考MOD使用135作为基础）
                 int baseItemId = 135; // 或者根据是否有插槽选择不同的基础物品
                 if (config.SlotConfigs.Count > 0)
                 {
@@ -68,27 +68,29 @@ namespace Great_backpack.AttachmentSystem
                     return;
                 }
 
-                // 2. 克隆基础物品
+                // 克隆基础物品
                 GameObject itemObject = UnityEngine.Object.Instantiate(basePrefab.gameObject);
                 itemObject.name = config.ItemName;
                 UnityEngine.Object.DontDestroyOnLoad(itemObject);
 
                 Item newItem = itemObject.GetComponent<Item>();
 
-                // 3. 使用反射设置物品属性
+                // 使用反射设置物品属性
                 SetItemProperties(newItem, config);
 
-                // 4. 设置标签
+                // 设置本地化
+                //SetItemLocalization(config);
+
+                // 设置标签
                 SetAttachmentTag(newItem, config.RequiredTag);
 
-                // 5. 配置插槽（如果有）
+                // 配置插槽（如果有）
                 if (config.SlotConfigs.Count > 0)
                 {
                     ConfigureItemSlots(newItem, config.SlotConfigs);
                 }
 
-                // 6. 设置本地化
-                SetItemLocalization(config);
+                
 
                 // 设置物品图标
                 SetItemIcon(newItem, config);
@@ -138,23 +140,26 @@ namespace Great_backpack.AttachmentSystem
             }
         }
 
-        private void SetItemLocalization(AttachmentItemConfig config)
-        {
-            try
-            {
-                // 设置物品名称本地化
-                string nameKey = "Item_" + config.ItemName;
-                SodaCraft.Localizations.LocalizationManager.SetOverrideText(nameKey, config.DisplayName);
+        //private void SetItemLocalization(AttachmentItemConfig config)
+        //{
+        //    try
+        //    {
+        //        // 使用Item类期望的键格式
+        //        // 显示名称键就是 DisplayName 本身
+        //        string nameKey = config.DisplayName;
+        //        SodaCraft.Localizations.LocalizationManager.SetOverrideText(nameKey, config.DisplayName);
 
-                // 设置物品描述本地化  
-                string descKey = "Item_" + config.ItemName + "_Desc";
-                SodaCraft.Localizations.LocalizationManager.SetOverrideText(descKey, config.Description);
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogError($"设置物品本地化时出错: {e.Message}");
-            }
-        }
+        //        // 描述键是 DisplayName + "_Desc"
+        //        string descKey = config.DisplayName + "_Desc";
+        //        SodaCraft.Localizations.LocalizationManager.SetOverrideText(descKey, config.Description);
+
+        //        Debug.Log($"设置物品本地化 - 名称键: {nameKey}, 描述键: {descKey}");
+        //    }
+        //    catch (System.Exception e)
+        //    {
+        //        Debug.LogError($"设置物品本地化时出错: {e.Message}");
+        //    }
+        //}
 
         private void SetAttachmentTag(Item item, string requiredTag)
         {

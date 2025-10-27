@@ -1,12 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using Great_backpack.Localization;
+using System.Collections.Generic;
 
 namespace Great_backpack.AttachmentSystem
 {
     public class AttachmentItemConfig
     {
         public string ItemName { get; set; }
-        public string DisplayName { get; set; }
-        public string Description { get; set; }
+        public string DisplayName { get; set; }  // 本地化键
         public int TypeID { get; set; }
         public float Weight { get; set; }
         public int Value { get; set; }
@@ -14,19 +14,22 @@ namespace Great_backpack.AttachmentSystem
         public List<SlotConfig> SlotConfigs { get; set; }
         public string EmbeddedSpritePath { get; set; }
 
-        public AttachmentItemConfig(string itemName, string displayName, string description,
+        // 新增：本地化数据引用
+        public LocalizationData Localization { get; set; }
+
+        public AttachmentItemConfig(string itemName, string DisplayName,
                                    int typeID, float weight, int value, string requiredTag,
                                    List<SlotConfig> slotConfigs, string embeddedSpritePath = null)
         {
             ItemName = itemName;
-            DisplayName = displayName;
-            Description = description;
+            this.DisplayName = DisplayName;
             TypeID = typeID;
             Weight = weight;
             Value = value;
             RequiredTag = requiredTag;
             SlotConfigs = slotConfigs;
             EmbeddedSpritePath = embeddedSpritePath;
+            Localization = new LocalizationData();
         }
     }
 }
