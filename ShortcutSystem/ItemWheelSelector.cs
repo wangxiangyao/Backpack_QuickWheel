@@ -48,6 +48,9 @@ namespace Great_backpack.ShortcutSystem
         // 当前显示的物品所属类别（用于保存布局时）
         private ItemCategory _currentCategory = ItemCategory.Medical;
 
+        // 拖拽状态标志
+        private bool _hasBeenDragged = false;  // 轮盘显示期间是否发生了拖拽
+
         // 九宫格配置
         private const float CELL_SIZE = 40f;                        // 格子大小（宽高）
         private const float GRID_OFFSET = CELL_SIZE + 5f;           // 格子间距（包括间距）
@@ -207,6 +210,10 @@ namespace Great_backpack.ShortcutSystem
             Debug.Log($"[ItemWheelSelector] 轮盘显示时鼠标位置: {wheelShowPos}");
 
             _currentCategory = category;
+
+            // 重置拖拽标志
+            _hasBeenDragged = false;
+
             // 如果没有找到ItemDisplay模板，重新查找一次
             if (_itemDisplayTemplate == null)
             {
@@ -486,6 +493,10 @@ namespace Great_backpack.ShortcutSystem
                 return;
             }
 
+            // 标记轮盘已发生拖拽
+            _hasBeenDragged = true;
+            Debug.Log($"[ItemWheelSelector] 轮盘拖拽标志已设置");
+
             // 确保 _currentItems 列表足够大
             while (_currentItems.Count <= Mathf.Max(fromIndex, toIndex))
             {
@@ -528,6 +539,14 @@ namespace Great_backpack.ShortcutSystem
                 return _currentItems[_selectedItemIndex];
             }
             return null;
+        }
+
+        /// <summary>
+        /// 检查轮盘显示期间是否发生过拖拽
+        /// </summary>
+        public bool HasBeenDragged()
+        {
+            return _hasBeenDragged;
         }
     }
 }

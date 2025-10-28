@@ -137,9 +137,18 @@ namespace Great_backpack.ShortcutSystem
 
             if (_wheelShown)
             {
-                // 长按后释放：轮盘已显示，执行轮盘中选中的物品
-                Debug.Log($"[InputInterceptor] 轮盘已显示，执行选中物品");
-                HandleWheelItemSelection(index);
+                // 长按后释放：轮盘已显示
+                // 检查轮盘是否发生了拖拽
+                if (_wheelSelector.HasBeenDragged())
+                {
+                    Debug.Log($"[InputInterceptor] 轮盘已发生拖拽，跳过物品使用，仅关闭轮盘");
+                }
+                else
+                {
+                    // 轮盘未拖拽，执行选中物品
+                    Debug.Log($"[InputInterceptor] 轮盘未拖拽，执行选中物品");
+                    HandleWheelItemSelection(index);
+                }
                 // 隐藏轮盘
                 _wheelSelector.HideWheel();
             }

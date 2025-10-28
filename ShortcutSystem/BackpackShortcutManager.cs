@@ -734,14 +734,52 @@ namespace Great_backpack.ShortcutSystem
 
         public Item GetCurrentItem(ItemCategory category)
         {
-            if (!IsShortcutSystemEnabled || !_categorizedItems.ContainsKey(category) || _categorizedItems[category].Count == 0)
+            if (!IsShortcutSystemEnabled)
+                return null;
+
+            // 从轮盘布局中获取物品（与SetCurrentSelection()保持一致）
+            var wheelLayout = GetItemsForCategory(category);
+            if (wheelLayout.Count == 0)
                 return null;
 
             int index = _currentSelection[category];
-            if (index < 0 || index >= _categorizedItems[category].Count)
+            if (index < 0 || index >= wheelLayout.Count)
                 index = 0;
 
-            return _categorizedItems[category][index];
+            var selectedItem = wheelLayout[index];
+
+            // 如果选择的是 null 占位符，自动寻找下一个有效物品
+            if (selectedItem == null)
+            {
+                Debug.Log($"[BackpackShortcutManager] GetCurrentItem: 选择索引 {index} 是占位符，自动寻找下一个有效物品...");
+
+                // 向前搜索
+                for (int i = index + 1; i < wheelLayout.Count; i++)
+                {
+                    if (wheelLayout[i] != null)
+                    {
+                        selectedItem = wheelLayout[i];
+                        Debug.Log($"[BackpackShortcutManager] 找到下一个有效物品在索引 {i}: {selectedItem.DisplayName}");
+                        break;
+                    }
+                }
+
+                // 向后搜索
+                if (selectedItem == null)
+                {
+                    for (int i = index - 1; i >= 0; i--)
+                    {
+                        if (wheelLayout[i] != null)
+                        {
+                            selectedItem = wheelLayout[i];
+                            Debug.Log($"[BackpackShortcutManager] 向后找到有效物品在索引 {i}: {selectedItem.DisplayName}");
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return selectedItem;
         }
 
         public void HandleShortcutInput(ItemCategory category)
