@@ -33,6 +33,10 @@ namespace Great_backpack.ShortcutSystem
         private Vector2 _wheelCenterScreenPos;
         private bool _wheelActive = false;
 
+        // 全屏拦截面板（防止鼠标输入传给游戏）
+        private GameObject _inputBlockerPanel;
+        private Image _inputBlockerImage;
+
         // ItemDisplay 模板（从库存克隆）
         private ItemDisplay _itemDisplayTemplate;
 
@@ -40,6 +44,9 @@ namespace Great_backpack.ShortcutSystem
         private Vector2 _pressDownMousePos = Vector2.zero;       // 按下时的鼠标位置
         private Vector2 _wheelShowMousePos = Vector2.zero;       // 轮盘显示时的鼠标位置
         private const float FIRST_VECTOR_THRESHOLD = 20f;        // 第一矢量的激活阈值（死区）
+
+        // 当前显示的物品所属类别（用于保存布局时）
+        private ItemCategory _currentCategory = ItemCategory.Medical;
 
         // 九宫格配置
         private const float CELL_SIZE = 40f;                        // 格子大小（宽高）
@@ -116,6 +123,26 @@ namespace Great_backpack.ShortcutSystem
             var canvasScaler = canvasObj.AddComponent<CanvasScaler>();
             canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
 
+            // 创建全屏拦截面板（防止鼠标输入传给游戏）
+            var blockerObj = new GameObject("InputBlocker");
+            blockerObj.transform.SetParent(canvasObj.transform, false);
+            blockerObj.transform.SetAsFirstSibling();  // 放在最后面，不遮挡轮盘
+
+            var blockerRect = blockerObj.GetComponent<RectTransform>();
+            if (blockerRect == null)
+            {
+                blockerRect = blockerObj.AddComponent<RectTransform>();
+            }
+            blockerRect.anchorMin = Vector2.zero;
+            blockerRect.anchorMax = Vector2.one;
+            blockerRect.offsetMin = Vector2.zero;
+            blockerRect.offsetMax = Vector2.zero;
+
+            _inputBlockerImage = blockerObj.AddComponent<Image>();
+            _inputBlockerImage.color = new Color(0, 0, 0, 0);  // 完全透明
+            _inputBlockerImage.raycastTarget = true;  // 拦截输入
+            _inputBlockerPanel = blockerObj;
+
             // 创建轮盘容器
             var wheelObj = new GameObject("WheelContainer");
             wheelObj.transform.SetParent(canvasObj.transform, false);
@@ -165,11 +192,25 @@ namespace Great_backpack.ShortcutSystem
         /// <summary>
         /// 显示轮盘选择器
         /// </summary>
-        public void ShowWheel(List<Item> items, int shortcutIndex, Vector2 pressDownPos, Vector2 wheelShowPos)
+        public void ShowWheel(List<Item> items, int shortcutIndex, Vector2 pressDownPos, Vector2 wheelShowPos, ItemCategory category = ItemCategory.Medical)
         {
+            Debug.Log($"[ItemWheelSelector] ═══════════════════════════════════════");
+            Debug.Log($"[ItemWheelSelector] ShowWheel 被调用");
+            Debug.Log($"[ItemWheelSelector] 快捷键索引: {shortcutIndex}，类别: {category}");
+            Debug.Log($"[ItemWheelSelector] 接收物品数量: {items?.Count ?? 0}");
+            if (items != null && items.Count > 0)
+            {
+                var itemNames = items.ConvertAll(item => item?.DisplayName ?? "null");
+                Debug.Log($"[ItemWheelSelector] 物品列表: {string.Join(", ", itemNames)}");
+            }
+            Debug.Log($"[ItemWheelSelector] 按下时鼠标位置: {pressDownPos}");
+            Debug.Log($"[ItemWheelSelector] 轮盘显示时鼠标位置: {wheelShowPos}");
+
+            _currentCategory = category;
             // 如果没有找到ItemDisplay模板，重新查找一次
             if (_itemDisplayTemplate == null)
             {
+                Debug.Log($"[ItemWheelSelector] ItemDisplay模板为null，重新查找...");
                 FindItemDisplayTemplate();
             }
 
@@ -177,8 +218,11 @@ namespace Great_backpack.ShortcutSystem
             if (_itemDisplayTemplate == null)
             {
                 Debug.LogError("[ItemWheelSelector] 无法找到ItemDisplay模板，无法显示轮盘");
+                Debug.Log($"[ItemWheelSelector] ═══════════════════════════════════════");
                 return;
             }
+
+            Debug.Log($"[ItemWheelSelector] ItemDisplay模板已找到");
 
             // 最多支持8个物品
             if (items.Count > 8)
@@ -190,6 +234,8 @@ namespace Great_backpack.ShortcutSystem
             {
                 _currentItems = new List<Item>(items);
             }
+
+            Debug.Log($"[ItemWheelSelector] 实际要显示的物品数: {_currentItems.Count}");
 
             // 保存鼠标位置用于矢量选择
             _pressDownMousePos = pressDownPos;           // 按下时的鼠标位置
@@ -207,9 +253,13 @@ namespace Great_backpack.ShortcutSystem
             // 设置轮盘中心位置（必须在激活后才能正确转换屏幕坐标）
             _wheelContainer.position = _wheelCenterScreenPos;
 
+            Debug.Log($"[ItemWheelSelector] 轮盘中心位置已设置: {_wheelCenterScreenPos}");
+            Debug.Log($"[ItemWheelSelector] 正在创建物品显示...");
+
             CreateItemDisplays();
 
-            Debug.Log($"[ItemWheelSelector] 显示轮盘 @ {_wheelCenterScreenPos}，物品数: {_currentItems.Count}");
+            Debug.Log($"[ItemWheelSelector] ✓ 轮盘显示完成 @ {_wheelCenterScreenPos}，物品数: {_currentItems.Count}");
+            Debug.Log($"[ItemWheelSelector] ═══════════════════════════════════════");
         }
 
         /// <summary>
@@ -222,6 +272,7 @@ namespace Great_backpack.ShortcutSystem
 
         /// <summary>
         /// 隐藏轮盘选择器
+        /// 注意：布局已在 SwapItems 时实时保存，这里只负责清理UI
         /// </summary>
         public void HideWheel()
         {
@@ -237,6 +288,7 @@ namespace Great_backpack.ShortcutSystem
         /// </summary>
         private void CreateItemDisplays()
         {
+            Debug.Log($"[ItemWheelSelector] CreateItemDisplays 开始创建物品显示");
             ClearItemDisplays();
 
             if (_itemDisplayTemplate == null)
@@ -245,10 +297,22 @@ namespace Great_backpack.ShortcutSystem
                 return;
             }
 
+            Debug.Log($"[ItemWheelSelector] 当前物品数: {_currentItems.Count}");
+
             // 创建所有8个格子
             for (int i = 0; i < 8; i++)
             {
                 Item itemToDisplay = (i < _currentItems.Count) ? _currentItems[i] : null;
+
+                if (itemToDisplay != null)
+                {
+                    Debug.Log($"[ItemWheelSelector] 格子 {i} (位置 {GRID_POSITIONS[i]}): 创建 '{itemToDisplay.DisplayName}'");
+                }
+                else
+                {
+                    Debug.Log($"[ItemWheelSelector] 格子 {i} (位置 {GRID_POSITIONS[i]}): 空格子");
+                }
+
                 var displayClone = CreateWheelItemDisplay(i, GRID_POSITIONS[i], itemToDisplay);
                 if (displayClone != null)
                 {
@@ -261,12 +325,13 @@ namespace Great_backpack.ShortcutSystem
                         if (itemDisplay != null)
                         {
                             _itemDisplayComponents.Add(itemDisplay);
+                            Debug.Log($"[ItemWheelSelector] 格子 {i} ItemDisplay组件已记录: {itemToDisplay.DisplayName}");
                         }
                     }
                 }
             }
 
-            Debug.Log($"[ItemWheelSelector] 克隆了8个ItemDisplay，其中 {_itemDisplayComponents.Count} 个有物品");
+            Debug.Log($"[ItemWheelSelector] ✓ 创建完成：克隆了8个ItemDisplay，其中 {_itemDisplayComponents.Count} 个有物品");
         }
 
         /// <summary>
@@ -288,7 +353,7 @@ namespace Great_backpack.ShortcutSystem
 
             // 添加自定义UI组件
             var wheelDisplay = cellObj.AddComponent<WheelItemDisplay>();
-            wheelDisplay.Initialize(item);  // item 可以为 null，显示空格子
+            wheelDisplay.Initialize(item, cellIndex, this);  // 传入索引和轮盘选择器引用
 
             return cellObj;
         }
@@ -404,6 +469,51 @@ namespace Great_backpack.ShortcutSystem
                 {
                     // 只有被选中的格子才显示聚焦效果
                     display.SetSelected(i == _selectedItemIndex);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 交换两个格子中的物品（用于拖动调整）
+        /// 可以处理空格子（null）的交换
+        /// </summary>
+        public void SwapItems(int fromIndex, int toIndex)
+        {
+            if (fromIndex < 0 || fromIndex >= _itemDisplayClones.Count ||
+                toIndex < 0 || toIndex >= _itemDisplayClones.Count)
+            {
+                Debug.LogWarning($"[ItemWheelSelector] 交换索引无效: from={fromIndex}, to={toIndex}");
+                return;
+            }
+
+            // 确保 _currentItems 列表足够大
+            while (_currentItems.Count <= Mathf.Max(fromIndex, toIndex))
+            {
+                _currentItems.Add(null);
+            }
+
+            // 交换物品列表中的项
+            Item tempItem = _currentItems[fromIndex];
+            _currentItems[fromIndex] = _currentItems[toIndex];
+            _currentItems[toIndex] = tempItem;
+
+            // 更新对应的显示组件
+            var fromDisplay = _itemDisplayClones[fromIndex].GetComponent<WheelItemDisplay>();
+            var toDisplay = _itemDisplayClones[toIndex].GetComponent<WheelItemDisplay>();
+
+            if (fromDisplay != null && toDisplay != null)
+            {
+                fromDisplay.SetItem(_currentItems[fromIndex]);
+                toDisplay.SetItem(_currentItems[toIndex]);
+
+                Debug.Log($"[ItemWheelSelector] 物品交换完成: 索引 {fromIndex} <-> {toIndex}");
+
+                // 立即保存轮盘布局（不等到隐藏时）
+                // 这样即使轮盘突然关闭，也能保存当前的调整
+                if (BackpackShortcutManager.Instance != null)
+                {
+                    BackpackShortcutManager.Instance.SaveWheelLayout(_currentCategory, _currentItems);
+                    Debug.Log($"[ItemWheelSelector] SwapItems 已保存布局");
                 }
             }
         }

@@ -7,6 +7,9 @@ namespace Great_backpack.ShortcutSystem.Patches
 {
     /// <summary>
     /// 补丁 CharacterInputControl.ShortCutInput 来拦截界面关闭时的快捷键输入
+    ///
+    /// 注：鼠标输入拦截通过 ItemWheelSelector 中的全屏透明面板实现
+    /// 该面板会拦截所有鼠标事件，防止开枪、投掷等操作
     /// </summary>
     [HarmonyPatch(typeof(CharacterInputControl))]
     [HarmonyPatch("ShortCutInput", MethodType.Normal)]

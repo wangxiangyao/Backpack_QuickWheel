@@ -32,6 +32,11 @@ namespace Great_backpack.ShortcutSystem
 
         public static InputInterceptor Instance => _instance;
 
+        /// <summary>
+        /// 检查轮盘是否正在显示
+        /// </summary>
+        public static bool IsWheelVisible => _instance != null && _instance._wheelShown;
+
         private void Awake()
         {
             if (_instance != null && _instance != this)
@@ -70,6 +75,7 @@ namespace Great_backpack.ShortcutSystem
                 // 如果达到长按阈值且轮盘未显示，显示轮盘
                 if (_pressDuration >= LONG_PRESS_THRESHOLD && !_wheelShown)
                 {
+                    Debug.Log($"[InputInterceptor] 长按时间达到 {_pressDuration:F2}s，显示轮盘");
                     ShowWheelSelector();
                     _wheelShown = true;
                 }
@@ -83,13 +89,17 @@ namespace Great_backpack.ShortcutSystem
         {
             // 只处理我们的快捷键范围
             if (!BackpackShortcutManager.IsBackpackShortcutIndex(index))
+            {
+                Debug.Log($"[InputInterceptor] 快捷键 {index} 不在范围内，忽略");
                 return;
+            }
 
-            Debug.Log($"[InputInterceptor] 快捷键 {index} 按下");
+            Debug.Log($"[InputInterceptor] ✓ 快捷键 {index} 按下（在范围内）");
 
             // 如果已有其他按键按下，先处理释放
             if (_currentPressedIndex >= 0 && _currentPressedIndex != index)
             {
+                Debug.Log($"[InputInterceptor] 前一个按键未释放，先处理释放: {_currentPressedIndex}");
                 OnShortcutKeyUp(_currentPressedIndex);
             }
 
@@ -111,7 +121,10 @@ namespace Great_backpack.ShortcutSystem
         {
             // 只处理我们的快捷键范围
             if (!BackpackShortcutManager.IsBackpackShortcutIndex(index))
+            {
+                Debug.Log($"[InputInterceptor] 快捷键 {index} 不在范围内，忽略");
                 return;
+            }
 
             // 只处理当前正在按下的快捷键
             if (_currentPressedIndex != index)
@@ -120,11 +133,12 @@ namespace Great_backpack.ShortcutSystem
                 return;
             }
 
-            Debug.Log($"[InputInterceptor] 快捷键 {index} 释放，按压时长: {_pressDuration:F2}s");
+            Debug.Log($"[InputInterceptor] ✓ 快捷键 {index} 释放，按压时长: {_pressDuration:F2}s");
 
             if (_wheelShown)
             {
                 // 长按后释放：轮盘已显示，执行轮盘中选中的物品
+                Debug.Log($"[InputInterceptor] 轮盘已显示，执行选中物品");
                 HandleWheelItemSelection(index);
                 // 隐藏轮盘
                 _wheelSelector.HideWheel();
@@ -132,7 +146,12 @@ namespace Great_backpack.ShortcutSystem
             else if (_pressDuration < LONG_PRESS_THRESHOLD)
             {
                 // 短按：直接使用当前物品
+                Debug.Log($"[InputInterceptor] 短按（{_pressDuration:F2}s < {LONG_PRESS_THRESHOLD}s），执行短按处理");
                 HandleShortPress(index);
+            }
+            else
+            {
+                Debug.Log($"[InputInterceptor] 轮盘未显示，且已经超过长按阈值，不进行任何操作");
             }
 
             // 重置状态
@@ -159,11 +178,18 @@ namespace Great_backpack.ShortcutSystem
             }
 
             var category = BackpackShortcutManager.IndexToCategory(_currentPressedIndex);
+
+            Debug.Log($"[InputInterceptor] ═══════════════════════════════════════");
+            Debug.Log($"[InputInterceptor] 准备显示轮盘");
+            Debug.Log($"[InputInterceptor] 快捷键索引: {_currentPressedIndex}，对应类别: {category}");
+            Debug.Log($"[InputInterceptor] 正在从 BackpackShortcutManager 获取物品列表...");
+
             var items = BackpackShortcutManager.Instance?.GetItemsForCategory(category);
 
             if (items == null || items.Count == 0)
             {
-                Debug.LogWarning($"[InputInterceptor] 类别 {category} 没有物品，不显示轮盘");
+                Debug.LogWarning($"[InputInterceptor] ✗ 类别 {category} 没有物品，不显示轮盘");
+                Debug.Log($"[InputInterceptor] ═══════════════════════════════════════");
                 _wheelShown = false;
                 return;
             }
@@ -174,10 +200,12 @@ namespace Great_backpack.ShortcutSystem
             // 计算第一矢量（按下到显示时的鼠标移动）
             Vector2 firstVector = _wheelShowMousePos - _pressDownMousePos;
 
-            Debug.Log($"[InputInterceptor] 显示轮盘选择器，物品数: {items.Count}，类别: {category}");
+            Debug.Log($"[InputInterceptor] ✓ 获取到物品列表，数量: {items.Count}");
             Debug.Log($"[InputInterceptor] 第一矢量: {firstVector}，长度: {firstVector.magnitude}");
+            Debug.Log($"[InputInterceptor] 轮盘显示鼠标位置: {_wheelShowMousePos}");
+            Debug.Log($"[InputInterceptor] ═══════════════════════════════════════");
 
-            _wheelSelector.ShowWheel(items, _currentPressedIndex, _pressDownMousePos, _wheelShowMousePos);
+            _wheelSelector.ShowWheel(items, _currentPressedIndex, _pressDownMousePos, _wheelShowMousePos, category);
         }
 
         /// <summary>
