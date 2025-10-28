@@ -260,6 +260,56 @@ Mod 在 `ModBehaviour.cs` 中遵循严格的初始化顺序：
 
 ---
 
+#### ✅ 快捷键数据源分离与配件物品UI更新 (已修复)
+**提交**: 7831133
+**问题**：物品放入配件后，快捷键 UI 不更新，轮盘拖动后布局重置
+
+**根本原因**：
+1. **数据源混淆**：使用单一的 `_categorizedItems` 混合存储两个不同的用途
+   - 物品清单（库存物品）
+   - 轮盘布局（用户自定义排列）
+   - 这导致 `null` 占位符污染整个系统，每个方法都需要特殊的 null 处理
+2. **协程等待错误**：在 `DelayedIncementalUpdate` 中使用 `WaitForSeconds(0.01f)` 不足以等待数据更新完成
+3. **分类逻辑错误**：尝试对配件容器本身进行分类，但容器不属于任何 ItemCategory
+
+**解决方案**：
+- **分离数据源**：
+  - `_categorizedItems`：保持干净，仅包含实际物品（无 null）
+  - `_wheelLayouts`：保存用户布局，包含 null 占位符
+- **修复协程等待**：改用 `yield return StartCoroutine(IncrementalUpdateCategorizedItems())` 确保完全等待
+- **修复 UI 更新逻辑**：当配件内容变化时，进行全量快捷键 UI 更新（因为配件内可能有多种类别物品）
+- **改正数据查找**：`SetCurrentSelection()` 在轮盘布局中查找物品索引，而非 _categorizedItems
+- **数据流优化**：`GetItemsForCategory()` 优先返回用户布局，确保 null 占位符的一致性
+
+**关键代码变更**：
+- `ShortcutSystem/BackpackShortcutManager.cs`:
+  - 添加 `_wheelLayouts` 独立数据结构（第 21 行）
+  - `IncrementalUpdateCategorizedItems()` 两步更新：_categorizedItems + _wheelLayouts（第 335-432 行）
+  - `SetCurrentSelection()` 改为在轮盘布局中查找（第 847-882 行）
+  - `DelayedIncementalUpdate()` 正确等待协程并全量更新 UI（第 296-313 行）
+  - 删除过时的 `UpdateRelatedShortcutUI()` 方法
+
+**架构设计要点**：
+```
+数据流：
+背包物品变化 → OnAttachmentContentChanged → IncrementalUpdateCategorizedItems
+   ↓
+   ├─ 步骤1：保持 _categorizedItems 干净（无 null）
+   └─ 步骤2：独立更新 _wheelLayouts（保留 null）
+   ↓
+GetItemsForCategory() 合并数据（优先级：_wheelLayouts > _categorizedItems）
+   ↓
+UpdateShortcutUIForCategory() 显示合并后的数据
+```
+
+**经验总结**：
+- ❌ **不要混用不同用途的数据结构**：分离关注点，让每个数据源有清晰的单一职责
+- ❌ **不要使用 null 作为数据混淆**：null 占位符必须隔离在专门的数据结构中
+- ✅ **协程等待必须完整**：使用 `yield return StartCoroutine()` 而非 `WaitForSeconds`
+- ✅ **事件回调参数**：仔细确认回调参数的含义（配件内容变化时是容器，不是变化的物品）
+
+---
+
 ### 已知问题
 （暂无）
 
