@@ -1,6 +1,7 @@
 ﻿using Duckov.Modding;
 using Great_backpack.AttachmentSystem;
 using Great_backpack.BackpackSystem;
+using Great_backpack.ShortcutSystem;
 using HarmonyLib;
 using UnityEngine;
 
@@ -55,7 +56,26 @@ namespace Great_backpack
             // 修改现有背包
             backpackModifier.ModifyAllBackpacks();
 
+            // 初始化快捷键系统
+            InitializeShortcutSystem();
+
             Debug.Log("行军包配件系统初始化完成");
+        }
+
+        void InitializeShortcutSystem()
+        {
+            // 查找玩家角色装备控制器
+            var player = FindObjectOfType<CharacterMainControl>();
+            if (player != null)
+            {
+                var equipmentController = player.GetComponent<CharacterEquipmentController>();
+                BackpackShortcutManager.Initialize(equipmentController);
+            }
+            else
+            {
+                // 延迟初始化，等待玩家生成
+                Invoke("InitializeShortcutSystem", 3f);
+            }
         }
 
 
