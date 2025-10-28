@@ -37,10 +37,9 @@ namespace Great_backpack.ShortcutSystem
         private ItemDisplay _itemDisplayTemplate;
 
         // 矢量选择逻辑
-        private Vector2 _pressDownMousePos = Vector2.zero;       // 按下时的鼠标位置（位置1-1）
-        private Vector2 _wheelShowMousePos = Vector2.zero;       // 轮盘显示时的鼠标位置（位置1-2和2-1）
-        private bool _secondVectorActivated = false;             // 第二矢量是否已激活
-        private const float SECOND_VECTOR_THRESHOLD = 20f;       // 第二矢量的激活阈值（死区）
+        private Vector2 _pressDownMousePos = Vector2.zero;       // 按下时的鼠标位置
+        private Vector2 _wheelShowMousePos = Vector2.zero;       // 轮盘显示时的鼠标位置
+        private const float FIRST_VECTOR_THRESHOLD = 20f;        // 第一矢量的激活阈值（死区）
 
         // 九宫格配置
         private const float CELL_SIZE = 40f;                        // 格子大小（宽高）
@@ -168,6 +167,19 @@ namespace Great_backpack.ShortcutSystem
         /// </summary>
         public void ShowWheel(List<Item> items, int shortcutIndex, Vector2 pressDownPos, Vector2 wheelShowPos)
         {
+            // 如果没有找到ItemDisplay模板，重新查找一次
+            if (_itemDisplayTemplate == null)
+            {
+                FindItemDisplayTemplate();
+            }
+
+            // 如果仍然找不到模板，记录错误并返回
+            if (_itemDisplayTemplate == null)
+            {
+                Debug.LogError("[ItemWheelSelector] 无法找到ItemDisplay模板，无法显示轮盘");
+                return;
+            }
+
             // 最多支持8个物品
             if (items.Count > 8)
             {
@@ -180,26 +192,22 @@ namespace Great_backpack.ShortcutSystem
             }
 
             // 保存鼠标位置用于矢量选择
-            _pressDownMousePos = pressDownPos;           // 位置1-1：按下时的鼠标位置
-            _wheelShowMousePos = wheelShowPos;           // 位置1-2和2-1：轮盘显示时的鼠标位置
-            _secondVectorActivated = false;              // 第二矢量未激活，初始使用第一矢量
+            _pressDownMousePos = pressDownPos;           // 按下时的鼠标位置
+            _wheelShowMousePos = wheelShowPos;           // 轮盘显示时的鼠标位置
 
             _selectedItemIndex = -1;
 
-            // 记录触发时的鼠标位置（轮盘中心）
-            _wheelCenterScreenPos = wheelShowPos;
-
-            // 设置轮盘中心位置
-            _wheelContainer.position = _wheelCenterScreenPos;
+            // 轮盘中心使用按下时的鼠标位置（而不是显示时的位置）
+            _wheelCenterScreenPos = pressDownPos;
 
             // 激活轮盘
             _wheelCanvas.gameObject.SetActive(true);
             _wheelActive = true;
 
-            CreateItemDisplays();
+            // 设置轮盘中心位置（必须在激活后才能正确转换屏幕坐标）
+            _wheelContainer.position = _wheelCenterScreenPos;
 
-            // 使用第一矢量进行选择
-            SelectByFirstVector();
+            CreateItemDisplays();
 
             Debug.Log($"[ItemWheelSelector] 显示轮盘 @ {_wheelCenterScreenPos}，物品数: {_currentItems.Count}");
         }
@@ -305,55 +313,29 @@ namespace Great_backpack.ShortcutSystem
         {
             if (!_wheelActive) return;
 
-            // 每帧检查第二矢量是否激活
-            UpdateSecondVectorState();
+            // 根据当前鼠标位置和轮盘中心（按下时的位置）来更新选择
+            UpdateSelectionByCurrentMouse();
         }
 
         /// <summary>
-        /// 检查并更新第二矢量状态
+        /// 根据当前鼠标位置更新选择
+        /// 轮盘中心 = 按下时的鼠标位置（固定不变）
+        /// 矢量 = 当前鼠标位置 - 轮盘中心位置
         /// </summary>
-        private void UpdateSecondVectorState()
+        private void UpdateSelectionByCurrentMouse()
         {
             Vector2 currentMousePos = Input.mousePosition;
-            Vector2 secondVector = currentMousePos - _wheelShowMousePos;
+            Vector2 currentVector = currentMousePos - _wheelCenterScreenPos;
 
-            // 检查第二矢量是否超过阈值
-            if (secondVector.magnitude >= SECOND_VECTOR_THRESHOLD)
+            // 检查矢量长度是否超过阈值
+            if (currentVector.magnitude < FIRST_VECTOR_THRESHOLD)
             {
-                // 第二矢量激活，根据它选中物品
-                SelectByVector(secondVector, "第二矢量");
-                _secondVectorActivated = true;
-            }
-            else
-            {
-                // 第二矢量未激活或者退出激活状态
-                if (_secondVectorActivated)
-                {
-                    // 矢量长度回到阈值以下，重新使用第一矢量
-                    SelectByFirstVector();
-                    _secondVectorActivated = false;
-                }
-                // 否则保持第一矢量的选择，不做处理
-            }
-        }
-
-        /// <summary>
-        /// 使用第一矢量进行选择（位置1-1到位置1-2的鼠标移动）
-        /// 只有在矢量长度超过阈值时才选择物品，否则不做任何处理
-        /// </summary>
-        private void SelectByFirstVector()
-        {
-            Vector2 firstVector = _wheelShowMousePos - _pressDownMousePos;
-
-            // 第一矢量也需要超过阈值才能选择物品
-            if (firstVector.magnitude < SECOND_VECTOR_THRESHOLD)
-            {
-                Debug.Log($"[ItemWheelSelector] 第一矢量长度{firstVector.magnitude:F1}不足{SECOND_VECTOR_THRESHOLD}，不做选择");
+                // 矢量长度不足，不做选择
                 return;
             }
 
-            // 计算角度并选中物品
-            SelectByVector(firstVector, "第一矢量");
+            // 矢量长度足够，根据当前矢量方向选中物品
+            SelectByVector(currentVector, "当前矢量");
         }
 
         /// <summary>
@@ -404,55 +386,6 @@ namespace Great_backpack.ShortcutSystem
                 if (closestIndex < _currentItems.Count && _currentItems[closestIndex] != null)
                 {
                     Debug.Log($"[ItemWheelSelector] {vectorName}选择 - 索引{closestIndex}：{_currentItems[closestIndex].DisplayName}，矢量长度{vector.magnitude:F1}");
-                }
-            }
-        }
-
-        /// <summary>
-        /// 根据鼠标相对于轮盘中心的方向更新选择的物品
-        /// </summary>
-        private void UpdateMouseSelection()
-        {
-            if (_itemDisplayClones.Count == 0) return;
-
-            Vector2 currentMousePos = Input.mousePosition;
-            Vector2 directionFromCenter = (currentMousePos - _wheelCenterScreenPos).normalized;
-
-            // 计算鼠标方向对应的角度（0-360）
-            float mouseAngle = Mathf.Atan2(directionFromCenter.y, directionFromCenter.x) * Mathf.Rad2Deg;
-            if (mouseAngle < 0) mouseAngle += 360f;
-
-            // 找到最接近的物品
-            int closestIndex = 0;
-            float closestAngleDiff = 360f;
-
-            for (int i = 0; i < _itemDisplayClones.Count && i < DIRECTION_ANGLES.Length; i++)
-            {
-                float cellAngle = DIRECTION_ANGLES[i];
-                float angleDiff = Mathf.Abs(mouseAngle - cellAngle);
-
-                // 处理跨越0度的情况
-                if (angleDiff > 180f)
-                {
-                    angleDiff = 360f - angleDiff;
-                }
-
-                if (angleDiff < closestAngleDiff)
-                {
-                    closestAngleDiff = angleDiff;
-                    closestIndex = i;
-                }
-            }
-
-            // 如果选择改变，更新高亮
-            if (closestIndex != _selectedItemIndex)
-            {
-                _selectedItemIndex = closestIndex;
-                UpdateSelection();
-
-                if (closestIndex < _currentItems.Count && _currentItems[closestIndex] != null)
-                {
-                    Debug.Log($"[ItemWheelSelector] 选择改变为 {closestIndex}：{_currentItems[closestIndex].DisplayName}");
                 }
             }
         }
