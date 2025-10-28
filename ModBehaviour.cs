@@ -101,6 +101,9 @@ namespace Great_backpack
                     BackpackShortcutManager.SetInitializing(false);
                     _isShortcutSystemInitialized = true;
                     Debug.Log("[ModBehaviour] 快捷键系统初始化完成");
+
+                    // 初始化输入拦截器和轮盘选择器
+                    InitializeWheelSelectorSystem();
                 }
                 else
                 {
@@ -118,6 +121,27 @@ namespace Great_backpack
                     Debug.Log("[ModBehaviour] 快捷键系统已经初始化，跳过重复初始化");
                 }
             }
+        }
+
+        void InitializeWheelSelectorSystem()
+        {
+            Debug.Log("[ModBehaviour] 开始初始化轮盘选择器系统");
+
+            // 创建InputInterceptor
+            var interceptorObj = new GameObject("InputInterceptor");
+            DontDestroyOnLoad(interceptorObj);
+            var interceptor = interceptorObj.AddComponent<InputInterceptor>();
+            Debug.Log("[ModBehaviour] InputInterceptor已创建");
+
+            // 创建ItemWheelSelector
+            var wheelObj = new GameObject("ItemWheelSelector");
+            DontDestroyOnLoad(wheelObj);
+            var wheelSelector = wheelObj.AddComponent<ItemWheelSelector>();
+            Debug.Log("[ModBehaviour] ItemWheelSelector已创建");
+
+            // 将轮盘选择器关联到输入拦截器
+            InputInterceptor.SetWheelSelector(wheelSelector);
+            Debug.Log("[ModBehaviour] 轮盘选择器已关联到输入拦截器");
         }
 
 

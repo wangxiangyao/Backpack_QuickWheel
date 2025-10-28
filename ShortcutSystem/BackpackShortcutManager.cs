@@ -505,6 +505,47 @@ namespace Great_backpack.ShortcutSystem
             }
         }
 
+        /// <summary>
+        /// 获取指定类别的所有物品
+        /// 用于轮盘选择器显示所有可用物品
+        /// </summary>
+        public List<Item> GetItemsForCategory(ItemCategory category)
+        {
+            if (!IsShortcutSystemEnabled || !_categorizedItems.ContainsKey(category))
+                return new List<Item>();
+
+            return new List<Item>(_categorizedItems[category]);
+        }
+
+        /// <summary>
+        /// 设置指定类别的当前选择
+        /// 用于轮盘选择器选中物品后更新选择
+        /// </summary>
+        public void SetCurrentSelection(ItemCategory category, Item selectedItem)
+        {
+            if (!IsShortcutSystemEnabled) return;
+
+            if (!_categorizedItems.ContainsKey(category))
+            {
+                Debug.LogWarning($"[BackpackShortcutManager] 类别 {category} 不存在");
+                return;
+            }
+
+            // 查找物品在列表中的索引
+            int index = _categorizedItems[category].IndexOf(selectedItem);
+            if (index < 0)
+            {
+                Debug.LogWarning($"[BackpackShortcutManager] 物品 {selectedItem.DisplayName} 不在类别 {category} 中");
+                return;
+            }
+
+            _currentSelection[category] = index;
+            Debug.Log($"[BackpackShortcutManager] 更新选择: {category} -> 索引 {index} ({selectedItem.DisplayName})");
+
+            // 更新UI
+            UpdateShortcutUI();
+        }
+
         // 判断快捷键索引是否属于我们的背包快捷键系统
         public static bool IsBackpackShortcutIndex(int index)
         {
