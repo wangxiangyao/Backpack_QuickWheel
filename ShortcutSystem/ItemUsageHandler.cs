@@ -1,6 +1,8 @@
 ﻿using ItemStatsSystem;
 using ItemStatsSystem.Items;
 using Duckov.Utilities;
+using Duckov.UI;
+using SodaCraft.Localizations;
 using UnityEngine;
 using System.Linq;
 
@@ -66,9 +68,9 @@ namespace Great_backpack.ShortcutSystem
             }
             else
             {
-                Debug.LogWarning($"[ItemUsageHandler] ✗ 物品不可直接使用，尝试装备到手上");
-                // 如果不可直接使用，尝试装备到手上
-                EquipItemToHand(item, character);
+                Debug.LogWarning($"[ItemUsageHandler] ✗ 物品不可直接使用，保持在快捷栏");
+                // 官方逻辑：物品不可使用时，显示"无法使用"的提示，物品保持在快捷栏
+                NotificationText.Push("UI_Item_NotUsable".ToPlainText());
             }
         }
 
