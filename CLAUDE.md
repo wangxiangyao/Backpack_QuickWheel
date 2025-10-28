@@ -180,6 +180,28 @@ Mod 在 `ModBehaviour.cs` 中遵循严格的初始化顺序：
 
 ---
 
+#### ✅ 禁用官方快捷键设置功能 (已实现)
+**提交**: d017d64
+**功能**：禁止官方快捷键系统对我们管理的快捷键进行手动设置
+
+**问题背景**：
+- 用户在库存中hover物品，然后按快捷键按钮
+- 官方系统会自动将hover的物品设置到快捷栏
+- 这会覆盖我们通过背包收集得到的物品
+
+**解决方案**：
+- 使用Patch拦截 `ItemShortcut.Set()` 方法
+- 当快捷键系统启用时，检查设置的快捷键索引
+- 如果是我们管理的快捷键（Index 0-3），返回false禁止设置
+- 允许官方系统继续管理后两个快捷键（Index 4-5）
+
+**关键代码变更**：
+- 新增 `ShortcutSystem/Patches/ItemShortcutSetPatch.cs`:
+  - Patch `ItemShortcut.Set()` 方法
+  - 检查 `BackpackShortcutManager.IsShortcutSystemEnabled && index < 4`
+
+---
+
 ### 已知问题
 （暂无）
 
