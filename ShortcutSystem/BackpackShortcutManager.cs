@@ -303,11 +303,59 @@ namespace Great_backpack.ShortcutSystem
                 // 更新 UI
                 UpdateShortcutUI();
 
+                // 通知官方快捷键系统验证所有已注册物品
+                // 这样可以清除不在库存中的物品（如配件中的物品）
+                NotifyOfficialShortcutSystemToValidate();
+
                 Debug.Log("[BackpackShortcutManager] 物品刷新完成");
             }
             finally
             {
                 _isRefreshing = false;
+            }
+        }
+
+        /// <summary>
+        /// 通知官方快捷键系统验证所有已注册物品的有效性
+        /// 这样可以清除在配件中的物品（当配件被卸下时）
+        /// </summary>
+        private void NotifyOfficialShortcutSystemToValidate()
+        {
+            try
+            {
+                // 获取官方快捷键系统的 OnSetItem 静态事件
+                var itemShortcutType = typeof(Duckov.ItemShortcut);
+
+                // OnSetItem 是 static event，值为 Action<int>
+                // 我们需要调用它来通知官方快捷键系统刷新显示
+                var onSetItemProperty = itemShortcutType.GetProperty("OnSetItem",
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+
+                if (onSetItemProperty == null)
+                {
+                    // 尝试直接获取字段
+                    var delegateType = typeof(System.Action<>).MakeGenericType(typeof(int));
+                    var eventField = itemShortcutType.GetField("OnSetItem",
+                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+
+                    if (eventField != null)
+                    {
+                        var eventDelegate = eventField.GetValue(null) as System.Delegate;
+                        if (eventDelegate != null)
+                        {
+                            // 触发事件来刷新所有快捷栏位
+                            for (int i = 0; i < Duckov.ItemShortcut.MaxIndex; i++)
+                            {
+                                eventDelegate.DynamicInvoke(i);
+                                Debug.Log($"[BackpackShortcutManager] 通知官方快捷键系统验证索引 {i}");
+                            }
+                        }
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[BackpackShortcutManager] 通知官方快捷键系统时出错: {ex.Message}");
             }
         }
 
