@@ -14,9 +14,21 @@ namespace Great_backpack
         private AttachmentManager attachmentManager;
         private Harmony harmony;
 
+        // Mod初始化状态标志
+        private bool _isModInitialized = false;
+        private bool _isShortcutSystemInitialized = false;
+
         void Awake()
         {
-            Debug.Log("行军包配件系统已加载！");
+            Debug.Log("═══════════════════════════════════════");
+            Debug.Log("[ModBehaviour] Awake 被调用");
+            Debug.Log($"[ModBehaviour] 当前时间: {Time.time}");
+            Debug.Log($"[ModBehaviour] 游戏是否正在运行: {Application.isPlaying}");
+            Debug.Log($"[ModBehaviour] 当前场景: {UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}");
+
+            // 确保ModBehaviour在场景切换时不被销毁
+            DontDestroyOnLoad(this.gameObject);
+            Debug.Log("[ModBehaviour] 已设置 DontDestroyOnLoad");
 
             // 初始化Harmony
             harmony = new Harmony("com.yourname.great_backpack");
@@ -35,12 +47,20 @@ namespace Great_backpack
             backpackModifier = new BackpackModifier(tagManager.CreatedTags);
             attachmentManager = new AttachmentManager(tagManager.CreatedTags);
 
-            // 延迟执行，确保游戏物品系统已初始化
-            Invoke("InitializeBackpackSystem", 2f);
+            // 立即初始化背包系统
+            InitializeBackpackSystem();
+
+            // 订阅关卡初始化事件
+            LevelManager.OnLevelInitialized += OnLevelInitialized;
+            Debug.Log("[ModBehaviour] 已订阅 LevelManager.OnLevelInitialized 事件");
+
+            Debug.Log("═══════════════════════════════════════");
         }
 
         void InitializeBackpackSystem()
         {
+            Debug.Log("[ModBehaviour] 开始初始化背包系统");
+
             //  创建所有需要的Tag
             tagManager.CreateRequiredTags();
 
@@ -56,28 +76,57 @@ namespace Great_backpack
             // 修改现有背包
             backpackModifier.ModifyAllBackpacks();
 
-            // 初始化快捷键系统
-            InitializeShortcutSystem();
-
+            _isModInitialized = true;
             Debug.Log("行军包配件系统初始化完成");
         }
 
-        void InitializeShortcutSystem()
+
+
+
+
+        void OnLevelInitialized()
         {
-            // 查找玩家角色装备控制器
+            Debug.Log("[ModBehaviour] 关卡初始化完成");
+
+            // 检查当前场景是否有玩家，以及快捷键系统是否已初始化
             var player = FindObjectOfType<CharacterMainControl>();
-            if (player != null)
+            if (player != null && !_isShortcutSystemInitialized)
             {
                 var equipmentController = player.GetComponent<CharacterEquipmentController>();
-                BackpackShortcutManager.Initialize(equipmentController);
+                if (equipmentController != null)
+                {
+                    Debug.Log("[ModBehaviour] 找到玩家和装备控制器，开始初始化快捷键系统");
+                    BackpackShortcutManager.Initialize(equipmentController);
+                    // 设置初始化完成状态
+                    BackpackShortcutManager.SetInitializing(false);
+                    _isShortcutSystemInitialized = true;
+                    Debug.Log("[ModBehaviour] 快捷键系统初始化完成");
+                }
+                else
+                {
+                    Debug.LogWarning("[ModBehaviour] 无法找到 CharacterEquipmentController");
+                }
             }
             else
             {
-                // 延迟初始化，等待玩家生成
-                Invoke("InitializeShortcutSystem", 3f);
+                if (player == null)
+                {
+                    Debug.Log("[ModBehaviour] 当前场景没有玩家，跳过快捷键系统初始化");
+                }
+                else if (_isShortcutSystemInitialized)
+                {
+                    Debug.Log("[ModBehaviour] 快捷键系统已经初始化，跳过重复初始化");
+                }
             }
         }
 
+
+        void OnDestroy()
+        {
+            // 取消订阅事件
+            LevelManager.OnLevelInitialized -= OnLevelInitialized;
+            Debug.Log("[ModBehaviour] 已取消订阅 LevelManager.OnLevelInitialized 事件");
+        }
 
         void ExportAllTagsForDevelopment()
         {

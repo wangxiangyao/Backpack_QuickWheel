@@ -23,6 +23,9 @@ namespace Great_backpack.ShortcutSystem
         // 用于监听技能释放事件
         private HashSet<SkillBase> _monitoredSkills = new HashSet<SkillBase>();
 
+        // 初始化状态标记
+        private bool _isInitializing = true;
+
         public static bool IsShortcutSystemEnabled { get; private set; }
         public static event System.Action<bool> OnShortcutSystemStateChanged;
 
@@ -45,6 +48,10 @@ namespace Great_backpack.ShortcutSystem
             {
                 _currentSelection[category] = 0;
             }
+
+            // 设置初始化为进行中状态
+            _isInitializing = true;
+            Debug.Log("[BackpackShortcutManager] Awake完成，初始化状态设置为: true");
         }
 
         public static void Initialize(CharacterEquipmentController equipmentController)
@@ -57,6 +64,26 @@ namespace Great_backpack.ShortcutSystem
 
             _instance._equipmentController = equipmentController;
             _instance.StartListening();
+        }
+
+        /// <summary>
+        /// 设置初始化状态
+        /// </summary>
+        public static void SetInitializing(bool isInitializing)
+        {
+            if (_instance != null)
+            {
+                _instance._isInitializing = isInitializing;
+                Debug.Log($"[BackpackShortcutManager] 初始化状态设置为: {isInitializing}");
+            }
+        }
+
+        /// <summary>
+        /// 检查是否正在初始化
+        /// </summary>
+        public static bool IsInitializing()
+        {
+            return _instance != null && _instance._isInitializing;
         }
 
         private void StartListening()
@@ -313,6 +340,30 @@ namespace Great_backpack.ShortcutSystem
             Debug.Log("[BackpackShortcutManager] OnBackpackChanged 被调用");
             Debug.Log($"[BackpackShortcutManager] 背包槽: {(backpackSlot != null ? "存在" : "null")}");
             Debug.Log($"[BackpackShortcutManager] 背包内容: {(backpackSlot?.Content != null ? backpackSlot.Content.DisplayName : "null")}");
+            Debug.Log($"[BackpackShortcutManager] 当前背包: {(_currentBackpack != null ? _currentBackpack.DisplayName : "null")}");
+
+            // 检查是否是相同的背包（避免重复处理）
+            if (_currentBackpack != null && backpackSlot?.Content != null &&
+                _currentBackpack == backpackSlot.Content)
+            {
+                Debug.Log("[BackpackShortcutManager] 背包没有变化，跳过处理");
+                Debug.Log("═══════════════════════════════════════");
+                return;
+            }
+
+            // 检查是否是空背包切换（从有背包到无背包）
+            if (_currentBackpack != null && backpackSlot?.Content == null)
+            {
+                Debug.Log("[BackpackShortcutManager] 背包被卸下，正常处理");
+            }
+            else if (_currentBackpack == null && backpackSlot?.Content != null)
+            {
+                Debug.Log("[BackpackShortcutManager] 新背包装备，正常处理");
+            }
+            else if (_currentBackpack != null && backpackSlot?.Content != null)
+            {
+                Debug.Log($"[BackpackShortcutManager] 背包切换: {_currentBackpack?.DisplayName} -> {backpackSlot.Content.DisplayName}");
+            }
 
             // 根据背包槽是否有内容,判断我们自己的快捷键系统是否启用
             bool hadBackpack = IsShortcutSystemEnabled;

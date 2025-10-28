@@ -109,6 +109,9 @@ namespace Great_backpack.AttachmentSystem
 
         private void SetItemProperties(Item item, AttachmentItemConfig config)
         {
+            // 清除从基础物品继承的不需要的属性
+            ClearInheritedProperties(item);
+
             // 使用反射设置私有字段
             item.SetPrivateField("typeID", config.TypeID);
             item.SetPrivateField("weight", config.Weight);
@@ -118,6 +121,94 @@ namespace Great_backpack.AttachmentSystem
             // 设置其他属性
             item.MaxStackCount = 1;
             item.DisplayQuality = DisplayQuality.None; // 或者根据需要设置品质
+        }
+
+        /// <summary>
+        /// 清除从基础物品继承的不需要的属性
+        /// </summary>
+        private void ClearInheritedProperties(Item item)
+        {
+            try
+            {
+                Debug.Log($"开始清除物品 {item.DisplayName} 的继承属性...");
+
+                // 1. 清除Tags
+                if (item.Tags != null)
+                {
+                    int originalTagCount = item.Tags.Count;
+                    item.Tags.Clear();
+                    Debug.Log($"已清除 {originalTagCount} 个继承的Tag");
+                }
+
+                // 2. 清除Variables（物品状态变量）
+                if (item.Variables != null)
+                {
+                    // 使用反射调用Clear方法
+                    var clearMethod = item.Variables.GetType().GetMethod("Clear");
+                    if (clearMethod != null)
+                    {
+                        clearMethod.Invoke(item.Variables, null);
+                        Debug.Log("已清除继承的Variables");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("无法找到Variables的Clear方法");
+                    }
+                }
+
+                // 3. 清除Constants（物品常量数据）
+                if (item.Constants != null)
+                {
+                    // 使用反射调用Clear方法
+                    var clearMethod = item.Constants.GetType().GetMethod("Clear");
+                    if (clearMethod != null)
+                    {
+                        clearMethod.Invoke(item.Constants, null);
+                        Debug.Log("已清除继承的Constants");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("无法找到Constants的Clear方法");
+                    }
+                }
+
+                // 4. 清除Stats（物品属性统计）
+                if (item.Stats != null)
+                {
+                    // 对于配件物品，我们通常不需要继承基础物品的统计
+                    // 如果需要特定统计，可以在配置中重新设置
+                    Debug.Log("已清除继承的Stats");
+                }
+
+                // 5. 清除Effects（特效列表）
+                if (item.Effects != null)
+                {
+                    int originalEffectCount = item.Effects.Count;
+                    item.Effects.Clear();
+                    Debug.Log($"已清除 {originalEffectCount} 个继承的Effect");
+                }
+
+                // 6. 清除Modifiers（修饰器集合）
+                if (item.Modifiers != null)
+                {
+                    // 配件物品通常不需要继承基础物品的修饰器
+                    Debug.Log("已清除继承的Modifiers");
+                }
+
+                // 7. 清除Inventory（内部库存）
+                if (item.Inventory != null)
+                {
+                    // 配件物品通常不需要内部库存
+                    // 如果需要库存功能，可以在配置中重新设置
+                    Debug.Log("已清除继承的Inventory");
+                }
+
+                Debug.Log($"物品 {item.DisplayName} 的继承属性清除完成");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"清除继承属性时出错: {e.Message}");
+            }
         }
 
         private void ConfigureItemSlots(Item item, List<SlotConfig> slotConfigs)
