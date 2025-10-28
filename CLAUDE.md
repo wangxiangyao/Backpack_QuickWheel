@@ -138,39 +138,50 @@ Mod 在 `ModBehaviour.cs` 中遵循严格的初始化顺序：
 - 每次初始化都会导出标签（性能影响）
 - 需要 2 秒延迟等待游戏物品系统初始化
 
-### 已知问题（优先级标记）
+### 已解决案例
 
-#### 🔴 问题1：医疗物品使用逻辑异常
-**症状**：角色满血时按医疗快捷键，物品直接被拿到手上而不是显示"无法使用"
-**原因**：使用函数返回false时，ItemUsageHandler错误地拿起物品而非保持不动
-**预期行为**：手雷逻辑 - 使用失败时物品保持在快捷栏，不拿起
-**影响范围**：ItemUsageHandler.cs 中的医疗物品处理逻辑
-**关键文件**：ShortcutSystem/ItemUsageHandler.cs
+#### ✅ 医疗物品使用失败时被拿起 (已修复)
+**提交**: 34e7353
+**问题**：角色满血时按医疗快捷键，物品直接被拿到手上而不是显示"无法使用"
 
-#### 🟡 问题2：配件快捷键刷新异常
-**症状**：
-1. 从背包卸下配件后，配件内的物品从快捷栏消失 ✓ (正确行为)
-2. 将配件中的物品拿到库存后，物品又在快捷栏重新出现 ✗ (不正确)
+**根本原因**：
+- `TryUseItemDirectly()` 中，当 `IsUsable()` 返回 false 时，调用了 `EquipItemToHand()` 备选方案
+- 这与官方 `UseItem()` 的逻辑不符（官方直接返回并显示提示）
 
-**根本原因**：官方快捷键系统检查逻辑
-- 物品的 InInventory 属性指向其容器（配件）
-- 配件卸下时，快捷键系统检查发现物品不在主库存，隐藏
-- 物品移到库存时，快捷键系统重新检查发现物品可用，重新显示
+**解决方案**：
+- 移除了 `EquipItemToHand()` 的备选逻辑
+- 当物品不可使用时，直接调用 `NotificationText.Push("UI_Item_NotUsable")` 显示提示
+- 物品保持在快捷栏，与手雷逻辑一致
 
-**问题根源**：
-- EquipmentControllerPatch 中没有从官方快捷键系统注销配件
-- 当配件从背包移除时，配件本身（及其内部物品）的注册状态未清理
-- 配件虽然从背包槽位移除，但官方快捷键系统仍保有对其的引用
+**关键代码变更**：
+- `ShortcutSystem/ItemUsageHandler.cs`: TryUseItemDirectly() 方法
 
-**预期修复方向**：
-- 配件移除时需要主动从官方快捷键系统中注销
-- 或在配件作为容器时特殊处理其快捷键显示逻辑
-- 需要查阅官方快捷键系统(ItemShortcut/ItemShortcutPanel)的实现
+---
 
-**关键文件**：
-- ShortcutSystem/BackpackShortcutManager.cs (配件卸载处理)
-- GameSource/ItemShortcut.cs (官方快捷键系统)
-- GameSource/ItemShortcutPanel.cs (快捷栏UI刷新)
+#### ✅ 配件卸下后快捷键重新出现 (已修复)
+**提交**: fa8b824
+**问题**：配件从背包卸下后，配件中物品拿到库存时又在快捷栏重新出现
+
+**根本原因**：
+- 官方快捷键系统的 `items[]` 数组仍保存对旧物品的引用
+- 当配件卸下后，官方系统未被通知重新验证物品有效性
+- 物品移到库存时，`IsItemValid()` 检查通过（因为物品现在在库存中），被重新显示
+
+**解决方案**：
+- 在 `RefreshItems()` 末尾添加 `NotifyOfficialShortcutSystemToValidate()` 调用
+- 该方法通过反射获取官方 `ItemShortcut.OnSetItem` 事件
+- 为所有快捷栏位触发该事件，让官方系统重新验证所有物品
+- 配件中不在库存的物品被清除
+
+**关键代码变更**：
+- `ShortcutSystem/BackpackShortcutManager.cs`:
+  - `RefreshItems()` 方法添加通知调用
+  - 新增 `NotifyOfficialShortcutSystemToValidate()` 方法
+
+---
+
+### 已知问题
+（暂无）
 
 ## 开发交流规则
 
