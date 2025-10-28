@@ -59,6 +59,35 @@ Mod 在 `ModBehaviour.cs` 中遵循严格的初始化顺序：
 - **ItemUsageHandler**：处理快捷键触发时的物品使用
 - 仅在玩家装备背包时激活
 
+#### 5. 轮盘选择系统 (`ShortcutSystem/`)
+**九宫格轮盘UI**：长按快捷键时显示8向轮盘，通过鼠标移动快速选择物品
+
+**核心组件**：
+- **InputInterceptor**：拦截快捷键，检测长按（0.2秒阈值）和释放，记录按下时鼠标位置
+- **ItemWheelSelector**：轮盘选择器主类，管理九宫格布局和矢量选择逻辑
+- **WheelItemDisplay**：单个格子UI组件，负责显示物品icon和聚焦效果（放大+变亮）
+- **WheelUIAssets**：资源加载管理器，支持嵌入式grid_bg.png图片
+
+**矢量选择算法**：
+- 轮盘中心 = 按下时的鼠标位置（固定不变）
+- 每帧计算矢量 = 当前鼠标位置 - 轮盘中心
+- 死区阈值 = 20像素（FIRST_VECTOR_THRESHOLD）
+- 矢量长度 < 20像素：不做选择
+- 矢量长度 >= 20像素：根据矢量方向选中相应格子
+
+**八向布局**：
+```
+[0] 左上(225°)    [1] 上(270°)    [2] 右上(315°)
+[3] 左(180°)      [  中心  ]      [4] 右(0°)
+[5] 左下(135°)    [6] 下(90°)     [7] 右下(45°)
+```
+
+**交互流程**：
+1. 按下快捷键 → 记录按下时鼠标位置为轮盘中心
+2. 0.2秒后轮盘显示
+3. 用户移动鼠标 → 每帧计算矢量，当长度超过死区时选中物品
+4. 释放快捷键 → 使用选中的物品并关闭轮盘
+
 ### Harmony 补丁 (`Patches/`)
 
 #### SlotCheckPatch
@@ -199,6 +228,35 @@ Mod 在 `ModBehaviour.cs` 中遵循严格的初始化顺序：
 - 新增 `ShortcutSystem/Patches/ItemShortcutSetPatch.cs`:
   - Patch `ItemShortcut.Set()` 方法
   - 检查 `BackpackShortcutManager.IsShortcutSystemEnabled && index < 4`
+
+---
+
+#### ✅ 九宫格轮盘UI系统 (已实现)
+**提交**: d61b8bc, 96586ac
+**功能**：长按快捷键时显示九宫格轮盘，通过鼠标移动矢量快速选择物品
+
+**设计思路**：
+- 轮盘中心固定在按下快捷键时的鼠标位置
+- 基于矢量方向的选择方式，比Hover更高效
+- 20像素死区阈值，避免误触
+
+**矢量选择优化历程**：
+1. 初版：使用两个矢量（矢量1：按下到显示、矢量2：显示后的鼠标移动），导致选择中心点在0.2s后位置
+2. 优化：改为轮盘中心使用按下时位置，只使用单一矢量
+3. 最终版：每帧根据当前鼠标位置和固定的轮盘中心计算矢量选择
+
+**关键代码变更**：
+- 新增 `ShortcutSystem/InputInterceptor.cs`：长按检测和快捷键拦截
+- 新增 `ShortcutSystem/ItemWheelSelector.cs`：轮盘显示和矢量选择逻辑
+- 新增 `ShortcutSystem/WheelItemDisplay.cs`：单个格子的UI和聚焦效果
+- 修改 `Textures/grid_bg.png`：嵌入式格子背景图片
+- `Great_backpack.csproj`：添加嵌入资源配置
+
+**调整参数**：
+- `LONG_PRESS_THRESHOLD = 0.2f`：轮盘显示时间阈值
+- `FIRST_VECTOR_THRESHOLD = 20f`：矢量选择死区大小（像素）
+- `HOVER_SCALE = 1.15f`：选中格子的放大倍数
+- `ANIMATION_DURATION = 0.1f`：聚焦效果动画时长
 
 ---
 
