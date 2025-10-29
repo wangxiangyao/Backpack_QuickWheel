@@ -657,46 +657,20 @@ namespace Great_backpack.ShortcutSystem
 
         public void OnBackpackChanged(Slot backpackSlot)
         {
-            Debug.Log("═══════════════════════════════════════");
-            Debug.Log("[BackpackShortcutManager] OnBackpackChanged 被调用");
-            Debug.Log($"[BackpackShortcutManager] 背包槽: {(backpackSlot != null ? "存在" : "null")}");
-            Debug.Log($"[BackpackShortcutManager] 背包内容: {(backpackSlot?.Content != null ? backpackSlot.Content.DisplayName : "null")}");
-            Debug.Log($"[BackpackShortcutManager] 当前背包: {(_currentBackpack != null ? _currentBackpack.DisplayName : "null")}");
-
             // 检查是否是相同的背包（避免重复处理）
             if (_currentBackpack != null && backpackSlot?.Content != null &&
                 _currentBackpack == backpackSlot.Content)
             {
-                Debug.Log("[BackpackShortcutManager] 背包没有变化，跳过处理");
-                Debug.Log("═══════════════════════════════════════");
                 return;
             }
 
-            // 检查是否是空背包切换（从有背包到无背包）
-            if (_currentBackpack != null && backpackSlot?.Content == null)
-            {
-                Debug.Log("[BackpackShortcutManager] 背包被卸下，正常处理");
-            }
-            else if (_currentBackpack == null && backpackSlot?.Content != null)
-            {
-                Debug.Log("[BackpackShortcutManager] 新背包装备，正常处理");
-            }
-            else if (_currentBackpack != null && backpackSlot?.Content != null)
-            {
-                Debug.Log($"[BackpackShortcutManager] 背包切换: {_currentBackpack?.DisplayName} -> {backpackSlot.Content.DisplayName}");
-            }
-
-            // 根据背包槽是否有内容,判断我们自己的快捷键系统是否启用
+            // 根据背包槽是否有内容，判断快捷键系统是否启用
             bool hadBackpack = IsShortcutSystemEnabled;
             IsShortcutSystemEnabled = backpackSlot?.Content != null;
 
-            Debug.Log($"[BackpackShortcutManager] 之前系统状态: {hadBackpack}");
-            Debug.Log($"[BackpackShortcutManager] 现在系统状态: {IsShortcutSystemEnabled}");
-
-            // 如果是否启用的状态发生变化，触发事件
+            // 如果状态发生变化，触发事件
             if (hadBackpack != IsShortcutSystemEnabled)
             {
-                Debug.Log($"[BackpackShortcutManager] 系统状态发生变化，触发事件");
                 OnShortcutSystemStateChanged?.Invoke(IsShortcutSystemEnabled);
             }
 
@@ -705,7 +679,7 @@ namespace Great_backpack.ShortcutSystem
 
             if (IsShortcutSystemEnabled)
             {
-                Debug.Log("[BackpackShortcutManager] 快捷键系统已启用，开始收集物品");
+                Debug.Log($"[BackpackShortcutManager] 装备背包: {backpackSlot.Content.DisplayName}");
 
                 // 收集物品
                 _categorizedItems = BackpackItemCollector.CollectItemsFromBackpack(backpackSlot.Content);
@@ -724,7 +698,7 @@ namespace Great_backpack.ShortcutSystem
             }
             else
             {
-                Debug.Log("[BackpackShortcutManager] 快捷键系统已停用，清空物品");
+                Debug.Log("[BackpackShortcutManager] 卸下背包");
                 _categorizedItems.Clear();
 
                 // 停止监听技能释放事件
@@ -739,9 +713,6 @@ namespace Great_backpack.ShortcutSystem
             {
                 _currentSelection[category] = 0;
             }
-
-            Debug.Log("[BackpackShortcutManager] OnBackpackChanged 执行完成");
-            Debug.Log("═══════════════════════════════════════");
         }
 
         public Item GetCurrentItem(ItemCategory category)
@@ -828,49 +799,21 @@ namespace Great_backpack.ShortcutSystem
         {
             if (!IsShortcutSystemEnabled)
             {
-                Debug.LogWarning($"[BackpackShortcutManager] 快捷键系统未启用");
                 return new List<Item>();
             }
 
             // 如果存在轮盘布局，优先返回布局（包含 null 占位符）
             if (_wheelLayouts.ContainsKey(category) && _wheelLayouts[category].Count > 0)
             {
-                var wheelLayout = _wheelLayouts[category];
-                var itemNames = new List<string>();
-
-                foreach (var item in wheelLayout)
-                {
-                    itemNames.Add(item == null ? "<null占位符>" : item.DisplayName);
-                }
-
-                Debug.Log($"[BackpackShortcutManager] ═══════════════════════════════════════");
-                Debug.Log($"[BackpackShortcutManager] 获取轮盘布局: {category}");
-                Debug.Log($"[BackpackShortcutManager] 来源: 用户布局");
-                Debug.Log($"[BackpackShortcutManager] 格子数: {wheelLayout.Count}");
-                Debug.Log($"[BackpackShortcutManager] 布局内容: {string.Join(", ", itemNames)}");
-                Debug.Log($"[BackpackShortcutManager] 当前选择索引: {_currentSelection[category]}");
-                Debug.Log($"[BackpackShortcutManager] ═══════════════════════════════════════");
-
-                return new List<Item>(wheelLayout);
+                return new List<Item>(_wheelLayouts[category]);
             }
 
-            // 如果没有保存的布局，使用纯物品列表生成临时布局
+            // 如果没有保存的布局，使用纯物品列表
             if (_categorizedItems.ContainsKey(category))
             {
-                var itemList = _categorizedItems[category];
-                var itemNames = itemList.ConvertAll(i => i.DisplayName);
-
-                Debug.Log($"[BackpackShortcutManager] ═══════════════════════════════════════");
-                Debug.Log($"[BackpackShortcutManager] 获取轮盘布局: {category}");
-                Debug.Log($"[BackpackShortcutManager] 来源: 物品列表（未保存布局）");
-                Debug.Log($"[BackpackShortcutManager] 物品数: {itemList.Count}");
-                Debug.Log($"[BackpackShortcutManager] 物品列表: {string.Join(", ", itemNames)}");
-                Debug.Log($"[BackpackShortcutManager] ═══════════════════════════════════════");
-
-                return new List<Item>(itemList);
+                return new List<Item>(_categorizedItems[category]);
             }
 
-            Debug.LogWarning($"[BackpackShortcutManager] 类别 {category} 没有物品和布局");
             return new List<Item>();
         }
 
@@ -1014,7 +957,6 @@ namespace Great_backpack.ShortcutSystem
 
             if (wheelLayout.Count == 0)
             {
-                Debug.Log($"○ 快捷键 {index} ({category}) - 无物品，清空快捷栏");
                 ShortcutUIUpdater.TriggerShortcutRefresh(index);
                 return;
             }
@@ -1027,24 +969,20 @@ namespace Great_backpack.ShortcutSystem
             {
                 selectionIndex = 0;
                 _currentSelection[category] = 0;
-                Debug.Log($"[UpdateShortcutUIForCategory] 快捷键 {index} ({category}) 选择索引无效，已重置为 0");
             }
 
             // 获取选择位置的物品
             var selectedItem = wheelLayout[selectionIndex];
 
-            // 如果选择的是 null 占位符，自动跳过寻找下一个有效物品
+            // 如果选择的是 null 占位符，自动寻找下一个有效物品
             if (selectedItem == null)
             {
-                Debug.Log($"[UpdateShortcutUIForCategory] 快捷键 {index} ({category}) 选择索引 {selectionIndex} 是占位符，自动寻找下一个有效物品...");
-
-                // 从选择索引开始向前搜索有效物品
+                // 向前搜索
                 for (int i = selectionIndex + 1; i < wheelLayout.Count; i++)
                 {
                     if (wheelLayout[i] != null)
                     {
                         selectedItem = wheelLayout[i];
-                        Debug.Log($"[UpdateShortcutUIForCategory] 快捷键 {index} ({category}) 找到下一个有效物品在索引 {i}: {selectedItem.DisplayName}");
                         break;
                     }
                 }
@@ -1057,15 +995,10 @@ namespace Great_backpack.ShortcutSystem
                         if (wheelLayout[i] != null)
                         {
                             selectedItem = wheelLayout[i];
-                            Debug.Log($"[UpdateShortcutUIForCategory] 快捷键 {index} ({category}) 向后找到有效物品在索引 {i}: {selectedItem.DisplayName}");
                             break;
                         }
                     }
                 }
-            }
-            else
-            {
-                Debug.Log($"[UpdateShortcutUIForCategory] 快捷键 {index} ({category}) 使用选择索引 {selectionIndex}: {selectedItem.DisplayName}");
             }
 
             // 更新 UI
@@ -1077,8 +1010,6 @@ namespace Great_backpack.ShortcutSystem
             }
             else
             {
-                // 该分类没有任何有效物品，清空快捷栏
-                Debug.Log($"○ 快捷键 {index} ({category}) - 无有效物品，清空快捷栏");
                 ShortcutUIUpdater.TriggerShortcutRefresh(index);
             }
         }
@@ -1088,17 +1019,11 @@ namespace Great_backpack.ShortcutSystem
         /// </summary>
         private void ClearShortcutUI()
         {
-            Debug.Log("背包已卸下，开始清空快捷键 UI...");
-
             // 触发所有快捷键索引的刷新事件
-            // 这会让 ItemShortcutButton 和 ItemShortcutEditorEntry 都刷新
-            // 由于系统已被禁用，ItemShortcutGetPatch 会返回 null，UI 会显示为空
             for (int i = 0; i < 4; i++)
             {
                 ShortcutUIUpdater.TriggerShortcutRefresh(i);
             }
-
-            Debug.Log("快捷键 UI 已清空");
         }
 
         /// <summary>
@@ -1107,8 +1032,6 @@ namespace Great_backpack.ShortcutSystem
         private void StartMonitoringSkills()
         {
             if (_currentBackpack == null) return;
-
-            Debug.Log("[BackpackShortcutManager] 开始监听技能释放事件");
 
             // 查找背包中所有有技能的物品
             FindAndMonitorSkillsRecursive(_currentBackpack);
@@ -1119,8 +1042,6 @@ namespace Great_backpack.ShortcutSystem
         /// </summary>
         private void StopMonitoringSkills()
         {
-            Debug.Log("[BackpackShortcutManager] 停止监听技能释放事件");
-
             // 取消订阅所有技能的事件
             foreach (var skill in _monitoredSkills)
             {
@@ -1146,7 +1067,6 @@ namespace Great_backpack.ShortcutSystem
                 // 监听技能释放事件
                 skillSetting.Skill.OnSkillReleasedEvent += OnSkillReleased;
                 _monitoredSkills.Add(skillSetting.Skill);
-                Debug.Log($"[BackpackShortcutManager] 已监听物品 {item.DisplayName} 的技能释放事件");
             }
 
             // 递归检查子物品
@@ -1180,8 +1100,6 @@ namespace Great_backpack.ShortcutSystem
         {
             if (!IsShortcutSystemEnabled) return;
 
-            Debug.Log("[BackpackShortcutManager] 检测到技能释放事件");
-
             // 延迟刷新，确保物品状态已更新
             StartCoroutine(DelayedRefresh());
         }
@@ -1195,14 +1113,8 @@ namespace Great_backpack.ShortcutSystem
         {
             if (!IsShortcutSystemEnabled || arrangedItems == null || arrangedItems.Count == 0)
             {
-                Debug.LogWarning($"[BackpackShortcutManager] SaveWheelLayout 被忽略: 系统启用={IsShortcutSystemEnabled}, 物品数={arrangedItems?.Count ?? 0}");
                 return;
             }
-
-            Debug.Log($"[BackpackShortcutManager] ═══════════════════════════════════════");
-            Debug.Log($"[BackpackShortcutManager] SaveWheelLayout 被调用");
-            Debug.Log($"[BackpackShortcutManager] 类别: {category}");
-            Debug.Log($"[BackpackShortcutManager] 接收的布局物品数: {arrangedItems.Count}");
 
             // 保存到 _wheelLayouts（轮盘布局独立数据源）
             if (!_wheelLayouts.ContainsKey(category))
@@ -1210,25 +1122,8 @@ namespace Great_backpack.ShortcutSystem
                 _wheelLayouts[category] = new List<Item>();
             }
 
-            var oldLayout = _wheelLayouts[category];
-            var oldNames = new List<string>();
-            foreach (var item in oldLayout)
-            {
-                oldNames.Add(item == null ? "<null占位符>" : item.DisplayName);
-            }
-            Debug.Log($"[BackpackShortcutManager] 更新前的布局: {string.Join(", ", oldNames)}");
-
             // 新布局就是 arrangedItems（直接保存，包含 null 占位符）
             _wheelLayouts[category] = new List<Item>(arrangedItems);
-
-            var newNames = new List<string>();
-            foreach (var item in arrangedItems)
-            {
-                newNames.Add(item == null ? "<null占位符>" : item.DisplayName);
-            }
-            Debug.Log($"[BackpackShortcutManager] 更新后的布局: {string.Join(", ", newNames)}");
-            Debug.Log($"[BackpackShortcutManager] ✓ 轮盘布局已保存到 _wheelLayouts");
-            Debug.Log($"[BackpackShortcutManager] ═══════════════════════════════════════");
         }
 
         /// <summary>
@@ -1237,30 +1132,11 @@ namespace Great_backpack.ShortcutSystem
         /// </summary>
         public void PersistWheelLayouts()
         {
-            Debug.Log("[BackpackShortcutManager] ════════════════════════════════════════");
-            Debug.Log("[BackpackShortcutManager] 开始持久化轮盘布局...");
-            Debug.Log($"[BackpackShortcutManager] _wheelLayouts 中的分类数: {_wheelLayouts.Count}");
-
-            foreach (var kvp in _wheelLayouts)
-            {
-                Debug.Log($"[BackpackShortcutManager] 分类 {kvp.Key}: {kvp.Value.Count} 个物品");
-                for (int i = 0; i < kvp.Value.Count; i++)
-                {
-                    var item = kvp.Value[i];
-                    Debug.Log($"[BackpackShortcutManager]   [{i}] {(item == null ? "<null>" : item.DisplayName)}");
-                }
-            }
-
             // 将当前的轮盘布局转换为可序列化的数据格式
             var data = WheelLayoutPersistence.ConvertToData(_wheelLayouts);
 
-            Debug.Log($"[BackpackShortcutManager] ConvertToData 返回的数据: categories 分类数 = {data.categories.Length}");
-
             // 保存到文件
             WheelLayoutPersistence.SaveToFile(data);
-
-            Debug.Log("[BackpackShortcutManager] ✓ 轮盘布局持久化完成");
-            Debug.Log("[BackpackShortcutManager] ════════════════════════════════════════");
         }
 
         /// <summary>
@@ -1269,55 +1145,37 @@ namespace Great_backpack.ShortcutSystem
         /// </summary>
         private void LoadPersistedWheelLayouts()
         {
-            Debug.Log("[BackpackShortcutManager] ════════════════════════════════════════");
-            Debug.Log("[BackpackShortcutManager] 开始加载轮盘布局...");
-
             if (_currentBackpack == null)
             {
-                Debug.LogWarning("[BackpackShortcutManager] 背包为null，无法加载轮盘布局");
-                Debug.Log("[BackpackShortcutManager] ════════════════════════════════════════");
                 return;
             }
-
-            Debug.Log("[BackpackShortcutManager] 当前背包已确认: " + _currentBackpack.DisplayName);
 
             // 从文件加载布局数据
             var data = WheelLayoutPersistence.LoadFromFile();
             if (data == null)
             {
-                Debug.Log("[BackpackShortcutManager] ✗ 没有保存的轮盘布局文件");
-                Debug.Log("[BackpackShortcutManager] ════════════════════════════════════════");
                 return;
             }
 
-            Debug.Log($"[BackpackShortcutManager] ✓ 加载的数据对象: categories 分类数 = {data.categories.Length}");
-
-            // 尝试恢复布局
-            var restoredLayouts = WheelLayoutPersistence.RestoreFromData(data, _currentBackpack, _categorizedItems);
+            // 尝试恢复布局（仅恢复，不验证）
+            var restoredLayouts = WheelLayoutPersistence.RestoreFromData(data, _currentBackpack);
 
             if (restoredLayouts == null)
             {
-                Debug.Log("[BackpackShortcutManager] ✗ 轮盘布局验证失败，使用默认布局");
-                Debug.Log("[BackpackShortcutManager] ════════════════════════════════════════");
-                // 不进行任何操作，_wheelLayouts 保持当前状态（由增量更新初始化）
+                Debug.Log("[BackpackShortcutManager] 轮盘布局恢复失败，使用默认布局");
                 return;
             }
 
-            // 恢复有效，替换当前的轮盘布局
-            _wheelLayouts = restoredLayouts;
-
-            Debug.Log($"[BackpackShortcutManager] ✓ 轮盘布局加载成功");
-            foreach (var kvp in _wheelLayouts)
+            // 验证布局的完整性（物品必须与收集的物品一一对应）
+            if (!WheelLayoutPersistence.ValidateLayoutIntegrity(restoredLayouts, _categorizedItems))
             {
-                Debug.Log($"[BackpackShortcutManager] 分类 {kvp.Key}: {kvp.Value.Count} 个物品");
-                for (int i = 0; i < kvp.Value.Count; i++)
-                {
-                    var item = kvp.Value[i];
-                    Debug.Log($"[BackpackShortcutManager]   [{i}] {(item == null ? "<null>" : item.DisplayName)}");
-                }
+                Debug.Log("[BackpackShortcutManager] 轮盘布局完整性检查失败，使用默认布局");
+                return;
             }
 
-            Debug.Log("[BackpackShortcutManager] ════════════════════════════════════════");
+            // 验证通过，替换当前的轮盘布局
+            _wheelLayouts = restoredLayouts;
+            Debug.Log("[BackpackShortcutManager] 轮盘布局已加载");
         }
 
     }

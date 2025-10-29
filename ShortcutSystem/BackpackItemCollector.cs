@@ -30,26 +30,22 @@ namespace Great_backpack.ShortcutSystem
 
             if (backpack == null)
             {
-                UnityEngine.Debug.Log($"[BackpackItemCollector] 背包为 null，返回空字典");
                 return categorizedItems;
             }
-
-            UnityEngine.Debug.Log($"[BackpackItemCollector] 开始从背包 {backpack.DisplayName} 收集物品");
-            UnityEngine.Debug.Log($"[BackpackItemCollector] 背包插槽数量: {(backpack.Slots != null ? backpack.Slots.Count : 0)}");
-            UnityEngine.Debug.Log($"[BackpackItemCollector] 背包库存: {(backpack.Inventory != null ? "存在" : "null")}");
 
             // 从背包的所有配件中收集物品
             CollectFromSlots(backpack.Slots, categorizedItems);
             CollectFromInventory(backpack.Inventory, categorizedItems);
 
-            // 输出收集结果
+            // 输出收集结果（仅关键信息）
             int totalItems = categorizedItems.Values.Sum(list => list.Count);
-            UnityEngine.Debug.Log($"[BackpackItemCollector] 收集完成: 总共 {totalItems} 个物品");
+            UnityEngine.Debug.Log($"[BackpackItemCollector] 物品收集完成: 总 {totalItems} 项");
             foreach (var kvp in categorizedItems)
             {
                 if (kvp.Value.Count > 0)
                 {
-                    UnityEngine.Debug.Log($"[BackpackItemCollector] {kvp.Key}: {kvp.Value.Count} 个物品");
+                    var itemNames = string.Join(", ", kvp.Value.ConvertAll(i => i.DisplayName));
+                    UnityEngine.Debug.Log($"[BackpackItemCollector]   {kvp.Key}: {kvp.Value.Count} 项 - {itemNames}");
                 }
             }
 
@@ -90,6 +86,21 @@ namespace Great_backpack.ShortcutSystem
             {
                 var category = ItemCategorizer.CategorizeItem(item);
 
+                // 调试：追踪物品分类过程
+                if (category != ItemCategory.None)
+                {
+                    UnityEngine.Debug.Log($"[BackpackItemCollector] 收集: {item.DisplayName} -> 分类: {category}");
+                }
+                else
+                {
+                    var tagNames = new System.Collections.Generic.List<string>();
+                    foreach (Tag tag in item.Tags)
+                    {
+                        tagNames.Add(tag.name);
+                    }
+                    UnityEngine.Debug.LogWarning($"[BackpackItemCollector] ⚠ {item.DisplayName} 未被分类 (Tags: {string.Join(", ", tagNames)})");
+                }
+
                 // 只收集有效分类的物品
                 if (category != ItemCategory.None && categorizedItems.ContainsKey(category))
                 {
@@ -99,9 +110,31 @@ namespace Great_backpack.ShortcutSystem
                     }
                 }
             }
+            else
+            {
+                // 调试：为什么这个物品被排除？
+                var isDestroyed = item.IsBeingDestroyed;
+                var hasExcludedTag = false;
+                var tagNames = new System.Collections.Generic.List<string>();
+                foreach (Tag tag in item.Tags)
+                {
+                    tagNames.Add(tag.name);
+                    if (ExcludedContainerTags.Contains(tag.name))
+                    {
+                        hasExcludedTag = true;
+                    }
+                }
+                var isShortcutItem = ItemCategorizer.IsShortcutItem(item);
+
+                if (!isDestroyed && !hasExcludedTag && isShortcutItem)
+                {
+                    // 理论上应该被收集，但被排除了？
+                    UnityEngine.Debug.LogError($"[BackpackItemCollector] ❌ {item.DisplayName} 应该被收集但被排除！ (IsDestroyed={isDestroyed}, HasExcludedTag={hasExcludedTag}, IsShortcutItem={isShortcutItem}, Tags={string.Join(", ", tagNames)})");
+                }
+            }
 
             // 递归收集子物品（无论当前物品是否被收集，都要检查其内容）
-            if (item.Slots != null)
+            if (item.Slots != null && item.Slots.Count > 0)
             {
                 foreach (Slot slot in item.Slots)
                 {
@@ -132,7 +165,7 @@ namespace Great_backpack.ShortcutSystem
             if (item == null) return false;
 
             // 检查物品是否已被销毁或无效
-            if (item.IsBeingDestroyed || item.ParentItem == null)
+            if (item.IsBeingDestroyed)
             {
                 return false;
             }

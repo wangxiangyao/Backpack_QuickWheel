@@ -32,26 +32,16 @@ namespace Great_backpack.ShortcutSystem
             var data = new WheelLayoutData();
             var categoriesList = new List<CategoryLayout>();
 
-            Debug.Log("[WheelLayoutPersistence] ════════════════════════════════════════");
-            Debug.Log("[WheelLayoutPersistence] 开始转换轮盘布局为数据格式");
-            Debug.Log($"[WheelLayoutPersistence] wheelLayouts == null? {wheelLayouts == null}");
-            Debug.Log($"[WheelLayoutPersistence] 要转换的分类数: {wheelLayouts.Count}");
-
             if (wheelLayouts.Count == 0)
             {
-                Debug.LogWarning("[WheelLayoutPersistence] ✗ wheelLayouts 为空！返回空数据对象");
-                Debug.Log("[WheelLayoutPersistence] ════════════════════════════════════════");
                 return data;
             }
 
             foreach (var category in wheelLayouts.Keys)
             {
-                Debug.Log($"[WheelLayoutPersistence] 开始处理分类: {category}");
                 var layoutList = wheelLayouts[category];
                 var categoryLayout = new CategoryLayout(category.ToString());
                 var itemLocationsList = new List<ItemLocation>();
-
-                Debug.Log($"[WheelLayoutPersistence] 分类: {category}, 物品数: {layoutList.Count}");
 
                 foreach (var item in layoutList)
                 {
@@ -59,7 +49,6 @@ namespace Great_backpack.ShortcutSystem
                     {
                         // 用 -1, -1 标记空位
                         itemLocationsList.Add(new ItemLocation(-1, -1));
-                        Debug.Log($"[WheelLayoutPersistence]   - 空位 (-1, -1)");
                     }
                     else
                     {
@@ -67,13 +56,11 @@ namespace Great_backpack.ShortcutSystem
                         if (location != null)
                         {
                             itemLocationsList.Add(location);
-                            Debug.Log($"[WheelLayoutPersistence]   - {item.DisplayName}: 配件槽位{location.attachmentSlotIndex}, 物品槽位{location.itemSlotIndex}");
                         }
                         else
                         {
                             // 位置记录失败，也用 -1 标记
                             itemLocationsList.Add(new ItemLocation(-1, -1));
-                            Debug.LogWarning($"[WheelLayoutPersistence]   - {item.DisplayName}: 位置记录失败，标记为空位");
                         }
                     }
                 }
@@ -85,9 +72,6 @@ namespace Great_backpack.ShortcutSystem
 
             // 将列表转换为数组
             data.categories = categoriesList.ToArray();
-
-            Debug.Log($"[WheelLayoutPersistence] ✓ 转换完成，包含 {data.categories.Length} 个分类");
-            Debug.Log("[WheelLayoutPersistence] ════════════════════════════════════════");
             return data;
         }
 
@@ -103,7 +87,6 @@ namespace Great_backpack.ShortcutSystem
             var itemSlot = item.PluggedIntoSlot;
             if (itemSlot == null)
             {
-                Debug.LogWarning($"[WheelLayoutPersistence] 物品 {item.DisplayName} 没有插入槽位，无法记录位置");
                 return null;
             }
 
@@ -111,7 +94,6 @@ namespace Great_backpack.ShortcutSystem
             var attachment = itemSlot.Master;
             if (attachment == null)
             {
-                Debug.LogWarning($"[WheelLayoutPersistence] 物品 {item.DisplayName} 所在的槽位没有主物品");
                 return null;
             }
 
@@ -119,7 +101,6 @@ namespace Great_backpack.ShortcutSystem
             var backpack = attachment.ParentItem;
             if (backpack == null)
             {
-                Debug.LogWarning($"[WheelLayoutPersistence] 配件 {attachment.DisplayName} 没有父物品（背包）");
                 return null;
             }
 
@@ -139,7 +120,6 @@ namespace Great_backpack.ShortcutSystem
 
             if (attachmentSlotIndex < 0)
             {
-                Debug.LogWarning($"[WheelLayoutPersistence] 找不到配件 {attachment.DisplayName} 在背包中的槽位索引");
                 return null;
             }
 
@@ -167,23 +147,18 @@ namespace Great_backpack.ShortcutSystem
         }
 
         /// <summary>
-        /// 从保存的数据恢复轮盘布局
-        /// 如果验证失败，返回null并弃用布局
+        /// 从保存的数据恢复轮盘布局（仅负责恢复，不做验证）
+        /// 返回恢复的布局，可能包含null或不匹配的物品
+        /// 调用者应该使用 ValidateLayoutIntegrity() 验证完整性
         /// </summary>
         public static Dictionary<ItemCategory, List<Item>> RestoreFromData(
             WheelLayoutData data,
-            Item currentBackpack,
-            Dictionary<ItemCategory, List<Item>> categorizedItems)
+            Item currentBackpack)
         {
             if (data == null)
             {
-                Debug.LogWarning("[WheelLayoutPersistence] data 为 null，无法恢复");
                 return null;
             }
-
-            Debug.Log("[WheelLayoutPersistence] ════════════════════════════════════════");
-            Debug.Log("[WheelLayoutPersistence] 开始恢复轮盘布局...");
-            Debug.Log($"[WheelLayoutPersistence] 要恢复的分类数: {data.categories.Length}");
 
             var restoredLayouts = new Dictionary<ItemCategory, List<Item>>();
 
@@ -191,14 +166,11 @@ namespace Great_backpack.ShortcutSystem
             {
                 if (!Enum.TryParse<ItemCategory>(categoryLayout.categoryName, out var category))
                 {
-                    Debug.LogWarning($"[WheelLayoutPersistence] 无法识别分类: {categoryLayout.categoryName}");
                     continue;
                 }
 
                 var locationList = categoryLayout.itemLocations;
                 var restoredList = new List<Item>();
-
-                Debug.Log($"[WheelLayoutPersistence] 分类 {category}: {locationList.Length} 个位置记录");
 
                 // 遍历保存的位置列表
                 for (int i = 0; i < locationList.Length; i++)
@@ -209,39 +181,70 @@ namespace Great_backpack.ShortcutSystem
                     if (location.IsNull())
                     {
                         restoredList.Add(null); // 空位
-                        Debug.Log($"[WheelLayoutPersistence]   [{i}] 空位");
                     }
                     else
                     {
                         // 根据位置找到物品
                         Item restoredItem = FindItemByLocation(currentBackpack, location);
-
-                        if (restoredItem == null)
-                        {
-                            Debug.LogError($"[WheelLayoutPersistence]   [{i}] 位置查询失败 (配件槽{location.attachmentSlotIndex}, 物品槽{location.itemSlotIndex})，弃用整个布局");
-                            Debug.Log("[WheelLayoutPersistence] ════════════════════════════════════════");
-                            return null; // 任何物品找不到，就弃用整个布局
-                        }
-
-                        // 验证物品是否在该分类中
-                        if (!categorizedItems[category].Contains(restoredItem))
-                        {
-                            Debug.LogError($"[WheelLayoutPersistence]   [{i}] 物品 {restoredItem.DisplayName} 不在分类 {category} 中，弃用整个布局");
-                            Debug.Log("[WheelLayoutPersistence] ════════════════════════════════════════");
-                            return null; // 物品分类不匹配，弃用整个布局
-                        }
-
-                        restoredList.Add(restoredItem);
-                        Debug.Log($"[WheelLayoutPersistence]   [{i}] ✓ {restoredItem.DisplayName}");
+                        restoredList.Add(restoredItem); // 可能为null，由验证步骤处理
                     }
                 }
 
                 restoredLayouts[category] = restoredList;
             }
 
-            Debug.Log("[WheelLayoutPersistence] ✓ 轮盘布局恢复成功");
-            Debug.Log("[WheelLayoutPersistence] ════════════════════════════════════════");
             return restoredLayouts;
+        }
+
+        /// <summary>
+        /// 验证轮盘布局的完整性
+        /// 规则：轮盘布局中的物品必须与收集的物品完全一一对应（不考虑顺序）
+        /// 如果布局中有不在收集列表中的物品，或物品数量不匹配，返回false
+        /// </summary>
+        public static bool ValidateLayoutIntegrity(
+            Dictionary<ItemCategory, List<Item>> restoredLayouts,
+            Dictionary<ItemCategory, List<Item>> categorizedItems)
+        {
+            if (restoredLayouts == null || categorizedItems == null)
+            {
+                return false;
+            }
+
+            // 遍历每个分类，检查恢复的物品是否与收集的物品一一对应
+            foreach (var category in categorizedItems.Keys)
+            {
+                var collected = categorizedItems[category];
+                var restored = restoredLayouts.ContainsKey(category) ? restoredLayouts[category] : new List<Item>();
+
+                // 提取恢复布局中的非null物品
+                var restoredItems = new List<Item>();
+                foreach (var item in restored)
+                {
+                    if (item != null)
+                    {
+                        restoredItems.Add(item);
+                    }
+                }
+
+                // 检查数量是否相等
+                if (restoredItems.Count != collected.Count)
+                {
+                    Debug.LogWarning($"[WheelLayoutPersistence] 分类 {category} 物品数不匹配: 收集{collected.Count}项, 恢复{restoredItems.Count}项");
+                    return false;
+                }
+
+                // 检查每个恢复的物品是否都在收集列表中
+                foreach (var item in restoredItems)
+                {
+                    if (!collected.Contains(item))
+                    {
+                        Debug.LogWarning($"[WheelLayoutPersistence] 分类 {category} 中的物品 {item.DisplayName} 不在收集列表中");
+                        return false;
+                    }
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -255,7 +258,6 @@ namespace Great_backpack.ShortcutSystem
             // 步骤1：从背包找到配件
             if (location.attachmentSlotIndex < 0 || location.attachmentSlotIndex >= backpack.Slots.Count)
             {
-                Debug.LogWarning($"[WheelLayoutPersistence] 配件槽位索引越界: {location.attachmentSlotIndex}");
                 return null;
             }
 
@@ -264,20 +266,17 @@ namespace Great_backpack.ShortcutSystem
 
             if (attachment == null)
             {
-                Debug.LogWarning($"[WheelLayoutPersistence] 背包槽位 {location.attachmentSlotIndex} 没有配件");
                 return null;
             }
 
             // 步骤2：从配件找到物品
             if (attachment.Slots == null)
             {
-                Debug.LogWarning($"[WheelLayoutPersistence] 配件 {attachment.DisplayName} 没有槽位");
                 return null;
             }
 
             if (location.itemSlotIndex < 0 || location.itemSlotIndex >= attachment.Slots.Count)
             {
-                Debug.LogWarning($"[WheelLayoutPersistence] 物品槽位索引越界: {location.itemSlotIndex}");
                 return null;
             }
 
@@ -286,7 +285,6 @@ namespace Great_backpack.ShortcutSystem
 
             if (item == null)
             {
-                Debug.LogWarning($"[WheelLayoutPersistence] 配件 {attachment.DisplayName} 的槽位 {location.itemSlotIndex} 为空");
                 return null;
             }
 
@@ -300,41 +298,15 @@ namespace Great_backpack.ShortcutSystem
         {
             try
             {
-                Debug.Log("[WheelLayoutPersistence] ════════════════════════════════════════");
-                Debug.Log("[WheelLayoutPersistence] 准备保存轮盘布局...");
-                Debug.Log($"[WheelLayoutPersistence] 数据对象中的分类数: {data.categories.Length}");
-
-                foreach (var categoryLayout in data.categories)
-                {
-                    Debug.Log($"[WheelLayoutPersistence] 分类 {categoryLayout.categoryName}: {categoryLayout.itemLocations.Length} 个位置记录");
-                }
-
                 // 手工生成 JSON（因为 JsonUtility 不支持序列化数组）
                 string json = GenerateJson(data);
                 string path = GetSavePath();
 
-                Debug.Log($"[WheelLayoutPersistence] JSON 内容长度: {json.Length}");
-                Debug.Log($"[WheelLayoutPersistence] JSON 内容:\n{json}");
-                Debug.Log($"[WheelLayoutPersistence] 保存路径: {path}");
-
                 File.WriteAllText(path, json);
-
-                // 验证写入
-                if (File.Exists(path))
-                {
-                    long fileSize = new System.IO.FileInfo(path).Length;
-                    Debug.Log($"[WheelLayoutPersistence] ✓ 文件已保存成功，文件大小: {fileSize} 字节");
-                }
-                else
-                {
-                    Debug.LogError($"[WheelLayoutPersistence] ✗ 文件保存失败，文件不存在");
-                }
-
-                Debug.Log("[WheelLayoutPersistence] ════════════════════════════════════════");
             }
             catch (Exception e)
             {
-                Debug.LogError($"[WheelLayoutPersistence] ✗ 保存轮盘布局失败: {e.Message}\n{e.StackTrace}");
+                Debug.LogError($"[WheelLayoutPersistence] 保存轮盘布局失败: {e.Message}");
             }
         }
 
