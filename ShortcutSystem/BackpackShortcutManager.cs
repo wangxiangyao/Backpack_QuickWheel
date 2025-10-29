@@ -210,10 +210,18 @@ namespace Great_backpack.ShortcutSystem
             {
                 if (slot != null && slot.Content != null)
                 {
-                    // 订阅配件的内容变化（配件内的物品变化会触发 onChildChanged）
-                    slot.Content.onChildChanged += OnAttachmentContentChanged;
-                    _subscribedAttachments.Add(slot.Content);
-                    Debug.Log($"[BackpackShortcutManager] 已订阅配件 {slot.Content.DisplayName} 的内容变化事件");
+                    // 检查是否已经订阅过，避免重复订阅
+                    if (!_subscribedAttachments.Contains(slot.Content))
+                    {
+                        // 订阅配件的内容变化（配件内的物品变化会触发 onChildChanged）
+                        slot.Content.onChildChanged += OnAttachmentContentChanged;
+                        _subscribedAttachments.Add(slot.Content);
+                        Debug.Log($"[BackpackShortcutManager] 已订阅配件 {slot.Content.DisplayName} 的内容变化事件");
+                    }
+                    else
+                    {
+                        Debug.Log($"[BackpackShortcutManager] 配件 {slot.Content.DisplayName} 已订阅过，跳过重复订阅");
+                    }
                 }
             }
         }
