@@ -778,6 +778,75 @@ private static ValueTuple<bool, Item> SearchInSlots(Item item, int requireItemId
 
 ---
 
+#### ✅ 轮盘布局恢复逻辑健壮性提升 (已修复)
+**提交**: a7db4be
+**日期**: 2025-10-30
+**问题**：医疗物品和针剂在快捷键上不显示，轮盘布局被意外改变后无法正确恢复
+
+**根本原因**：
+旧的轮盘布局恢复机制存在以下缺陷：
+1. 恢复失败检查不够全面 - 只在物品找不到时弃用，但无法发现全是空位的情况
+2. 缺乏完整性验证 - 即使所有物品都恢复失败，布局仍被认为有效
+3. 关注点混淆 - 恢复和验证逻辑混在一起，难以调试
+
+**解决方案**：
+分离恢复和验证职责，建立**一一对应检查机制**
+
+1. **修改 RestoreFromData()**（仅负责恢复）
+   - 从文件读取数据后逐一恢复
+   - 即使物品找不到也继续恢复（不提前返回）
+   - 返回恢复的布局（可能包含null或不匹配的物品）
+
+2. **新增 ValidateLayoutIntegrity()**（专门负责验证）
+   ```csharp
+   // 规则：轮盘布局中的物品必须与收集的物品完全一一对应
+   对于每个分类（Medical、Stim、Food等）：
+   1. 计算恢复的非null物品数
+   2. 计算收集的物品数
+   3. 如果数量不相等 → 返回false（弃用布局）
+   4. 遍历每个恢复的物品
+   5. 如果有任何物品不在收集列表中 → 返回false（弃用布局）
+   ```
+
+3. **更新加载流程**
+   ```
+   LoadPersistedWheelLayouts()
+     ↓
+   1. 从文件加载数据
+     ↓
+   2. 恢复布局（RestoreFromData）
+     ↓
+   3. 验证完整性（ValidateLayoutIntegrity）
+     ├─ 通过 → 使用布局 ✅
+     └─ 失败 → 弃用，生成默认布局 ❌
+   ```
+
+**关键代码变更**：
+- `ShortcutSystem/WheelLayoutPersistence.cs`:
+  - 修改 `RestoreFromData()` 仅负责恢复
+  - 新增 `ValidateLayoutIntegrity()` 验证完整性
+- `ShortcutSystem/BackpackShortcutManager.cs`:
+  - 修改 `LoadPersistedWheelLayouts()` 实施恢复-验证二步流程
+
+**同步日志优化**：
+- `BackpackItemCollector.cs`: 保留物品收集的关键日志，便于追踪
+- `BackpackShortcutManager.cs`: 删除过度详细的UI更新日志
+- `WheelLayoutPersistence.cs`: 简化恢复过程的日志
+
+**效果**：
+- ✅ 医疗物品和针剂正确显示在快捷键上
+- ✅ 轮盘布局自动弃用机制更健壮
+- ✅ 恢复失败时自动使用默认生成的布局
+- ✅ 代码关注点清晰，易于维护和扩展
+
+**经验总结**：
+- ✅ **分离关注点**：恢复和验证是两个不同的职责
+- ✅ **完整性检查**：数据恢复后必须进行有效性验证
+- ✅ **一一对应原则**：持久化数据必须与当前数据完全对应
+- ✅ **优雅降级**：验证失败时使用默认方案，而不是死坚持
+
+---
+
 ## 开发交流规则
 
 ### Git 提交规则
@@ -810,9 +879,10 @@ private static ValueTuple<bool, Item> SearchInSlots(Item item, int requireItemId
 ### P1 - 核心功能（本周期重点）
 - [x] 配件设置基础属性（重量、价值、稀有度等）
 - [x] 配件添加Icon
-- [x] 轮盘布局持久化
+- [x] 轮盘布局持久化及完整性验证
 - [x] 配件Hover面板显示槽位信息（带颜色区分空/满槽位）
 - [x] 修复钥匙在配件中无法使用的问题
+- [x] 修复医疗物品和针剂不显示的问题
 - [ ] 配件附加效果（如减少负重）
 - [ ] 点击配件展开配件插槽UI，可拖拽放入物品
 
