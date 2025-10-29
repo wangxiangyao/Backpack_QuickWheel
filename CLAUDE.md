@@ -354,6 +354,95 @@ UpdateShortcutUIForCategory() 显示合并后的数据
 **关键代码变更**：
 - `ShortcutSystem/BackpackShortcutManager.cs`: SubscribeToAttachmentsChanges() 方法添加重复订阅检查
 
+---
+
+#### ✅ 轮盘布局持久化 (已实现)
+**提交**: 870c375
+**功能**：将用户调整的轮盘物品位置保存到文件，游戏重启后自动恢复
+
+**问题背景**：
+- 用户可以长按快捷键打开轮盘，通过拖拽调整8个格子中的物品位置
+- 但游戏重启后这些调整会丢失，每次都要重新排列
+- 需要实现轮盘布局的持久化
+
+**核心设计决策**：
+1. **使用位置而非物品身份**：物品没有唯一ID（InstanceID会在重启时改变），改为使用 `(配件槽位索引, 物品槽位索引)` 作为唯一标识
+2. **手工JSON生成/解析**：Unity的 `JsonUtility` 不支持数组序列化和嵌套自定义类，改为手工生成和使用括号计数法解析
+3. **位置验证**：加载时验证保存的位置是否有效（配件是否存在、物品是否在该位置），验证失败则放弃恢复
+
+**关键难点与解决**：
+
+*难点1：InstanceID在游戏重启后改变*
+- ❌ 初版方案：保存物品的 InstanceID
+- 结果：游戏重启后所有InstanceID都不同，无法查找物品
+- ✅ 解决：改用位置标识 `(attachmentSlotIndex, itemSlotIndex)`
+
+*难点2：JsonUtility无法序列化数组和嵌套类*
+- ❌ 尝试：用 `[Serializable]` 嵌套类 + Array
+- 结果：JSON 生成的只有 `{"savedTimestamp": ...}`，categories 为空
+- ✅ 解决：手工生成 JSON 字符串，避开 JsonUtility 限制
+
+*难点3：JSON 解析中的嵌套括号问题*
+- ❌ 初版方案：用非贪心正则 `\[(.*?)\]` 提取数组
+- 问题：遇到第一个 `]` 就停止，导致 itemLocations 数组的 `]` 被误认为是 categories 的结尾
+- ✅ 解决：使用**括号计数法**替代正则，能正确处理嵌套的 `[]` 和 `{}`
+
+**相关文件**：
+
+1. **WheelLayoutData.cs** (新建)
+   - `ItemLocation`：记录单个物品位置（配件槽位索引 + 物品槽位索引）
+   - `CategoryLayout`：某个分类的布局（分类名 + 物品位置数组）
+   - `WheelLayoutData`：完整轮盘布局（所有分类 + 时间戳）
+
+2. **WheelLayoutPersistence.cs** (新建)
+   - `ConvertToData()`：将内存中的轮盘布局转换为序列化数据
+   - `RestoreFromData()`：将保存的数据恢复为轮盘布局，验证位置有效性
+   - `GenerateJson()`：手工生成 JSON，支持数组和嵌套结构
+   - `ParseJson()`：使用括号计数法手工解析 JSON
+   - `GetItemLocation()`：找出物品在背包-配件层级中的位置
+   - `FindItemByLocation()`：根据位置查找物品对象
+
+3. **BackpackShortcutManager.cs** (修改)
+   - `SubscribeToBackpackChanges()` 中添加调用 `LoadPersistedWheelLayouts()`
+   - 添加 `PersistWheelLayouts()` 公开方法用于保存
+
+4. **InputInterceptor.cs** (修改)
+   - `OnShortcutKeyUp()` 中轮盘关闭前添加 `PersistWheelLayouts()` 调用
+
+**持久化流程**：
+```
+轮盘显示
+    ↓
+用户拖拽调整物品
+    ↓
+快捷键释放 → InputInterceptor.OnShortcutKeyUp()
+    ↓
+关闭轮盘前 → PersistWheelLayouts()
+    ↓
+ConvertToData() → GenerateJson() → SaveToFile()
+    ↓
+游戏重启
+    ↓
+背包装备 → BackpackShortcutManager.SubscribeToBackpackChanges()
+    ↓
+LoadPersistedWheelLayouts()
+    ↓
+LoadFromFile() → ParseJson() → RestoreFromData() → 验证位置 → 恢复布局
+    ↓
+轮盘显示时使用恢复的布局
+```
+
+**验证与调试**：
+- 保存时日志：打印转换的分类数、每个分类的位置数、JSON 大小
+- 加载时日志：打印文件大小、解析后的分类数、每个分类的位置数、位置验证结果
+- 失败时日志：如果任何物品位置验证失败，弃用整个布局并清空
+
+**经验总结**：
+- ❌ **不要依赖 InstanceID**：游戏重启时会改变，改用游戏内位置标识
+- ❌ **不要盲目相信序列化框架**：JsonUtility 有很多限制，简单情况手工序列化更可靠
+- ✅ **嵌套结构必须括号计数**：正则非贪心匹配无法处理嵌套括号，计数法更稳定
+- ✅ **加载前必须验证数据**：检查引用是否有效，位置是否超界，分类是否匹配
+
 ## 开发交流规则
 
 ### Git 提交规则
@@ -386,7 +475,7 @@ UpdateShortcutUIForCategory() 显示合并后的数据
 ### P1 - 核心功能（本周期重点）
 - [ ] 配件设置基础属性（重量、价值、稀有度等）
 - [ ] 配件添加Icon
-- [ ] 轮盘布局持久化
+- [x] 轮盘布局持久化
 - [ ] 配件附加效果（如减少负重）
 - [ ] 点击配件展开配件插槽UI，可拖拽放入物品
 
