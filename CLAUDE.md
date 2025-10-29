@@ -21,6 +21,16 @@ dotnet build Great_backpack.csproj
 - 游戏路径：通过 `.csproj` 中的 `DuckovPath` 变量配置
 - 依赖项标记为 `<Private>false</Private>` 以防止复制到输出目录
 
+## 重要提示：源码位置
+
+**所有游戏官方源码都位于 `GameSource/Duckov/` 目录中。** 包括但不限于：
+- `Inventory.cs` - 背包/物品容器系统
+- `Item.cs` - 物品基类
+- `ItemAssetsCollection.cs` - 物品资源集合和获取
+- 其他系统源码等
+
+在阅读源码或寻找关键实现时，**总是先在 `GameSource/Duckov/` 中查找**。
+
 ## 架构说明
 
 ### 初始化流程
