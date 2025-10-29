@@ -536,6 +536,152 @@ None(0), White(1), Green(2), Blue(3), Purple(4), Orange(5), Red(6), Q7(7), Q8(8)
 - 等配件特殊功能全部实现后（P1后期），会再次修改描述以体现具体效果
 - 比如零重力肩带会改为"能减XX%负重"，提示玩家具体效果
 
+---
+
+## 配件插槽可视化与快速编辑功能实现计划
+
+**总体目标**：提供直观的配件槽位编辑界面，让玩家无需卸下配件就能快速查看和调整槽位内容
+
+**官方UI参考**：
+- `SlotCollectionDisplay.cs` - 官方槽位显示组件，已能显示和交互
+- `ItemDetailsDisplay.cs` - 官方物品详情面板，已支持槽位显示
+- `ItemOperationMenu.cs` - 官方右键菜单框架
+- `KontextMenu.cs` - 官方上下文菜单通用框架
+
+---
+
+### 阶段1：MVP（本周期完成）
+
+#### ✅ 任务1.1：Hover显示槽位信息
+**日期**：2025-10-30 **状态**：已完成
+
+**功能**：鼠标Hover配件物品时，tooltip显示所有槽位信息
+
+**实现方案**：
+1. 创建 `AttachmentUIHelper.cs` - 槽位信息生成工具类
+   - `IsAttachment(Item)` - 判断物品是否为配件（有插槽）
+   - `GetAttachmentSlotsTooltip(Item)` - 生成槽位信息文本
+   - `GetAttachmentSlotUsage(Item)` - 返回"已用/总数"格式
+   - `GetAttachmentFullInfo(Item)` - 返回完整信息
+
+2. 创建 `AttachmentHoveringUIManager.cs` - Hover事件管理
+   - 订阅 `ItemHoveringUI.onSetupItem` 事件
+   - 通过反射获取hover面板的`itemDescription`文本组件
+   - 在原有描述后追加槽位信息
+
+3. 修改 `ModBehaviour.cs`
+   - 在Awake()中添加`AttachmentHoveringUIManager.Initialize()`调用
+
+**显示效果**：
+```
+[配件槽位 2/4]
+Slot 1: Item A x2
+【绿色】Slot 2: (key、SpecialKey、Injector)
+Slot 3: Item B
+【绿色】Slot 4: (任意)
+```
+
+**设计决策**：
+- 空槽位名称显示绿色，一眼看出哪些是空的
+- Tag列表从第二个开始显示（第一个就是槽位名称本身）
+- 简化文案为`(tag1、tag2、...)`格式，避免排版拥挤
+
+---
+
+#### ⏳ 任务1.2：点击配件跳转到详情面板
+**计划**：2-3小时
+
+**功能**：点击背包中的配件物品 → 中间详情面板显示该配件的完整信息和插槽
+
+**实现方案**：
+- 利用官方现有的 `ItemDetailsDisplay.Setup(Item target)` 方法
+- 该方法已支持显示物品槽位和 `SlotCollectionDisplay`
+- 需要找到点击物品的入口点，可能需要：
+  - Patch `ItemDisplay.OnPointerClick()` 或相关点击逻辑
+  - 或利用现有的 `ItemDisplay.OnItemClicked` 事件（如果存在）
+  - 触发 `ItemDetailsDisplay.Setup(clickedItem)`
+
+**关键代码位置**：
+- `GameSource/Duckov/ItemDetailsDisplay.cs` (第103-137行) - 已能显示配件槽位
+- `GameSource/Duckov/SlotCollectionDisplay.cs` - 槽位显示和交互组件
+- `GameSource/Duckov/ItemDisplay.cs` - 物品显示和点击逻辑
+
+**预期效果**：
+- 点击配件 → 右侧详情面板显示配件名、描述、槽位列表
+- 可直接拖拽库存物品到配件槽位中
+- 无需卸下配件即可快速编辑
+
+---
+
+#### ✅ 任务1.3：UI辅助类创建
+**日期**：2025-10-30 **状态**：已完成
+
+**功能**：为后续任务提供槽位检查和信息获取的工具方法
+
+**实现**：已包含在任务1.1的 `AttachmentUIHelper.cs` 中
+
+---
+
+### 阶段2：完善（下周期）
+
+#### ⏳ 任务2.1：右键返回上一详情（历史栈）
+**计划**：2小时
+
+**功能**：维护详情浏览历史，右键返回上一个物品的详情
+
+**实现方案**：
+- 创建 `AttachmentUIHistory` 类维护详情浏览历史栈
+- 每次打开物品详情时，将前一个物品压入历史栈
+- 右键点击时弹出栈顶，显示前一个物品详情
+- 或在详情面板上添加"返回"按钮
+
+**相关组件**：
+- `ItemDetailsDisplay.cs` - 需要修改以支持右键返回
+- `KontextMenu.cs` - 可用于右键菜单
+
+---
+
+#### ⏳ 任务2.2：圆孔高亮拖拽反馈
+**计划**：需先测试UI交互方式
+
+**功能**：用户拖拽物品到配件槽位时，目标槽位显示高亮效果（圆孔变色/放大）
+
+**实现方案**：
+- 获取 `SlotIndicator` 组件（显示槽位的圆孔UI）
+- 在拖拽事件中动态修改：
+  - Material/Shader参数实现放大效果
+  - Color实现高亮变色
+- 或通过修改 `Image.color` 属性改变透明度/亮度
+
+**关键代码位置**：
+- `GameSource/Duckov/SlotIndicator.cs` - 槽位显示器组件
+- `GameSource/Duckov/ItemDisplay.cs` - 拖拽事件逻辑
+
+---
+
+### 实现优先级
+
+| 任务 | 优先级 | 难度 | 时间 | 依赖 | 状态 |
+|------|--------|------|------|------|--------|
+| 1.1 Hover显示信息 | P0 | 低 | 2-3h | ItemHoveringUI ✅ | ✅ 完成 |
+| 1.2 点击跳转详情 | P0 | 低 | 2-3h | ItemDetailsDisplay ✅ | ⏳ 待实现 |
+| 1.3 UI辅助类 | P0 | 极低 | 1h | 无 | ✅ 完成 |
+| 2.1 右键返回历史 | P1 | 低 | 2h | 1.2完成后 | ⏳ 待实现 |
+| 2.2 圆孔高亮反馈 | P1 | 中 | 需测试 | SlotIndicator ✅ | ⏳ 待实现 |
+
+---
+
+### 创建文件清单
+
+**已创建**：
+- ✅ `AttachmentUI/AttachmentUIHelper.cs` - 槽位信息工具类
+- ✅ `AttachmentUI/AttachmentHoveringUIManager.cs` - Hover管理器
+
+**计划创建**：
+- ⏳ `AttachmentUI/Patches/ItemDisplayClickPatch.cs` - 点击物品Patch（如需）
+- ⏳ `AttachmentUI/AttachmentUIHistory.cs` - 详情浏览历史栈
+- ⏳ `AttachmentUI/SlotHighlightHelper.cs` - 槽位高亮效果辅助类
+
 ## 开发交流规则
 
 ### Git 提交规则
@@ -566,9 +712,10 @@ None(0), White(1), Green(2), Blue(3), Purple(4), Orange(5), Red(6), Q7(7), Q8(8)
 - [x] 修复配件事件重复订阅导致的无限循环
 
 ### P1 - 核心功能（本周期重点）
-- [ ] 配件设置基础属性（重量、价值、稀有度等）
-- [ ] 配件添加Icon
+- [x] 配件设置基础属性（重量、价值、稀有度等）
+- [x] 配件添加Icon
 - [x] 轮盘布局持久化
+- [x] 配件Hover面板显示槽位信息（带颜色区分空/满槽位）
 - [ ] 配件附加效果（如减少负重）
 - [ ] 点击配件展开配件插槽UI，可拖拽放入物品
 

@@ -1,5 +1,6 @@
 ﻿using Duckov.Modding;
 using Great_backpack.AttachmentSystem;
+using Great_backpack.AttachmentUI;
 using Great_backpack.BackpackSystem;
 using Great_backpack.ShortcutSystem;
 using HarmonyLib;
@@ -49,6 +50,9 @@ namespace Great_backpack
 
             // 立即初始化背包系统
             InitializeBackpackSystem();
+
+            // 初始化配件Hover信息显示
+            AttachmentHoveringUIManager.Initialize();
 
             // 订阅关卡初始化事件
             LevelManager.OnLevelInitialized += OnLevelInitialized;
