@@ -77,10 +77,12 @@ namespace Great_backpack
             // === 侧面小包 ===
             new AttachmentItemConfig(
                 "NetPocket_Item", "ITEM_NET_POCKET_NAME",
-                349100, 0.3f, 200, "SidePocket_Small",
+                349100, 0.3f, 145, "SidePocket_Small",
                 new List<SlotConfig> { UnifiedSlotTypes["Food"] },
                 "Textures.NetPocket_Item.png"
             ){
+                Quality = 2,
+                DisplayQuality = ItemStatsSystem.DisplayQuality.Green,
                 Localization = new LocalizationData
                 {
                     LanguageMappings = new Dictionary<string, Dictionary<string, string>>
@@ -89,14 +91,14 @@ namespace Great_backpack
                             "zh-CN", new Dictionary<string, string>
                             {
                                 { "ITEM_NET_POCKET_NAME", "网兜" },
-                                { "ITEM_NET_POCKET_NAME_Desc", "网眼侧袋，可存放食物" }
+                                { "ITEM_NET_POCKET_NAME_Desc", "装瓶水？还是一个萝卜？反正食物就行～" }
                             }
                         },
                         {
                             "en-US", new Dictionary<string, string>
                             {
                                 { "ITEM_NET_POCKET_NAME", "Net Pocket" },
-                                { "ITEM_NET_POCKET_NAME_Desc", "Mesh side pocket for storing food" }
+                                { "ITEM_NET_POCKET_NAME_Desc", "A bottle of water? A carrot? Anything food works~" }
                             }
                         }
                     }
@@ -104,10 +106,12 @@ namespace Great_backpack
             },
             new AttachmentItemConfig(
                 "CanteenPocket_Item", "ITEM_CANTEEN_POCKET_NAME",
-                349101, 0.4f, 250, "SidePocket_Small",
+                349101, 0.4f, 675, "SidePocket_Small",
                 new List<SlotConfig> { UnifiedSlotTypes["Food"], UnifiedSlotTypes["Small"] },
                 "Textures.CanteenPocket_Item.png"
             ){
+                Quality = 3,
+                DisplayQuality = ItemStatsSystem.DisplayQuality.Blue,
                 Localization = new LocalizationData
                 {
                     LanguageMappings = new Dictionary<string, Dictionary<string, string>>
@@ -116,14 +120,14 @@ namespace Great_backpack
                             "zh-CN", new Dictionary<string, string>
                             {
                                 { "ITEM_CANTEEN_POCKET_NAME", "水壶袋" },
-                                { "ITEM_CANTEEN_POCKET_NAME_Desc", "专门用于存放水壶和食物的侧袋" }
+                                { "ITEM_CANTEEN_POCKET_NAME_Desc", "能放点吃喝，还能放个钥匙、针剂，就没地儿了。。" }
                             }
                         },
                         {
                             "en-US", new Dictionary<string, string>
                             {
                                 { "ITEM_CANTEEN_POCKET_NAME", "Canteen Pocket" },
-                                { "ITEM_CANTEEN_POCKET_NAME_Desc", "Special pocket for canteens and food" }
+                                { "ITEM_CANTEEN_POCKET_NAME_Desc", "Room for some snacks and drinks, maybe a key and syringe... but then it's full." }
                             }
                         }
                     }
@@ -133,9 +137,11 @@ namespace Great_backpack
             // === 侧面大包 ===
             new AttachmentItemConfig(
                 "BianFengStorage_Item", "ITEM_BIANFENG_STORAGE_NAME",
-                349120, 0.8f, 500, "SidePocket_Large",
+                349120, 0.7f, 8200, "SidePocket_Large",
                 new List<SlotConfig> { UnifiedSlotTypes["Small"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Small"] }
             ){
+                Quality = 6,
+                DisplayQuality = ItemStatsSystem.DisplayQuality.Red,
                 Localization = new LocalizationData
                 {
                     LanguageMappings = new Dictionary<string, Dictionary<string, string>>
@@ -144,14 +150,14 @@ namespace Great_backpack
                             "zh-CN", new Dictionary<string, string>
                             {
                                 { "ITEM_BIANFENG_STORAGE_NAME", "边锋收纳包" },
-                                { "ITEM_BIANFENG_STORAGE_NAME_Desc", "多功能收纳包，提供灵活的存储方案" }
+                                { "ITEM_BIANFENG_STORAGE_NAME_Desc", "诺亚方舟级收纳！大小物件都能装，这才是真正的整理大师" }
                             }
                         },
                         {
                             "en-US", new Dictionary<string, string>
                             {
                                 { "ITEM_BIANFENG_STORAGE_NAME", "BianFeng Storage" },
-                                { "ITEM_BIANFENG_STORAGE_NAME_Desc", "Multi-functional storage bag providing flexible storage solutions" }
+                                { "ITEM_BIANFENG_STORAGE_NAME_Desc", "Noah's Ark of storage! Everything finds its place. The master organizer!" }
                             }
                         }
                     }
@@ -161,9 +167,11 @@ namespace Great_backpack
             // === 战术小包 ===
             new AttachmentItemConfig(
                 "SmallKeyPouch_Item", "ITEM_SMALL_KEY_POUCH_NAME",
-                349130, 0.2f, 150, "TacticalPouch_Small",
+                349130, 0.2f, 85, "TacticalPouch_Small",
                 new List<SlotConfig> { UnifiedSlotTypes["Key"], UnifiedSlotTypes["Key"] }
             ){
+                Quality = 2,
+                DisplayQuality = ItemStatsSystem.DisplayQuality.Green,
                 Localization = new LocalizationData
                 {
                     LanguageMappings = new Dictionary<string, Dictionary<string, string>>
@@ -172,14 +180,14 @@ namespace Great_backpack
                             "zh-CN", new Dictionary<string, string>
                             {
                                 { "ITEM_SMALL_KEY_POUCH_NAME", "小钥匙袋" },
-                                { "ITEM_SMALL_KEY_POUCH_NAME_Desc", "专门存放钥匙的小袋" }
+                                { "ITEM_SMALL_KEY_POUCH_NAME_Desc", "钥匙的家，装满了就都堵门口吧" }
                             }
                         },
                         {
                             "en-US", new Dictionary<string, string>
                             {
                                 { "ITEM_SMALL_KEY_POUCH_NAME", "Small Key Pouch" },
-                                { "ITEM_SMALL_KEY_POUCH_NAME_Desc", "Small pouch specifically for keys" }
+                                { "ITEM_SMALL_KEY_POUCH_NAME_Desc", "Keys' home. Fill it up and you'll never lose one!" }
                             }
                         }
                     }
@@ -187,9 +195,11 @@ namespace Great_backpack
             },
             new AttachmentItemConfig(
                 "TacticalTransparent_Item", "ITEM_TACTICAL_TRANSPARENT_NAME",
-                349131, 0.5f, 300, "TacticalPouch_Small",
+                349131, 0.5f, 785, "TacticalPouch_Small",
                 new List<SlotConfig> { UnifiedSlotTypes["Small"], UnifiedSlotTypes["Small"], UnifiedSlotTypes["Small"], UnifiedSlotTypes["Small"] }
             ){
+                Quality = 3,
+                DisplayQuality = ItemStatsSystem.DisplayQuality.Blue,
                 Localization = new LocalizationData
                 {
                     LanguageMappings = new Dictionary<string, Dictionary<string, string>>
@@ -198,14 +208,14 @@ namespace Great_backpack
                             "zh-CN", new Dictionary<string, string>
                             {
                                 { "ITEM_TACTICAL_TRANSPARENT_NAME", "战术小透明" },
-                                { "ITEM_TACTICAL_TRANSPARENT_NAME_Desc", "透明战术包，方便查看内容" }
+                                { "ITEM_TACTICAL_TRANSPARENT_NAME_Desc", "透明材质，小物件一目了然，专业人士的秘密武器" }
                             }
                         },
                         {
                             "en-US", new Dictionary<string, string>
                             {
                                 { "ITEM_TACTICAL_TRANSPARENT_NAME", "Tactical Transparent" },
-                                { "ITEM_TACTICAL_TRANSPARENT_NAME_Desc", "Transparent tactical bag for easy content viewing" }
+                                { "ITEM_TACTICAL_TRANSPARENT_NAME_Desc", "Crystal clear visibility. Perfect for organizing those small essentials at a glance!" }
                             }
                         }
                     }
@@ -215,9 +225,11 @@ namespace Great_backpack
             // === 战术大包 ===
             new AttachmentItemConfig(
                 "ToolBox_Item", "ITEM_TOOL_BOX_NAME",
-                349140, 1.5f, 800, "TacticalPouch_Large",
+                349140, 1.2f, 2050, "TacticalPouch_Large",
                 new List<SlotConfig> { UnifiedSlotTypes["Large"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Large"] }
             ){
+                Quality = 4,
+                DisplayQuality = ItemStatsSystem.DisplayQuality.Purple,
                 Localization = new LocalizationData
                 {
                     LanguageMappings = new Dictionary<string, Dictionary<string, string>>
@@ -226,14 +238,14 @@ namespace Great_backpack
                             "zh-CN", new Dictionary<string, string>
                             {
                                 { "ITEM_TOOL_BOX_NAME", "工具箱" },
-                                { "ITEM_TOOL_BOX_NAME_Desc", "用于存放各种工具的箱子" }
+                                { "ITEM_TOOL_BOX_NAME_Desc", "行动必备！医疗包、水、粮食...这箱子就是你的移动仓库" }
                             }
                         },
                         {
                             "en-US", new Dictionary<string, string>
                             {
                                 { "ITEM_TOOL_BOX_NAME", "Tool Box" },
-                                { "ITEM_TOOL_BOX_NAME_Desc", "Box for storing various tools" }
+                                { "ITEM_TOOL_BOX_NAME_Desc", "Your mobile supply depot! Medical kits, water, rations... pack it all in!" }
                             }
                         }
                     }
@@ -241,9 +253,11 @@ namespace Great_backpack
             },
             new AttachmentItemConfig(
                 "BianFengTactical_Item", "ITEM_BIANFENG_TACTICAL_NAME",
-                349141, 1.2f, 1000, "TacticalPouch_Large",
+                349141, 1.0f, 9350, "TacticalPouch_Large",
                 new List<SlotConfig> { UnifiedSlotTypes["Explosive"], UnifiedSlotTypes["Explosive"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Explosive"], UnifiedSlotTypes["Explosive"] }
             ){
+                Quality = 6,
+                DisplayQuality = ItemStatsSystem.DisplayQuality.Red,
                 Localization = new LocalizationData
                 {
                     LanguageMappings = new Dictionary<string, Dictionary<string, string>>
@@ -252,14 +266,14 @@ namespace Great_backpack
                             "zh-CN", new Dictionary<string, string>
                             {
                                 { "ITEM_BIANFENG_TACTICAL_NAME", "边锋战术包" },
-                                { "ITEM_BIANFENG_TACTICAL_NAME_Desc", "专业战术包，提供多种存储方案" }
+                                { "ITEM_BIANFENG_TACTICAL_NAME_Desc", "终极之选！手雷、装备、补给...最专业的战术配置尽在其中" }
                             }
                         },
                         {
                             "en-US", new Dictionary<string, string>
                             {
                                 { "ITEM_BIANFENG_TACTICAL_NAME", "BianFeng Tactical" },
-                                { "ITEM_BIANFENG_TACTICAL_NAME_Desc", "Professional tactical bag with multiple storage solutions" }
+                                { "ITEM_BIANFENG_TACTICAL_NAME_Desc", "The ultimate choice! Grenades, gear, supplies... pure tactical perfection!" }
                             }
                         }
                     }
@@ -269,9 +283,11 @@ namespace Great_backpack
             // === 锁扣 ===
             new AttachmentItemConfig(
                 "MagneticLock_Item", "ITEM_MAGNETIC_LOCK_NAME",
-                349150, 0.1f, 100, "LockBuckle",
+                349150, 0.08f, 1450, "LockBuckle",
                 new List<SlotConfig>() // 无插槽
             ){
+                Quality = 4,
+                DisplayQuality = ItemStatsSystem.DisplayQuality.Purple,
                 Localization = new LocalizationData
                 {
                     LanguageMappings = new Dictionary<string, Dictionary<string, string>>
@@ -280,14 +296,14 @@ namespace Great_backpack
                             "zh-CN", new Dictionary<string, string>
                             {
                                 { "ITEM_MAGNETIC_LOCK_NAME", "磁吸锁扣" },
-                                { "ITEM_MAGNETIC_LOCK_NAME_Desc", "磁性锁扣，方便快速开合" }
+                                { "ITEM_MAGNETIC_LOCK_NAME_Desc", "吸一下就开，放一下就锁。快速又安全的背包好搭档" }
                             }
                         },
                         {
                             "en-US", new Dictionary<string, string>
                             {
                                 { "ITEM_MAGNETIC_LOCK_NAME", "Magnetic Lock" },
-                                { "ITEM_MAGNETIC_LOCK_NAME_Desc", "Magnetic lock for quick opening and closing" }
+                                { "ITEM_MAGNETIC_LOCK_NAME_Desc", "Snap and go! A quick and secure companion for your pack." }
                             }
                         }
                     }
@@ -295,9 +311,11 @@ namespace Great_backpack
             },
             new AttachmentItemConfig(
                 "ToolLock_Item", "ITEM_TOOL_LOCK_NAME",
-                349151, 0.3f, 200, "LockBuckle",
+                349151, 0.25f, 5150, "LockBuckle",
                 new List<SlotConfig> { UnifiedSlotTypes["Hook"], UnifiedSlotTypes["Hook"] }
             ){
+                Quality = 5,
+                DisplayQuality = ItemStatsSystem.DisplayQuality.Orange,
                 Localization = new LocalizationData
                 {
                     LanguageMappings = new Dictionary<string, Dictionary<string, string>>
@@ -306,14 +324,14 @@ namespace Great_backpack
                             "zh-CN", new Dictionary<string, string>
                             {
                                 { "ITEM_TOOL_LOCK_NAME", "工具锁扣" },
-                                { "ITEM_TOOL_LOCK_NAME_Desc", "带有工具挂载点的锁扣" }
+                                { "ITEM_TOOL_LOCK_NAME_Desc", "专业级锁扣，两个挂钩可以勾手雷、工具、还有啥都行" }
                             }
                         },
                         {
                             "en-US", new Dictionary<string, string>
                             {
                                 { "ITEM_TOOL_LOCK_NAME", "Tool Lock" },
-                                { "ITEM_TOOL_LOCK_NAME_Desc", "Lock with tool mounting points" }
+                                { "ITEM_TOOL_LOCK_NAME_Desc", "Professional-grade lock with dual hooks for grenades, tools, you name it!" }
                             }
                         }
                     }
@@ -323,9 +341,11 @@ namespace Great_backpack
             // === 肩带 ===
             new AttachmentItemConfig(
                 "ZeroGravityStrap_Item", "ITEM_ZERO_GRAVITY_STRAP_NAME",
-                349160, 0.4f, 600, "ShoulderStrap",
+                349160, 0.4f, 5680, "ShoulderStrap",
                 new List<SlotConfig>() // 无插槽
             ){
+                Quality = 5,
+                DisplayQuality = ItemStatsSystem.DisplayQuality.Orange,
                 Localization = new LocalizationData
                 {
                     LanguageMappings = new Dictionary<string, Dictionary<string, string>>
@@ -334,14 +354,14 @@ namespace Great_backpack
                             "zh-CN", new Dictionary<string, string>
                             {
                                 { "ITEM_ZERO_GRAVITY_STRAP_NAME", "边锋零重力肩带" },
-                                { "ITEM_ZERO_GRAVITY_STRAP_NAME_Desc", "采用零重力技术的舒适肩带" }
+                                { "ITEM_ZERO_GRAVITY_STRAP_NAME_Desc", "仿佛背的不是物资，而是空气。你的肩膀会感谢你" }
                             }
                         },
                         {
                             "en-US", new Dictionary<string, string>
                             {
                                 { "ITEM_ZERO_GRAVITY_STRAP_NAME", "BianFeng Zero Gravity Strap" },
-                                { "ITEM_ZERO_GRAVITY_STRAP_NAME_Desc", "Comfortable shoulder strap using zero-gravity technology" }
+                                { "ITEM_ZERO_GRAVITY_STRAP_NAME_Desc", "Feels like carrying air, not supplies. Your shoulders will thank you!" }
                             }
                         }
                     }
@@ -351,9 +371,11 @@ namespace Great_backpack
             // === 肩带包 ===
             new AttachmentItemConfig(
                 "PhonePocket_Item", "ITEM_PHONE_POCKET_NAME",
-                349170, 0.2f, 150, "ShoulderPouch",
+                349170, 0.18f, 4950, "ShoulderPouch",
                 new List<SlotConfig> { UnifiedSlotTypes["Small"] }
             ){
+                Quality = 5,
+                DisplayQuality = ItemStatsSystem.DisplayQuality.Orange,
                 Localization = new LocalizationData
                 {
                     LanguageMappings = new Dictionary<string, Dictionary<string, string>>
@@ -362,14 +384,14 @@ namespace Great_backpack
                             "zh-CN", new Dictionary<string, string>
                             {
                                 { "ITEM_PHONE_POCKET_NAME", "手机袋" },
-                                { "ITEM_PHONE_POCKET_NAME_Desc", "肩带上的手机袋，方便取用小物件" }
+                                { "ITEM_PHONE_POCKET_NAME_Desc", "名叫手机袋，其实啥小东西都能装。钥匙、针剂、糖果...顺手一掏" }
                             }
                         },
                         {
                             "en-US", new Dictionary<string, string>
                             {
                                 { "ITEM_PHONE_POCKET_NAME", "Phone Pocket" },
-                                { "ITEM_PHONE_POCKET_NAME_Desc", "Shoulder pocket for easy access to small items" }
+                                { "ITEM_PHONE_POCKET_NAME_Desc", "Called a phone pocket but holds everything small. Keys, syringes, candy... grab and go!" }
                             }
                         }
                     }
@@ -379,9 +401,11 @@ namespace Great_backpack
             // === 子弹袋 ===
             new AttachmentItemConfig(
                 "TacticalAmmoPouch_Item", "ITEM_TACTICAL_AMMO_POUCH_NAME",
-                349180, 0.7f, 400, "AmmoPouch",
+                349180, 0.6f, 7100, "AmmoPouch",
                 new List<SlotConfig> { UnifiedSlotTypes["Magazine"], UnifiedSlotTypes["Magazine"], UnifiedSlotTypes["Magazine"], UnifiedSlotTypes["Magazine"] }
             ){
+                Quality = 6,
+                DisplayQuality = ItemStatsSystem.DisplayQuality.Red,
                 Localization = new LocalizationData
                 {
                     LanguageMappings = new Dictionary<string, Dictionary<string, string>>
@@ -390,14 +414,14 @@ namespace Great_backpack
                             "zh-CN", new Dictionary<string, string>
                             {
                                 { "ITEM_TACTICAL_AMMO_POUCH_NAME", "战术子弹袋" },
-                                { "ITEM_TACTICAL_AMMO_POUCH_NAME_Desc", "专业子弹袋，增加弹药携带效率" }
+                                { "ITEM_TACTICAL_AMMO_POUCH_NAME_Desc", "弹匣杀手！四个弹夹齐排队。火力全开从它开始" }
                             }
                         },
                         {
                             "en-US", new Dictionary<string, string>
                             {
                                 { "ITEM_TACTICAL_AMMO_POUCH_NAME", "Tactical Ammo Pouch" },
-                                { "ITEM_TACTICAL_AMMO_POUCH_NAME_Desc", "Professional ammo pouch for increased ammunition carrying efficiency" }
+                                { "ITEM_TACTICAL_AMMO_POUCH_NAME_Desc", "Magazine heaven! Four mags ready to roll. Non-stop firepower begins here!" }
                             }
                         }
                     }

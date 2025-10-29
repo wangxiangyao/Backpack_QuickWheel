@@ -10,6 +10,8 @@ namespace Great_backpack.AttachmentSystem
         public int TypeID { get; set; }
         public float Weight { get; set; }
         public int Value { get; set; }
+        public int Quality { get; set; }  // 品质值
+        public ItemStatsSystem.DisplayQuality DisplayQuality { get; set; }  // 品质等级显示
         public string RequiredTag { get; set; }
         public List<SlotConfig> SlotConfigs { get; set; }
         public string EmbeddedSpritePath { get; set; }
