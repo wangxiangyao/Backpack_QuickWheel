@@ -136,9 +136,10 @@ namespace Great_backpack
 
             // === 侧面大包 ===
             new AttachmentItemConfig(
-                "BianFengStorage_Item", "ITEM_BIANFENG_STORAGE_NAME",
+                "GagaStorage_Item", "ITEM_GAGA_STORAGE_NAME",
                 349120, 0.7f, 8200, "SidePocket_Large",
-                new List<SlotConfig> { UnifiedSlotTypes["Small"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Small"] }
+                new List<SlotConfig> { UnifiedSlotTypes["Small"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Small"] },
+                "Textures.GagaStorage_Item.png"
             ){
                 Quality = 6,
                 DisplayQuality = ItemStatsSystem.DisplayQuality.Red,
@@ -149,15 +150,15 @@ namespace Great_backpack
                         {
                             "zh-CN", new Dictionary<string, string>
                             {
-                                { "ITEM_BIANFENG_STORAGE_NAME", "边锋收纳包" },
-                                { "ITEM_BIANFENG_STORAGE_NAME_Desc", "诺亚方舟级收纳！大小物件都能装，这才是真正的整理大师" }
+                                { "ITEM_GAGA_STORAGE_NAME", "嘎嘎收纳包" },
+                                { "ITEM_GAGA_STORAGE_NAME_Desc", "诺亚方舟级收纳！大小物件都能装，这才是真正的整理大师" }
                             }
                         },
                         {
                             "en-US", new Dictionary<string, string>
                             {
-                                { "ITEM_BIANFENG_STORAGE_NAME", "BianFeng Storage" },
-                                { "ITEM_BIANFENG_STORAGE_NAME_Desc", "Noah's Ark of storage! Everything finds its place. The master organizer!" }
+                                { "ITEM_GAGA_STORAGE_NAME", "Gaga Storage" },
+                                { "ITEM_GAGA_STORAGE_NAME_Desc", "Noah's Ark of storage! Everything finds its place. The master organizer!" }
                             }
                         }
                     }
@@ -168,7 +169,8 @@ namespace Great_backpack
             new AttachmentItemConfig(
                 "SmallKeyPouch_Item", "ITEM_SMALL_KEY_POUCH_NAME",
                 349130, 0.2f, 85, "TacticalPouch_Small",
-                new List<SlotConfig> { UnifiedSlotTypes["Key"], UnifiedSlotTypes["Key"] }
+                new List<SlotConfig> { UnifiedSlotTypes["Key"], UnifiedSlotTypes["Key"] },
+                "Textures.SmallKeyPouch_Item.png"
             ){
                 Quality = 2,
                 DisplayQuality = ItemStatsSystem.DisplayQuality.Green,
@@ -196,7 +198,8 @@ namespace Great_backpack
             new AttachmentItemConfig(
                 "TacticalTransparent_Item", "ITEM_TACTICAL_TRANSPARENT_NAME",
                 349131, 0.5f, 785, "TacticalPouch_Small",
-                new List<SlotConfig> { UnifiedSlotTypes["Small"], UnifiedSlotTypes["Small"], UnifiedSlotTypes["Small"], UnifiedSlotTypes["Small"] }
+                new List<SlotConfig> { UnifiedSlotTypes["Small"], UnifiedSlotTypes["Small"], UnifiedSlotTypes["Small"], UnifiedSlotTypes["Small"] },
+                "Textures.TacticalTransparent_Item.png"
             ){
                 Quality = 3,
                 DisplayQuality = ItemStatsSystem.DisplayQuality.Blue,
@@ -226,7 +229,8 @@ namespace Great_backpack
             new AttachmentItemConfig(
                 "ToolBox_Item", "ITEM_TOOL_BOX_NAME",
                 349140, 1.2f, 2050, "TacticalPouch_Large",
-                new List<SlotConfig> { UnifiedSlotTypes["Large"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Large"] }
+                new List<SlotConfig> { UnifiedSlotTypes["Large"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Large"] },
+                "Textures.ToolBox_Item.png"
             ){
                 Quality = 4,
                 DisplayQuality = ItemStatsSystem.DisplayQuality.Purple,
@@ -252,9 +256,10 @@ namespace Great_backpack
                 }
             },
             new AttachmentItemConfig(
-                "BianFengTactical_Item", "ITEM_BIANFENG_TACTICAL_NAME",
+                "GagaTactical_Item", "ITEM_GAGA_TACTICAL_NAME",
                 349141, 1.0f, 9350, "TacticalPouch_Large",
-                new List<SlotConfig> { UnifiedSlotTypes["Explosive"], UnifiedSlotTypes["Explosive"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Explosive"], UnifiedSlotTypes["Explosive"] }
+                new List<SlotConfig> { UnifiedSlotTypes["Explosive"], UnifiedSlotTypes["Explosive"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Explosive"], UnifiedSlotTypes["Explosive"] },
+                "Textures.GagaTactical_Item.png"
             ){
                 Quality = 6,
                 DisplayQuality = ItemStatsSystem.DisplayQuality.Red,
@@ -265,15 +270,15 @@ namespace Great_backpack
                         {
                             "zh-CN", new Dictionary<string, string>
                             {
-                                { "ITEM_BIANFENG_TACTICAL_NAME", "边锋战术包" },
-                                { "ITEM_BIANFENG_TACTICAL_NAME_Desc", "终极之选！手雷、装备、补给...最专业的战术配置尽在其中" }
+                                { "ITEM_GAGA_TACTICAL_NAME", "嘎嘎战术包" },
+                                { "ITEM_GAGA_TACTICAL_NAME_Desc", "终极之选！手雷、装备、补给...最专业的战术配置尽在其中" }
                             }
                         },
                         {
                             "en-US", new Dictionary<string, string>
                             {
-                                { "ITEM_BIANFENG_TACTICAL_NAME", "BianFeng Tactical" },
-                                { "ITEM_BIANFENG_TACTICAL_NAME_Desc", "The ultimate choice! Grenades, gear, supplies... pure tactical perfection!" }
+                                { "ITEM_GAGA_TACTICAL_NAME", "Gaga Tactical" },
+                                { "ITEM_GAGA_TACTICAL_NAME_Desc", "The ultimate choice! Grenades, gear, supplies... pure tactical perfection!" }
                             }
                         }
                     }
@@ -281,10 +286,11 @@ namespace Great_backpack
             },
 
             // === 锁扣 ===
+            // 磁吸锁扣 - 保留以兼容旧存档，但不在背包中显示插槽
             new AttachmentItemConfig(
                 "MagneticLock_Item", "ITEM_MAGNETIC_LOCK_NAME",
                 349150, 0.08f, 1450, "LockBuckle",
-                new List<SlotConfig>() // 无插槽
+                new List<SlotConfig>() // 无插槽 - 禁用显示
             ){
                 Quality = 4,
                 DisplayQuality = ItemStatsSystem.DisplayQuality.Purple,
@@ -310,9 +316,10 @@ namespace Great_backpack
                 }
             },
             new AttachmentItemConfig(
-                "ToolLock_Item", "ITEM_TOOL_LOCK_NAME",
-                349151, 0.25f, 5150, "LockBuckle",
-                new List<SlotConfig> { UnifiedSlotTypes["Hook"], UnifiedSlotTypes["Hook"] }
+                "GagaTacticalBelt_Item", "ITEM_GAGA_TACTICAL_BELT_NAME",
+                349151, 0.35f, 4850, "LockBuckle",
+                new List<SlotConfig> { UnifiedSlotTypes["Hook"], UnifiedSlotTypes["Hook"] },
+                "Textures.GagaTacticalBelt_Item.png"
             ){
                 Quality = 5,
                 DisplayQuality = ItemStatsSystem.DisplayQuality.Orange,
@@ -323,15 +330,15 @@ namespace Great_backpack
                         {
                             "zh-CN", new Dictionary<string, string>
                             {
-                                { "ITEM_TOOL_LOCK_NAME", "工具锁扣" },
-                                { "ITEM_TOOL_LOCK_NAME_Desc", "专业级锁扣，两个挂钩可以勾手雷、工具、还有啥都行" }
+                                { "ITEM_GAGA_TACTICAL_BELT_NAME", "嘎嘎战术腰带" },
+                                { "ITEM_GAGA_TACTICAL_BELT_NAME_Desc", "专业级战术腰带，两个挂钩稳稳地固定你的武器和装备。行动中的好搭档" }
                             }
                         },
                         {
                             "en-US", new Dictionary<string, string>
                             {
-                                { "ITEM_TOOL_LOCK_NAME", "Tool Lock" },
-                                { "ITEM_TOOL_LOCK_NAME_Desc", "Professional-grade lock with dual hooks for grenades, tools, you name it!" }
+                                { "ITEM_GAGA_TACTICAL_BELT_NAME", "Gaga Tactical Belt" },
+                                { "ITEM_GAGA_TACTICAL_BELT_NAME_Desc", "Professional-grade tactical belt with dual hooks to secure your weapons and gear. The perfect companion for action!" }
                             }
                         }
                     }
@@ -342,7 +349,8 @@ namespace Great_backpack
             new AttachmentItemConfig(
                 "ZeroGravityStrap_Item", "ITEM_ZERO_GRAVITY_STRAP_NAME",
                 349160, 0.4f, 5680, "ShoulderStrap",
-                new List<SlotConfig>() // 无插槽
+                new List<SlotConfig>(), // 无插槽
+                "Textures.ZeroGravityStrap_Item.png"
             ){
                 Quality = 5,
                 DisplayQuality = ItemStatsSystem.DisplayQuality.Orange,
@@ -353,14 +361,14 @@ namespace Great_backpack
                         {
                             "zh-CN", new Dictionary<string, string>
                             {
-                                { "ITEM_ZERO_GRAVITY_STRAP_NAME", "边锋零重力肩带" },
+                                { "ITEM_ZERO_GRAVITY_STRAP_NAME", "嘎嘎零重力肩带" },
                                 { "ITEM_ZERO_GRAVITY_STRAP_NAME_Desc", "仿佛背的不是物资，而是空气。你的肩膀会感谢你" }
                             }
                         },
                         {
                             "en-US", new Dictionary<string, string>
                             {
-                                { "ITEM_ZERO_GRAVITY_STRAP_NAME", "BianFeng Zero Gravity Strap" },
+                                { "ITEM_ZERO_GRAVITY_STRAP_NAME", "Gaga Zero Gravity Strap" },
                                 { "ITEM_ZERO_GRAVITY_STRAP_NAME_Desc", "Feels like carrying air, not supplies. Your shoulders will thank you!" }
                             }
                         }
@@ -372,7 +380,8 @@ namespace Great_backpack
             new AttachmentItemConfig(
                 "PhonePocket_Item", "ITEM_PHONE_POCKET_NAME",
                 349170, 0.18f, 4950, "ShoulderPouch",
-                new List<SlotConfig> { UnifiedSlotTypes["Small"] }
+                new List<SlotConfig> { UnifiedSlotTypes["Small"] },
+                "Textures.PhonePocket_Item.png"
             ){
                 Quality = 5,
                 DisplayQuality = ItemStatsSystem.DisplayQuality.Orange,
@@ -402,7 +411,8 @@ namespace Great_backpack
             new AttachmentItemConfig(
                 "TacticalAmmoPouch_Item", "ITEM_TACTICAL_AMMO_POUCH_NAME",
                 349180, 0.6f, 7100, "AmmoPouch",
-                new List<SlotConfig> { UnifiedSlotTypes["Magazine"], UnifiedSlotTypes["Magazine"], UnifiedSlotTypes["Magazine"], UnifiedSlotTypes["Magazine"] }
+                new List<SlotConfig> { UnifiedSlotTypes["Magazine"], UnifiedSlotTypes["Magazine"], UnifiedSlotTypes["Magazine"], UnifiedSlotTypes["Magazine"] },
+                "Textures.TacticalAmmoPouch_Item.png"
             ){
                 Quality = 6,
                 DisplayQuality = ItemStatsSystem.DisplayQuality.Red,

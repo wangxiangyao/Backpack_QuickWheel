@@ -473,12 +473,12 @@ None(0), White(1), Green(2), Blue(3), Purple(4), Orange(5), Red(6), Q7(7), Q8(8)
 | 2 | 小钥匙袋 | 349130 | 0.2kg | 85 | 极易 | 钥匙初级方案 |
 | 3 | 水壶袋 | 349101 | 0.4kg | 675 | 容易 | 食物+小物件 |
 | 3 | 战术小透明 | 349131 | 0.5kg | 785 | 容易 | 战术小包升级 |
-| 4 | 磁吸锁扣 | 349150 | 0.08kg | 1450 | 中等 | 锁扣基础版（与手雷快捷键相关） |
 | 4 | 工具箱 | 349140 | 1.2kg | 2050 | 中等 | 大型容器配件 |
-| 5 | 工具锁扣 | 349151 | 0.25kg | 5150 | 困难 | 带挂钩的高级锁扣 |
+| 5 | 嘎嘎战术腰带 | 349151 | 0.35kg | 4850 | 困难 | 两个挂钩的高级战术腰带 |
 | 5 | 零重力肩带 | 349160 | 0.4kg | 5680 | 困难 | 减重肩带（后续可添加减重效果） |
 | 5 | 手机袋 | 349170 | 0.18kg | 4950 | 困难 | 肩带包（肩带是高级背包专有） |
-| 6 | 边锋收纳包 | 349120 | 0.7kg | 8200 | 非常困难 | 行军背包独有大包 |
+| 6 | 嘎嘎收纳包 | 349120 | 0.7kg | 8200 | 非常困难 | 行军背包独有大包 |
+| 6 | 嘎嘎战术包 | 349141 | 1.0kg | 9350 | 非常困难 | 行军背包战术配置专用 |
 | 6 | 战术子弹袋 | 349180 | 0.6kg | 7100 | 非常困难 | 行军背包弹匣神器 |
 
 **价格逻辑**：
@@ -524,13 +524,12 @@ None(0), White(1), Green(2), Blue(3), Purple(4), Orange(5), Red(6), Q7(7), Q8(8)
 | Blue | 水壶袋 | 能放点吃喝，还能放个钥匙、针剂，就没地儿了。。 | Room for some snacks and drinks, maybe a key and syringe... but then it's full. |
 | Blue | 战术小透明 | 透明材质，小物件一目了然，专业人士的秘密武器 | Crystal clear visibility. Perfect for organizing those small essentials at a glance! |
 | Purple | 工具箱 | 行动必备！医疗包、水、粮食...这箱子就是你的移动仓库 | Your mobile supply depot! Medical kits, water, rations... pack it all in! |
-| Purple | 磁吸锁扣 | 吸一下就开，放一下就锁。快速又安全的背包好搭档 | Snap and go! A quick and secure companion for your pack. |
-| Orange | 工具锁扣 | 专业级锁扣，两个挂钩可以勾手雷、工具、还有啥都行 | Professional-grade lock with dual hooks for grenades, tools, you name it! |
+| Orange | 嘎嘎战术腰带 | 专业级战术腰带，两个挂钩稳稳地固定你的武器和装备。行动中的好搭档 | Professional-grade tactical belt with dual hooks to secure your weapons and gear. The perfect companion for action! |
 | Orange | 零重力肩带 | 仿佛背的不是物资，而是空气。你的肩膀会感谢你 | Feels like carrying air, not supplies. Your shoulders will thank you! |
 | Orange | 手机袋 | 名叫手机袋，其实啥小东西都能装。钥匙、针剂、糖果...顺手一掏 | Called a phone pocket but holds everything small. Keys, syringes, candy... grab and go! |
-| Red | 边锋收纳包 | 诺亚方舟级收纳！大小物件都能装，这才是真正的整理大师 | Noah's Ark of storage! Everything finds its place. The master organizer! |
+| Red | 嘎嘎收纳包 | 诺亚方舟级收纳！大小物件都能装，这才是真正的整理大师 | Noah's Ark of storage! Everything finds its place. The master organizer! |
 | Red | 战术子弹袋 | 弹匣杀手！四个弹夹齐排队。火力全开从它开始 | Magazine heaven! Four mags ready to roll. Non-stop firepower begins here! |
-| Red | 边锋战术包 | 终极之选！手雷、装备、补给...最专业的战术配置尽在其中 | The ultimate choice! Grenades, gear, supplies... pure tactical perfection! |
+| Red | 嘎嘎战术包 | 终极之选！手雷、装备、补给...最专业的战术配置尽在其中 | The ultimate choice! Grenades, gear, supplies... pure tactical perfection! |
 
 **说明**：
 - 这是初版文案，暂未涉及具体的游戏效果（如减重、加速）
