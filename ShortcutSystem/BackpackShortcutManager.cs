@@ -31,6 +31,10 @@ namespace Great_backpack.ShortcutSystem
         // 防止递归刷新的标志
         private bool _isRefreshing = false;
 
+        // 配件内容变化的去抖：当短时间内多个物品被放入/移除时，只执行一次更新
+        private Coroutine _pendingAttachmentUpdateCoroutine = null;
+        private const float ATTACHMENT_UPDATE_DEBOUNCE_TIME = 0.1f;
+
         // 用于监听技能释放事件
         private HashSet<SkillBase> _monitoredSkills = new HashSet<SkillBase>();
 
@@ -119,6 +123,13 @@ namespace Great_backpack.ShortcutSystem
 
         private void OnDestroy()
         {
+            // 停止待处理的更新协程
+            if (_pendingAttachmentUpdateCoroutine != null)
+            {
+                StopCoroutine(_pendingAttachmentUpdateCoroutine);
+                _pendingAttachmentUpdateCoroutine = null;
+            }
+
             // 取消订阅事件
             UIInputManager.OnShortcutInput -= OnUIShortcutInput;
             Item.onUseStatic -= OnItemUsed;
@@ -292,33 +303,44 @@ namespace Great_backpack.ShortcutSystem
 
         /// <summary>
         /// 配件内容变化回调（添加/移除物品）
-        /// 只更新与改变物品相关的快捷键，不重新收集物品列表
+        /// 使用去抖机制：当短时间内多个物品变化时，只执行一次更新
         /// </summary>
         private void OnAttachmentContentChanged(Item item)
         {
-            Debug.Log($"[BackpackShortcutManager] 配件 {item.DisplayName} 内容变化");
+            Debug.Log($"[BackpackShortcutManager] 配件 {item.DisplayName} 内容变化（触发去抖更新）");
 
-            // 延迟更新，避免在事件处理过程中立即刷新
-            StartCoroutine(DelayedIncementalUpdate(item));
+            // 如果已有待处理的更新，停止它（重新开始计时）
+            if (_pendingAttachmentUpdateCoroutine != null)
+            {
+                StopCoroutine(_pendingAttachmentUpdateCoroutine);
+            }
+
+            // 启动新的延迟更新协程
+            _pendingAttachmentUpdateCoroutine = StartCoroutine(DelayedIncementalUpdate(item));
         }
 
         private System.Collections.IEnumerator DelayedIncementalUpdate(Item changedItem)
         {
-            // 等待一帧，让事件处理完成
-            yield return null;
+            // 等待一定时间，合并短时间内的多个事件
+            // 例如：用户一次性放入多个物品，事件会快速连续触发
+            // 通过这个延迟，所有这些事件都会被合并成一次更新
+            yield return new WaitForSeconds(ATTACHMENT_UPDATE_DEBOUNCE_TIME);
 
-            Debug.Log($"[BackpackShortcutManager] DelayedIncementalUpdate: changedItem={changedItem?.DisplayName ?? "null"}");
+            Debug.Log($"[BackpackShortcutManager] 去抖完成，执行延迟更新");
 
-            // 增量更新分类数据
+            // 只增量更新分类数据（_categorizedItems），不更新UI
+            // 原因：
+            // 1. 物品被放入配件时，ShortcutUIUpdater已经单独处理了该快捷键的UI更新（清除物品）
+            // 2. 物品从配件移出时，也会通过相同的流程更新
+            // 3. 这里只需要保持内存数据与实际背包状态同步
+            // 4. 做全量UI更新会造成不必要的性能消耗
             var incrementalCoroutine = IncrementalUpdateCategorizedItems();
             yield return StartCoroutine(incrementalCoroutine);
 
-            Debug.Log($"[BackpackShortcutManager] 增量更新完成，准备更新UI");
+            Debug.Log($"[BackpackShortcutManager] 配件内物品变化，_categorizedItems 已更新");
 
-            // 配件内容变化时，需要更新所有快捷键 UI（因为传入的 changedItem 是配件容器）
-            // 配件内的物品可能属于任何类别，所以只能全量更新
-            Debug.Log($"[BackpackShortcutManager] 配件 '{changedItem?.DisplayName}' 内容变化，进行全量快捷键 UI 更新");
-            UpdateShortcutUI();
+            // 清除待处理协程的引用
+            _pendingAttachmentUpdateCoroutine = null;
         }
 
         /// <summary>
