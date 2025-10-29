@@ -149,6 +149,10 @@ namespace Great_backpack.ShortcutSystem
                     Debug.Log($"[InputInterceptor] 轮盘未拖拽，执行选中物品");
                     HandleWheelItemSelection(index);
                 }
+
+                // 【轮盘布局持久化】轮盘关闭前保存当前布局
+                BackpackShortcutManager.Instance?.PersistWheelLayouts();
+
                 // 隐藏轮盘
                 _wheelSelector.HideWheel();
             }

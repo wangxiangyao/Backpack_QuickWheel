@@ -31,6 +31,20 @@ dotnet build Great_backpack.csproj
 
 在阅读源码或寻找关键实现时，**总是先在 `GameSource/Duckov/` 中查找**。
 
+## 参考资源：Coop-Mod
+
+**Coop-Mod 源码位于 `GameSource/Escape-From-Duckov-Coop-Mod-Preview-master/` 目录中。**
+
+当遇到以下问题时，参考 Coop-Mod 的实现：
+- 数据持久化方式（如何保存和加载自定义数据）
+- 网络同步时如何传递物品信息（通常是TypeID而非对象引用）
+- 与游戏核心系统的交互模式
+
+Coop-Mod 的开发者已经解决了许多与游戏系统集成的问题，他们的实现模式值得参考。特别是：
+- 使用 `JsonUtility.ToJson/FromJson` 进行数据序列化
+- 使用 TypeID 来标识物品而非对象引用
+- 利用游戏的 Saves 系统来管理数据持久化
+
 ## 架构说明
 
 ### 初始化流程

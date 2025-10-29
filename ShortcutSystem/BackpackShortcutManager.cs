@@ -4,6 +4,7 @@ using UnityEngine;
 using ItemStatsSystem;
 using ItemStatsSystem.Items;
 using Duckov.Utilities;
+using Great_backpack.ShortcutSystem.Data;
 
 namespace Great_backpack.ShortcutSystem
 {
@@ -712,6 +713,9 @@ namespace Great_backpack.ShortcutSystem
                 // 订阅背包和配件的内容变化事件
                 SubscribeToBackpackChanges(backpackSlot.Content);
 
+                // 【轮盘布局持久化】加载之前保存的轮盘布局
+                LoadPersistedWheelLayouts();
+
                 // 开始监听技能释放事件
                 StartMonitoringSkills();
 
@@ -1225,6 +1229,95 @@ namespace Great_backpack.ShortcutSystem
             Debug.Log($"[BackpackShortcutManager] 更新后的布局: {string.Join(", ", newNames)}");
             Debug.Log($"[BackpackShortcutManager] ✓ 轮盘布局已保存到 _wheelLayouts");
             Debug.Log($"[BackpackShortcutManager] ═══════════════════════════════════════");
+        }
+
+        /// <summary>
+        /// 持久化轮盘布局到文件
+        /// 在轮盘关闭时调用
+        /// </summary>
+        public void PersistWheelLayouts()
+        {
+            Debug.Log("[BackpackShortcutManager] ════════════════════════════════════════");
+            Debug.Log("[BackpackShortcutManager] 开始持久化轮盘布局...");
+            Debug.Log($"[BackpackShortcutManager] _wheelLayouts 中的分类数: {_wheelLayouts.Count}");
+
+            foreach (var kvp in _wheelLayouts)
+            {
+                Debug.Log($"[BackpackShortcutManager] 分类 {kvp.Key}: {kvp.Value.Count} 个物品");
+                for (int i = 0; i < kvp.Value.Count; i++)
+                {
+                    var item = kvp.Value[i];
+                    Debug.Log($"[BackpackShortcutManager]   [{i}] {(item == null ? "<null>" : item.DisplayName)}");
+                }
+            }
+
+            // 将当前的轮盘布局转换为可序列化的数据格式
+            var data = WheelLayoutPersistence.ConvertToData(_wheelLayouts);
+
+            Debug.Log($"[BackpackShortcutManager] ConvertToData 返回的数据: categories 分类数 = {data.categories.Length}");
+
+            // 保存到文件
+            WheelLayoutPersistence.SaveToFile(data);
+
+            Debug.Log("[BackpackShortcutManager] ✓ 轮盘布局持久化完成");
+            Debug.Log("[BackpackShortcutManager] ════════════════════════════════════════");
+        }
+
+        /// <summary>
+        /// 从文件加载轮盘布局
+        /// 在背包装备时调用
+        /// </summary>
+        private void LoadPersistedWheelLayouts()
+        {
+            Debug.Log("[BackpackShortcutManager] ════════════════════════════════════════");
+            Debug.Log("[BackpackShortcutManager] 开始加载轮盘布局...");
+
+            if (_currentBackpack == null)
+            {
+                Debug.LogWarning("[BackpackShortcutManager] 背包为null，无法加载轮盘布局");
+                Debug.Log("[BackpackShortcutManager] ════════════════════════════════════════");
+                return;
+            }
+
+            Debug.Log("[BackpackShortcutManager] 当前背包已确认: " + _currentBackpack.DisplayName);
+
+            // 从文件加载布局数据
+            var data = WheelLayoutPersistence.LoadFromFile();
+            if (data == null)
+            {
+                Debug.Log("[BackpackShortcutManager] ✗ 没有保存的轮盘布局文件");
+                Debug.Log("[BackpackShortcutManager] ════════════════════════════════════════");
+                return;
+            }
+
+            Debug.Log($"[BackpackShortcutManager] ✓ 加载的数据对象: categories 分类数 = {data.categories.Length}");
+
+            // 尝试恢复布局
+            var restoredLayouts = WheelLayoutPersistence.RestoreFromData(data, _currentBackpack, _categorizedItems);
+
+            if (restoredLayouts == null)
+            {
+                Debug.Log("[BackpackShortcutManager] ✗ 轮盘布局验证失败，使用默认布局");
+                Debug.Log("[BackpackShortcutManager] ════════════════════════════════════════");
+                // 不进行任何操作，_wheelLayouts 保持当前状态（由增量更新初始化）
+                return;
+            }
+
+            // 恢复有效，替换当前的轮盘布局
+            _wheelLayouts = restoredLayouts;
+
+            Debug.Log($"[BackpackShortcutManager] ✓ 轮盘布局加载成功");
+            foreach (var kvp in _wheelLayouts)
+            {
+                Debug.Log($"[BackpackShortcutManager] 分类 {kvp.Key}: {kvp.Value.Count} 个物品");
+                for (int i = 0; i < kvp.Value.Count; i++)
+                {
+                    var item = kvp.Value[i];
+                    Debug.Log($"[BackpackShortcutManager]   [{i}] {(item == null ? "<null>" : item.DisplayName)}");
+                }
+            }
+
+            Debug.Log("[BackpackShortcutManager] ════════════════════════════════════════");
         }
 
     }
