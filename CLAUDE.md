@@ -847,6 +847,73 @@ private static ValueTuple<bool, Item> SearchInSlots(Item item, int requireItemId
 
 ---
 
+#### ✅ 点击插槽物品导致详情消失的问题 (已修复)
+**日期**: 2025-10-30
+**问题**：用户点击配件详情面板中插槽内的物品后，物品详情闪现（~1秒）然后消失
+
+**根本原因分析**（涉及UI生命周期和Selection管理）：
+
+❌ **误导的方向**：最初认为需要修改Item.NeedInspection或ItemDisplay.OnPointerClick逻辑
+- 实际上这些都不是真正的瓶颈
+
+✅ **正确诊断过程**：
+1. **发现官方缺陷**：ItemDetailsDisplay.Awake()只订阅了`onElementDoubleClicked`事件，缺少`onElementClicked`事件
+   - 用户单击插槽物品时没有任何响应处理器
+2. **解决第一步**：创建ItemDetailsDisplaySlotClickPatch，在Awake的Postfix中补上`onElementClicked`订阅
+3. **发现选中问题**：调用Select(itemDisplay)后，立即读取SelectedItem却是null
+4. **发现竞速条件**：当ItemDetailsDisplay.Setup()被调用时，旧ItemDisplay开始销毁
+   - OnDisable()被触发，执行Select(null)覆盖了新设置的Selection！
+   - 时序：Select(newDisplay) → OnSelectionChanged事件 → 旧Display销毁 → OnDisable()清除Selection
+5. **最终解决**：创建ItemDisplayOnDisablePatch，在OnDisable中判断：
+   - 如果这个ItemDisplay的Target在Slot中 → 保留Selection（因为UI会被重建）
+   - 否则 → 执行Select(null)清除
+
+**核心代码逻辑**：
+
+ItemDetailsDisplaySlotClickPatch.cs - 订阅缺失的单击事件：
+```csharp
+slotCollectionDisplay.onElementClicked += (collectionDisplay, slotDisplay) =>
+{
+    Item item = slotDisplay.GetItem();
+    var itemDisplayField = typeof(SlotDisplay).GetField("itemDisplay", ...);
+    ItemDisplay itemDisplay = itemDisplayField?.GetValue(slotDisplay) as ItemDisplay;
+
+    if (itemDisplay?.Target == item)
+    {
+        ItemUIUtilities.Select(itemDisplay);  // 更新全局Selection
+    }
+};
+```
+
+ItemDisplayOnDisablePatch.cs - 保护插槽物品的Selection：
+```csharp
+bool isCurrentlySelected = __instance.Selected;
+if (isCurrentlySelected)
+{
+    Item targetItem = __instance.Target;
+    // 仅插槽物品被销毁时保留Selection
+    if (targetItem == null || targetItem.PluggedIntoSlot == null)
+    {
+        ItemUIUtilities.Select(null);
+    }
+    // 否则不调用Select(null)，让新ItemDisplay接管
+}
+```
+
+**关键发现**：
+- ItemUIUtilities.SelectedItemDisplay的getter在Target==null时返回null（这是特意的设计）
+- ItemDisplay.OnDisable()会在UI销毁时被调用，是一个隐蔽的Selection清除点
+- 竞速条件很常见，需要仔细考虑UI重建时的生命周期顺序
+
+**经验总结**：
+- ❌ **不要盲目修改底层Selection逻辑**：问题不在Select()本身，而在销毁时的副作用
+- ❌ **不要忽视UI生命周期**：ItemDisplay.OnDisable()是关键的清理点
+- ✅ **事件订阅优于方法拦截**：直接订阅缺失的事件比修改复杂的方法调用链更清晰
+- ✅ **竞速条件需要时序管理**：多个异步操作触发时要考虑执行顺序
+- ✅ **保留物品身份信息**：通过PluggedIntoSlot判断物品来源，比通过间接条件更可靠
+
+---
+
 ## 开发交流规则
 
 ### Git 提交规则
@@ -883,8 +950,8 @@ private static ValueTuple<bool, Item> SearchInSlots(Item item, int requireItemId
 - [x] 配件Hover面板显示槽位信息（带颜色区分空/满槽位）
 - [x] 修复钥匙在配件中无法使用的问题
 - [x] 修复医疗物品和针剂不显示的问题
+- [x] 点击配件插槽中的物品显示详情（不再闪现消失）
 - [ ] 配件附加效果（如减少负重）
-- [ ] 点击配件展开配件插槽UI，可拖拽放入物品
 
 ### P2 - 扩展功能（下一阶段）
 - [ ] 修复新引入的bug（如ItemShortcutIsItemValidPatch的边界情况）
