@@ -682,6 +682,102 @@ Slot 3: Item B
 - ⏳ `AttachmentUI/AttachmentUIHistory.cs` - 详情浏览历史栈
 - ⏳ `AttachmentUI/SlotHighlightHelper.cs` - 槽位高亮效果辅助类
 
+---
+
+#### ✅ 钥匙在配件插槽中无法使用的问题 (已修复)
+**提交**: 2b44ba9
+**日期**: 2025-10-30
+**问题**：将钥匙放入配件的插槽中时，玩家接近上锁的箱子/门仍显示"需要钥匙"，无法打开
+
+**根本原因分析**（调试过程中发现的关键认知错误）：
+
+❌ **错误理解1：数据层级的二元论**
+- **初始假设**：Item可能放在两个地方：`Inventory` 或 `Slots`
+- **实际情况**：官方系统的设计有三层结构，但关键是理解每层的**所有权关系**
+- **正确认知**：
+  - 已装备的背包存在于 `Character.CharacterItem.Slots` 中
+  - 背包内的物品存在于 `Backpack.Slots` 和 `Backpack.Inventory` 中
+  - **Inventory链是断开的**：一旦物品被放入Slots，其`InInventory`被设为null
+
+❌ **错误理解2：搜索入口的方向**
+- **初始尝试**：从 `Character.CharacterItem.Inventory` 开始遍历
+- **问题**：装备已经穿上的背包不在Inventory中，而在Slots中！
+- **正确方向**：应该从 `Character.CharacterItem.Slots` 开始，遍历已装备的物品
+
+❌ **错误理解3：Item.Inventory的有效性**
+- **初始判断**：配件物品应该有Inventory来存放放入其中的物品
+- **实际结构**：放入配件中的物品存在于配件的`Slots`中，不是`Inventory`
+- **正确做法**：只递归检查`Slots`，不检查`Inventory`（已清空）
+
+**解决方案**：
+- 创建Harmony Patch拦截 `InteractableBase.TryGetRequiredItem()`
+- **搜索流程**（正确的逐层递归）：
+  1. 遍历 `Character.CharacterItem.Slots` 获取已装备的物品（包括背包）
+  2. 对每个装备物品递归调用 `SearchInSlots()`
+  3. 检查其Slots中的物品及其Slots中的嵌套物品（配件的配件）
+  4. 同时检查 `Character.CharacterItem.Inventory` 中的未装备物品及其Slots
+
+**关键代码变更**：
+- 新增 `Patches/InteractableTryGetRequiredItemPatch.cs`:
+  - Postfix Patch，如果原始方法未找到物品则继续搜索
+  - 正确的搜索顺序：装备Slots → 递归嵌套Slots → 库存物品Slots
+  - 递归函数 `SearchInSlots()` 处理嵌套配件的情况
+
+**核心代码示意**：
+```csharp
+// 错误方向（已弃用）：
+foreach (Item item in fromCharacter.CharacterItem.Inventory) // ❌ 装备物品不在这里
+
+// 正确方向：
+foreach (Slot slot in fromCharacter.CharacterItem.Slots) // ✅ 从装备槽位开始
+{
+    // 递归检查这个物品及其嵌套物品的Slots
+    SearchInSlots(slot.Content, requiredItemId);
+}
+
+// 递归搜索
+private static ValueTuple<bool, Item> SearchInSlots(Item item, int requireItemId)
+{
+    if (item?.Slots == null) return (false, null);
+
+    foreach (Slot slot in item.Slots)
+    {
+        if (slot.Content?.TypeID == requireItemId)
+            return (true, slot.Content);  // 找到了
+
+        // 继续递归（配件中的配件）
+        var nested = SearchInSlots(slot.Content, requireItemId);
+        if (nested.Item1) return nested;
+    }
+
+    return (false, null);
+}
+```
+
+**调试经历与教训**：
+
+1. **反射获取字段的陷阱**
+   - ❌ 尝试用反射获取private字段 `GetField("requireItem", BindingFlags.NonPublic | ...)`
+   - 结果：找不到，因为它们是public字段
+   - ✅ 修正：直接访问public字段 `__instance.requireItem`
+
+2. **日志驱动的调试效能**
+   - 添加详细日志跟踪每一步：是否进入Patch、搜索了哪些物品、递归深度等
+   - 日志输出让问题变得"可见"，快速识别搜索方向的错误
+
+3. **理解官方架构的必要性**
+   - 必须查阅官方源码理解 `Character.CharacterItem.Slots` vs `Backpack.Inventory` 的关系
+   - 不能基于"应该怎样"的假设，必须基于"实际怎样"的代码
+
+**经验总结**：
+- ❌ **不要假设数据结构**：必须通过源码验证数据在哪里
+- ❌ **不要仅修改一个地方**：钥匙搜索需要递归检查多层嵌套
+- ✅ **从外向内递推**：从已知的Character.CharacterItem.Slots开始，逐层向内
+- ✅ **日志一切**：关键的数据访问都应该有可追踪的日志
+- ✅ **测试完整路径**：验证单层、双层、三层嵌套的情况
+
+---
+
 ## 开发交流规则
 
 ### Git 提交规则
@@ -716,11 +812,12 @@ Slot 3: Item B
 - [x] 配件添加Icon
 - [x] 轮盘布局持久化
 - [x] 配件Hover面板显示槽位信息（带颜色区分空/满槽位）
+- [x] 修复钥匙在配件中无法使用的问题
 - [ ] 配件附加效果（如减少负重）
 - [ ] 点击配件展开配件插槽UI，可拖拽放入物品
 
 ### P2 - 扩展功能（下一阶段）
-- [ ] 修复钥匙在配件中无法使用的问题（需要与其他系统交互）
+- [ ] 修复新引入的bug（如ItemShortcutIsItemValidPatch的边界情况）
 - [ ] 近战武器接入轮盘系统
 - [ ] 轮盘添加物品信息（耐久、堆叠数量、物品名称）
 - [ ] 物品放入轮盘优先放入左右上下四个格子
