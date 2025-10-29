@@ -311,7 +311,24 @@ UpdateShortcutUIForCategory() 显示合并后的数据
 ---
 
 ### 已知问题
-（暂无）
+
+#### ✅ 配件事件重复订阅导致的无限循环 (已修复)
+**提交**: eb2558e
+**问题**：打开背包UI时，控制台反复打印"获取轮盘布局"和"物品列表"，形成无限循环
+
+**根本原因**：
+- `SubscribeToAttachmentsChanges()` 方法在被调用时未检查是否已经订阅过
+- 当背包UI打开导致多次调用该方法时，会对同一配件的 `onChildChanged` 事件重复注册回调
+- 事件被触发时，回调函数被多次执行，导致 `UpdateShortcutUI()` 被多次调用
+- 形成事件-更新-事件的无限循环
+
+**解决方案**：
+- 在 `SubscribeToAttachmentsChanges()` 中添加检查 `if (!_subscribedAttachments.Contains(slot.Content))`
+- 防止对已订阅的配件进行重复订阅
+- 与 `OnBackpackContentChanged()` 中的做法保持一致
+
+**关键代码变更**：
+- `ShortcutSystem/BackpackShortcutManager.cs`: SubscribeToAttachmentsChanges() 方法添加重复订阅检查
 
 ## 开发交流规则
 
