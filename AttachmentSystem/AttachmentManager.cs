@@ -214,6 +214,7 @@ namespace Great_backpack.AttachmentSystem
         private void ConfigureItemSlots(Item item, List<SlotConfig> slotConfigs)
         {
             if (slotConfigs.Count == 0) return;
+
             // 清除原有插槽
             if (item.Slots != null)
             {
