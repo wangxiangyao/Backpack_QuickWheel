@@ -588,28 +588,26 @@ Slot 3: Item B
 
 ---
 
-#### ⏳ 任务1.2：点击配件跳转到详情面板
-**计划**：2-3小时
+#### ✅ 任务1.2：点击配件跳转到详情面板
+**日期**：2025-10-30 **状态**：已完成
 
 **功能**：点击背包中的配件物品 → 中间详情面板显示该配件的完整信息和插槽
 
 **实现方案**：
 - 利用官方现有的 `ItemDetailsDisplay.Setup(Item target)` 方法
 - 该方法已支持显示物品槽位和 `SlotCollectionDisplay`
-- 需要找到点击物品的入口点，可能需要：
-  - Patch `ItemDisplay.OnPointerClick()` 或相关点击逻辑
-  - 或利用现有的 `ItemDisplay.OnItemClicked` 事件（如果存在）
-  - 触发 `ItemDetailsDisplay.Setup(clickedItem)`
+- 通过Patch拦截点击逻辑，触发 `ItemDetailsDisplay.Setup(clickedItem)`
 
-**关键代码位置**：
-- `GameSource/Duckov/ItemDetailsDisplay.cs` (第103-137行) - 已能显示配件槽位
-- `GameSource/Duckov/SlotCollectionDisplay.cs` - 槽位显示和交互组件
-- `GameSource/Duckov/ItemDisplay.cs` - 物品显示和点击逻辑
+**关键实现**：
+- 创建 `ItemDetailsDisplaySlotClickPatch` 在 `Awake` 的 Postfix 中订阅 `onElementClicked` 事件
+- 从点击的物品获取对应的 `ItemDisplay`，调用 `ItemUIUtilities.Select()` 更新全局Selection
+- 创建 `ItemDisplayOnDisablePatch` 保护插槽物品的Selection，防止UI销毁时被清除
 
-**预期效果**：
-- 点击配件 → 右侧详情面板显示配件名、描述、槽位列表
-- 可直接拖拽库存物品到配件槽位中
-- 无需卸下配件即可快速编辑
+**实现效果**：
+- ✅ 点击背包中的配件 → 右侧详情面板显示配件名、描述、槽位列表
+- ✅ 点击配件插槽中的物品 → 显示物品详情（不再闪现消失）
+- ✅ 可直接拖拽库存物品到配件槽位中
+- ✅ 无需卸下配件即可快速编辑
 
 ---
 
@@ -664,9 +662,9 @@ Slot 3: Item B
 | 任务 | 优先级 | 难度 | 时间 | 依赖 | 状态 |
 |------|--------|------|------|------|--------|
 | 1.1 Hover显示信息 | P0 | 低 | 2-3h | ItemHoveringUI ✅ | ✅ 完成 |
-| 1.2 点击跳转详情 | P0 | 低 | 2-3h | ItemDetailsDisplay ✅ | ⏳ 待实现 |
+| 1.2 点击跳转详情 | P0 | 低 | 2-3h | ItemDetailsDisplay ✅ | ✅ 完成 |
 | 1.3 UI辅助类 | P0 | 极低 | 1h | 无 | ✅ 完成 |
-| 2.1 右键返回历史 | P1 | 低 | 2h | 1.2完成后 | ⏳ 待实现 |
+| 2.1 右键返回历史 | P1 | 低 | 2h | 1.2完成后 ✅ | ⏳ 待实现 |
 | 2.2 圆孔高亮反馈 | P1 | 中 | 需测试 | SlotIndicator ✅ | ⏳ 待实现 |
 
 ---
@@ -676,11 +674,13 @@ Slot 3: Item B
 **已创建**：
 - ✅ `AttachmentUI/AttachmentUIHelper.cs` - 槽位信息工具类
 - ✅ `AttachmentUI/AttachmentHoveringUIManager.cs` - Hover管理器
+- ✅ `AttachmentUI/Patches/ItemDetailsDisplaySlotClickPatch.cs` - 订阅插槽点击事件
+- ✅ `AttachmentUI/Patches/ItemDisplayOnDisablePatch.cs` - 保护Selection不被清除
 
 **计划创建**：
-- ⏳ `AttachmentUI/Patches/ItemDisplayClickPatch.cs` - 点击物品Patch（如需）
 - ⏳ `AttachmentUI/AttachmentUIHistory.cs` - 详情浏览历史栈
 - ⏳ `AttachmentUI/SlotHighlightHelper.cs` - 槽位高亮效果辅助类
+- ⏳ `AttachmentUI/BackpackQuickItemsDisplay.cs` - 快捷物品列表显示
 
 ---
 
@@ -1044,11 +1044,11 @@ if (isCurrentlySelected)
 - [x] 配件添加Icon
 - [x] 轮盘布局持久化及完整性验证
 - [x] 配件Hover面板显示槽位信息（详细见任务1.1）
+- [x] 点击配件跳转到详情面板（详细见任务1.2）
 - [x] 点击配件插槽中的物品显示详情（不再闪现消失）
 - [x] 修复钥匙在配件中无法使用的问题
 - [x] 修复医疗物品和针剂不显示的问题
 - [x] 优化配件插槽物品变化时的快捷键更新性能
-- [ ] 点击配件跳转到详情面板（详细见任务1.2）
 - [ ] 配件附加效果（如减少负重）
 
 ### P2 - 扩展功能（下一阶段）
