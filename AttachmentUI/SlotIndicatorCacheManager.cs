@@ -98,6 +98,7 @@ namespace Great_backpack.AttachmentUI
                 if (!_indicatorsByRule.ContainsKey(ruleKey))
                 {
                     _indicatorsByRule[ruleKey] = new List<SlotIndicator>();
+                    Debug.Log($"[RegisterIndicator] 创建新规则: {ruleKey}");
                 }
                 _indicatorsByRule[ruleKey].Add(indicator);
 
@@ -107,6 +108,8 @@ namespace Great_backpack.AttachmentUI
                     _indicatorToRules[indicator] = new HashSet<string>();
                 }
                 _indicatorToRules[indicator].Add(ruleKey);
+
+                Debug.Log($"[RegisterIndicator] 注册indicator到规则: {ruleKey} (当前该规则下有{_indicatorsByRule[ruleKey].Count}个indicator)");
             }
             catch (Exception ex)
             {
@@ -255,8 +258,9 @@ namespace Great_backpack.AttachmentUI
                 // 解析规则key
                 bool isOrLogic = ruleKey.Contains("require_or:");
 
-                // 提取require tags
-                List<string> requireTags = ExtractTagsFromKey(ruleKey, "require");
+                // 提取require tags（根据逻辑类型选择正确的前缀）
+                string tagTypePrefix = isOrLogic ? "require_or" : "require";
+                List<string> requireTags = ExtractTagsFromKey(ruleKey, tagTypePrefix);
 
                 // 提取exclusive tags
                 List<string> exclusiveTags = ExtractTagsFromKey(ruleKey, "exclusive");
@@ -266,27 +270,39 @@ namespace Great_backpack.AttachmentUI
                 {
                     if (draggedItem.Tags.Any(t => t != null && t.name == tagName))
                     {
-                        return false; // 有排除标签，不符合
+                        // 有排除标签，不符合
+                        return false;
                     }
                 }
 
                 // 检查requireTags
                 if (requireTags.Count == 0)
                 {
-                    return true; // 没有要求标签，符合
+                    // ⚠️ 重要：如果是自定义插槽但没有RestrictTags，说明配置错误
+                    if (isOrLogic)
+                    {
+                        Debug.LogWarning($"[MatchRule] 自定义插槽规则为空，拒绝所有物品。规则: {ruleKey}");
+                        return false; // 配置错误，拒绝
+                    }
+                    // 官方插槽且无requireTags，允许任何物品（这是官方逻辑）
+                    return true;
                 }
 
                 if (isOrLogic)
                 {
                     // OR逻辑：至少有一个required tag匹配
-                    return requireTags.Any(tagName =>
+                    bool matches = requireTags.Any(tagName =>
                         draggedItem.Tags.Any(t => t != null && t.name == tagName));
+
+                    return matches;
                 }
                 else
                 {
                     // AND逻辑：所有required tags都要匹配
-                    return requireTags.All(tagName =>
+                    bool matches = requireTags.All(tagName =>
                         draggedItem.Tags.Any(t => t != null && t.name == tagName));
+
+                    return matches;
                 }
             }
             catch (Exception ex)

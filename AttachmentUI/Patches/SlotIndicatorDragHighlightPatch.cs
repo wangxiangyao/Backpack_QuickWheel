@@ -104,7 +104,11 @@ namespace Great_backpack.AttachmentUI.Patches
                 // 需要从SlotConfig中获取RestrictTags
                 string slotType = ExtractSlotType(slot.Key);
                 List<string> restrictTags = GetRestrictTags(slotType);
-                requireKey = "require_or: [" + string.Join("|", restrictTags) + "]";
+
+                // 调试日志
+                Debug.Log($"[SlotIndicator] 自定义插槽 {slot.Key} 类型={slotType}, RestrictTags={string.Join(",", restrictTags ?? new List<string>())}");
+
+                requireKey = "require_or: [" + string.Join("|", restrictTags ?? new List<string>()) + "]";
             }
             else
             {
@@ -127,7 +131,15 @@ namespace Great_backpack.AttachmentUI.Patches
             }
             string exclusiveKey = "exclusive: [" + string.Join("|", exclusiveTags) + "]";
 
-            return requireKey + ", " + exclusiveKey;
+            string ruleKey = requireKey + ", " + exclusiveKey;
+
+            // 调试日志
+            if (slot.Key != null && slot.Key.StartsWith("wxy_"))
+            {
+                Debug.Log($"[SlotIndicator] 生成规则: {ruleKey}");
+            }
+
+            return ruleKey;
         }
 
         /// <summary>
@@ -157,11 +169,18 @@ namespace Great_backpack.AttachmentUI.Patches
                 // 从BackpackModConfig.UnifiedSlotTypes中查找
                 if (BackpackModConfig.UnifiedSlotTypes.ContainsKey(slotType))
                 {
-                    return BackpackModConfig.UnifiedSlotTypes[slotType].RestrictTags;
+                    var tags = BackpackModConfig.UnifiedSlotTypes[slotType].RestrictTags;
+                    Debug.Log($"[GetRestrictTags] 找到插槽类型 {slotType}: {(tags != null ? string.Join(",", tags) : "null")}");
+                    return tags;
+                }
+                else
+                {
+                    Debug.LogWarning($"[GetRestrictTags] 未找到插槽类型 {slotType} 在 UnifiedSlotTypes 中！可用类型: {string.Join(",", BackpackModConfig.UnifiedSlotTypes.Keys)}");
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.LogError($"[GetRestrictTags] 获取 RestrictTags 失败: {ex}");
             }
             return new List<string>();
         }
@@ -279,7 +298,13 @@ namespace Great_backpack.AttachmentUI.Patches
             // 如果这个indicator是我们激活的（在_highlightedIndicators中），就停用它
             if (_highlightedIndicators.Contains(slotIndicator))
             {
-                contentIndicatorGO.SetActive(false);
+                // 只有在槽位现在为空时才隐藏 contentIndicator
+                // 如果槽位现在有内容，保持 active 状态让官方的显示逻辑工作
+                bool slotHasContent = slotIndicator.Target != null && slotIndicator.Target.Content != null;
+                if (!slotHasContent)
+                {
+                    contentIndicatorGO.SetActive(false);
+                }
                 _highlightedIndicators.Remove(slotIndicator);
             }
         }
