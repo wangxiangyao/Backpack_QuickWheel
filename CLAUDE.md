@@ -1540,6 +1540,78 @@ if (_highlightedIndicators.Contains(slotIndicator))
 
 ---
 
+#### ✅ 行军背包indicator多行布局优化 (已实现)
+**提交**: 0ec9b4b
+**日期**: 2025-10-30
+**功能**：解决行军背包10个插槽的indicator圆孔被严重压扁的问题
+
+**问题背景**：
+- 行军背包配置了10个插槽（SidePocket_Large、TacticalPouch_Small等）
+- 官方单行布局（HorizontalLayoutGroup）无法容纳，圆孔被压扁至不可见
+- 需要多行布局来正常显示所有indicator
+
+**解决方案**：
+创建 `ItemDisplayIndicatorLayoutPatch` Patch，在 ItemDisplay.Setup() 的Postfix中：
+1. 检查插槽数量：9个及以上才触发优化
+2. 8个及以下保持官方原样的单行布局
+3. 使用 `GridLayoutGroup` 替换官方布局
+4. 配置每行最多6个indicator，自动换行
+
+**核心实现**：
+```csharp
+[HarmonyPatch(typeof(ItemDisplay), "Setup")]
+public class ItemDisplayIndicatorLayoutPatch
+{
+    [HarmonyPostfix]
+    public static void Setup_Postfix(ItemDisplay __instance, Item target)
+    {
+        if (target?.Slots == null || target.Slots.Count <= 8) return;
+
+        GameObject container = _slotIndicatorContainerField.GetValue(__instance) as GameObject;
+        if (container == null) return;
+
+        // 移除旧布局，添加GridLayoutGroup
+        var oldLayout = container.GetComponent<LayoutGroup>();
+        if (oldLayout != null) Object.DestroyImmediate(oldLayout);
+
+        var gridLayout = container.AddComponent<GridLayoutGroup>();
+        gridLayout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        gridLayout.constraintCount = 6;  // 每行最多6个
+        gridLayout.cellSize = new Vector2(12, 12);
+        gridLayout.spacing = new Vector2(2, 2);
+        gridLayout.childAlignment = TextAnchor.UpperLeft;
+    }
+}
+```
+
+**布局效果**：
+- **行军背包（10个插槽）** → 第1行6个 + 第2行4个 ✨
+- **其他背包（≤8个插槽）** → 保持官方单行布局
+
+**关键设计决策**：
+1. **限制为9个及以上** - 避免不必要的布局改变
+2. **每行6个** - 平衡显示效果和空间利用
+3. **cellSize 12x12** - 标准圆孔大小
+4. **DestroyImmediate** - 确保同步删除旧布局
+5. **try-catch包裹** - 全面的错误处理
+
+**文件清单**：
+- ✅ `AttachmentUI/Patches/ItemDisplayIndicatorLayoutPatch.cs` - 新增
+- ✅ `CLAUDE.md` - 添加Item类使用注意事项部分
+
+**测试结果** 🎉：
+- ✅ 行军背包圆孔正常显示在两行
+- ✅ 其他背包保持官方样式
+- ✅ 无性能影响，正常运行
+
+**经验总结**：
+- ⚠️ **Item.Slots是SlotCollection，必须用.Count不能用.Length**
+- ✅ **反射操作需要全面的null检查**
+- ✅ **Unity对象创建/销毁要使用DestroyImmediate确保同步**
+- ✅ **GridLayoutGroup是处理多行布局的最佳方案**
+
+---
+
 ## 开发交流规则
 
 ### Git 提交规则
@@ -1580,8 +1652,8 @@ if (_highlightedIndicators.Contains(slotIndicator))
 - [x] 修复医疗物品和针剂不显示的问题
 - [x] 优化配件插槽物品变化时的快捷键更新性能
 - [x] 圆孔高亮拖拽反馈（已完成：自定义插槽tag提取bug修复 + 已填充槽位显示修复）
+- [x] 优化行军背包配件槽位显示拥挤问题（多行布局，每行6个indicator）
 - [ ] 配件附加效果（如减少负重）
-- [ ] 优化行军背包配件槽位显示拥挤问题
 - [ ] 语音轮盘系统（快捷键呼出轮盘选择语音+气泡文字，默认"嘎！"）
   - [ ] 1.1 快捷键轮盘系统架构抽象（使语音轮盘与物品轮盘复用框架）
   - [ ] (P2) 1.2 轮盘中语音支持用户自定义
