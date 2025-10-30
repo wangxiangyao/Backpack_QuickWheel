@@ -180,6 +180,53 @@ Mod 在 `ModBehaviour.cs` 中遵循严格的初始化顺序：
 4. 在 `.csproj` 中将自定义图标作为资源嵌入
 5. 使用 349100-349999 范围内的唯一 TypeID
 
+### Item类使用注意事项 ⚠️
+
+**常见错误与修复**：
+
+❌ **错误1：使用 `.Length` 访问 Item.Slots**
+```csharp
+int count = target.Slots.Length;  // ❌ 编译错误！Slots是SlotCollection，没有Length
+```
+
+✅ **正确做法**：
+```csharp
+int count = target.Slots.Count;  // ✅ 使用Count属性
+```
+
+❌ **错误2：反射获取字段后不做null检查**
+```csharp
+GameObject container = _slotIndicatorContainerField.GetValue(__instance) as GameObject;
+// 直接使用container，可能导致NullReferenceException
+```
+
+✅ **正确做法**：
+```csharp
+if (_slotIndicatorContainerField == null) return;
+GameObject container = _slotIndicatorContainerField.GetValue(__instance) as GameObject;
+if (container == null) return;
+```
+
+❌ **错误3：Destroy后立即操作同一对象**
+```csharp
+Object.Destroy(oldLayout);  // 异步删除
+var gridLayout = container.AddComponent<GridLayoutGroup>();  // 可能失败
+```
+
+✅ **正确做法**：
+```csharp
+Object.DestroyImmediate(oldLayout);  // 同步删除
+var gridLayout = container.AddComponent<GridLayoutGroup>();  // 确保成功
+if (gridLayout == null) return;  // 防守检查
+```
+
+**关键规则**：
+- Item.Slots 的类型是 `SlotCollection`，不是数组
+- 必须使用 `.Count` 获取数量，不能用 `.Length`
+- 所有反射操作必须有 null 检查
+- 涉及Unity对象创建/销毁时，使用 try-catch 包裹关键代码
+- 对于ADD/GET/REMOVE组件操作，使用DestroyImmediate确保同步
+
 ### 标签限制
 - 插槽限制标签必须与游戏的系统标签完全匹配（区分大小写）
 - 常用标签："key"、"SpecialKey"、"Injector"、"Healing"、"Drink"、"Food"、"Explosive"、"Magazine"、"MeleeWeapon"
