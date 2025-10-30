@@ -2,10 +2,10 @@
 using ItemStatsSystem.Items;
 using UnityEngine;
 using System.Collections.Generic;
-using Great_backpack.AttachmentSystem;
+using Backpack_QuickWheel.AttachmentSystem;
 using Duckov.Utilities;
 
-namespace Great_backpack.BackpackSystem
+namespace Backpack_QuickWheel.BackpackSystem
 {
     public class BackpackModifier
     {

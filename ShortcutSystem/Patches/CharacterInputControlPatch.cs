@@ -3,7 +3,7 @@ using ItemStatsSystem;
 using UnityEngine;
 using Duckov.UI;
 
-namespace Great_backpack.ShortcutSystem.Patches
+namespace Backpack_QuickWheel.ShortcutSystem.Patches
 {
     /// <summary>
     /// 补丁 CharacterInputControl.ShortCutInput 来拦截界面关闭时的快捷键输入

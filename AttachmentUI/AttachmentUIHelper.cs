@@ -6,7 +6,7 @@ using ItemStatsSystem.Items;
 using UnityEngine;
 using SlotCollection = ItemStatsSystem.Items.SlotCollection;
 
-namespace Great_backpack.AttachmentUI
+namespace Backpack_QuickWheel.AttachmentUI
 {
     /// <summary>
     /// 配件UI辅助类 - 提供配件相关的UI显示信息

@@ -3,11 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Duckov.UI;
-using Great_backpack.AttachmentUI.Patches;
+using Backpack_QuickWheel.AttachmentUI.Patches;
 using ItemStatsSystem;
 using UnityEngine;
 
-namespace Great_backpack.AttachmentUI
+namespace Backpack_QuickWheel.AttachmentUI
 {
     /// <summary>
     /// 圆孔拖拽高亮缓存管理器

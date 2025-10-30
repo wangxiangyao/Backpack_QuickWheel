@@ -6,7 +6,7 @@ using ItemStatsSystem.Items;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Great_backpack.AttachmentUI.Patches
+namespace Backpack_QuickWheel.AttachmentUI.Patches
 {
     /// <summary>
     /// 物品indicator布局优化Patch - 处理多行显示

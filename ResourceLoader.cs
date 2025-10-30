@@ -3,7 +3,7 @@ using System.IO;
 using System.Reflection;
 using UnityEngine;
 
-namespace Great_backpack.AttachmentSystem
+namespace Backpack_QuickWheel.AttachmentSystem
 {
     public static class ResourceLoader
     {

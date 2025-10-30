@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-namespace Great_backpack.ShortcutSystem
+namespace Backpack_QuickWheel.ShortcutSystem
 {
     public static class ShortcutConfig
     {

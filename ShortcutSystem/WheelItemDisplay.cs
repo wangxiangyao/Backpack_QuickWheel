@@ -2,10 +2,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using ItemStatsSystem;
-using Great_backpack.AttachmentSystem;
+using Backpack_QuickWheel.AttachmentSystem;
 using System.Collections.Generic;
 
-namespace Great_backpack.ShortcutSystem
+namespace Backpack_QuickWheel.ShortcutSystem
 {
     /// <summary>
     /// 轮盘格子显示组件

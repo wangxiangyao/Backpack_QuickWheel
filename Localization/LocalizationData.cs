@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Great_backpack.Localization
+namespace Backpack_QuickWheel.Localization
 {
     public class LocalizationData
     {

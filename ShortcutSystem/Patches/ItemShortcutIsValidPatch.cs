@@ -2,7 +2,7 @@ using HarmonyLib;
 using ItemStatsSystem;
 using UnityEngine;
 
-namespace Great_backpack.ShortcutSystem.Patches
+namespace Backpack_QuickWheel.ShortcutSystem.Patches
 {
     /// <summary>
     /// 补丁 ItemShortcut.IsItemValid 方法

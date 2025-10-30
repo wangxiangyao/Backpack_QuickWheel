@@ -1,7 +1,7 @@
-﻿using Great_backpack.Localization;
+﻿using Backpack_QuickWheel.Localization;
 using System.Collections.Generic;
 
-namespace Great_backpack.AttachmentSystem
+namespace Backpack_QuickWheel.AttachmentSystem
 {
     public class AttachmentItemConfig
     {

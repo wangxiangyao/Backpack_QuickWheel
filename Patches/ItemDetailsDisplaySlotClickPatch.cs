@@ -4,7 +4,7 @@ using Duckov.UI;
 using System.Reflection;
 using UnityEngine;
 
-namespace Great_backpack.Patches
+namespace Backpack_QuickWheel.Patches
 {
     /// <summary>
     /// 修补 ItemDetailsDisplay.Awake() 方法

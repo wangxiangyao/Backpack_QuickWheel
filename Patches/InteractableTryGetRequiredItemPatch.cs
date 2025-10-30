@@ -3,7 +3,7 @@ using ItemStatsSystem;
 using ItemStatsSystem.Items;
 using System;
 
-namespace Great_backpack.Patches
+namespace Backpack_QuickWheel.Patches
 {
     /// <summary>
     /// Patch：修复 InteractableBase.TryGetRequiredItem() 不检查配件Slots中的物品

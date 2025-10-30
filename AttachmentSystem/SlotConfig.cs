@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Great_backpack.AttachmentSystem
+namespace Backpack_QuickWheel.AttachmentSystem
 {
     public class SlotConfig
     {

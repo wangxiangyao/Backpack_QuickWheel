@@ -3,7 +3,7 @@ using ItemStatsSystem;
 using Duckov;
 using UnityEngine;
 
-namespace Great_backpack.ShortcutSystem.Patches
+namespace Backpack_QuickWheel.ShortcutSystem.Patches
 {
     /// <summary>
     /// 补丁 ItemShortcut.Set 方法

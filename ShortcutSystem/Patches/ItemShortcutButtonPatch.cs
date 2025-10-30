@@ -3,7 +3,7 @@ using ItemStatsSystem;
 using Duckov.UI;
 using UnityEngine;
 
-namespace Great_backpack.ShortcutSystem.Patches
+namespace Backpack_QuickWheel.ShortcutSystem.Patches
 {
     /// <summary>
     /// 补丁 ItemShortcutButton.GetTargetItem 来显示背包配件中的物品

@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections.Generic;
 
-namespace Great_backpack.ShortcutSystem.Patches
+namespace Backpack_QuickWheel.ShortcutSystem.Patches
 {
     /// <summary>
     /// 补丁 CharacterInputControl 的快捷键方法和鼠标输入方法，拦截按键按下和释放事件

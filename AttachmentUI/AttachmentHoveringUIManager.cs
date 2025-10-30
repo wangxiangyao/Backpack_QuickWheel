@@ -3,7 +3,7 @@ using Duckov.UI;
 using ItemStatsSystem;
 using TMPro;
 
-namespace Great_backpack.AttachmentUI
+namespace Backpack_QuickWheel.AttachmentUI
 {
     /// <summary>
     /// 配件Hover信息管理器

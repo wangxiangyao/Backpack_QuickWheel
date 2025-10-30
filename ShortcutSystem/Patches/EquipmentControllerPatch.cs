@@ -3,7 +3,7 @@ using ItemStatsSystem;
 using ItemStatsSystem.Items;
 using UnityEngine;
 
-namespace Great_backpack.ShortcutSystem.Patches
+namespace Backpack_QuickWheel.ShortcutSystem.Patches
 {
     [HarmonyPatch(typeof(CharacterEquipmentController))]
     [HarmonyPatch("ChangeBackpackModel")]

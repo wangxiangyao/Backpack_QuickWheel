@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using ItemStatsSystem;
-using Great_backpack.ShortcutSystem.Data;
+using Backpack_QuickWheel.ShortcutSystem.Data;
 
-namespace Great_backpack.ShortcutSystem
+namespace Backpack_QuickWheel.ShortcutSystem
 {
     /// <summary>
     /// 轮盘布局持久化管理器

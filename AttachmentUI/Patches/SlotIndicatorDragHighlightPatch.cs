@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
 using Duckov.UI;
-using Great_backpack.AttachmentSystem;
+using Backpack_QuickWheel.AttachmentSystem;
 using HarmonyLib;
 using ItemStatsSystem;
 using ItemStatsSystem.Items;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Great_backpack.AttachmentUI.Patches
+namespace Backpack_QuickWheel.AttachmentUI.Patches
 {
     /// <summary>
     /// 圆孔拖拽高亮Patch - 集中管理模式

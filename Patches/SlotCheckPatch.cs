@@ -6,9 +6,9 @@ using System.Reflection;
 using ItemStatsSystem.Items;
 using UnityEngine;
 using ItemStatsSystem;
-using Great_backpack.AttachmentSystem;
+using Backpack_QuickWheel.AttachmentSystem;
 
-namespace Great_backpack.Patches
+namespace Backpack_QuickWheel.Patches
 {
     [HarmonyPatch(typeof(Slot))]
     [HarmonyPatch("CheckAbleToPlug")]

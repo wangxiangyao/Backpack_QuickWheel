@@ -4,7 +4,7 @@ using ItemStatsSystem.Items;
 using Duckov;
 using UnityEngine;
 
-namespace Great_backpack.Patches
+namespace Backpack_QuickWheel.Patches
 {
     /// <summary>
     /// 修补 ItemShortcut.IsItemValid() 方法以支持背包配件系统

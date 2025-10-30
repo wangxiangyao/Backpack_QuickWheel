@@ -4,9 +4,9 @@ using UnityEngine;
 using ItemStatsSystem;
 using ItemStatsSystem.Items;
 using Duckov.Utilities;
-using Great_backpack.ShortcutSystem.Data;
+using Backpack_QuickWheel.ShortcutSystem.Data;
 
-namespace Great_backpack.ShortcutSystem
+namespace Backpack_QuickWheel.ShortcutSystem
 {
     public class BackpackShortcutManager : MonoBehaviour
     {

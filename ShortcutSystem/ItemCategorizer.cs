@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using ItemStatsSystem;
 
-namespace Great_backpack.ShortcutSystem
+namespace Backpack_QuickWheel.ShortcutSystem
 {
     // 定义收集品类型
     public enum ItemCategory

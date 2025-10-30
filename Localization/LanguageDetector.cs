@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 
-namespace Great_backpack.Localization
+namespace Backpack_QuickWheel.Localization
 {
     public static class LanguageDetector
     {

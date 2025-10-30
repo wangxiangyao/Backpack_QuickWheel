@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System;
 using System.Linq;
 
-namespace Great_backpack.AttachmentSystem
+namespace Backpack_QuickWheel.AttachmentSystem
 {
     public class AttachmentManager
     {

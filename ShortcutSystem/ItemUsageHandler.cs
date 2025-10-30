@@ -6,7 +6,7 @@ using SodaCraft.Localizations;
 using UnityEngine;
 using System.Linq;
 
-namespace Great_backpack.ShortcutSystem
+namespace Backpack_QuickWheel.ShortcutSystem
 {
     public static class ItemUsageHandler
     {

@@ -1,12 +1,12 @@
 ﻿using Duckov.Modding;
-using Great_backpack.AttachmentSystem;
-using Great_backpack.AttachmentUI;
-using Great_backpack.BackpackSystem;
-using Great_backpack.ShortcutSystem;
+using Backpack_QuickWheel.AttachmentSystem;
+using Backpack_QuickWheel.AttachmentUI;
+using Backpack_QuickWheel.BackpackSystem;
+using Backpack_QuickWheel.ShortcutSystem;
 using HarmonyLib;
 using UnityEngine;
 
-namespace Great_backpack
+namespace Backpack_QuickWheel
 {
     public class ModBehaviour : Duckov.Modding.ModBehaviour
     {
@@ -41,7 +41,7 @@ namespace Great_backpack
 
             // 初始化本地化系统
             SystemLanguage currentLanguage = Application.systemLanguage; // 或者从游戏设置获取
-            Great_backpack.Localization.LocalizationManager.Initialize(currentLanguage);
+            Backpack_QuickWheel.Localization.LocalizationManager.Initialize(currentLanguage);
 
             // 初始化管理器
             tagManager = new TagManager();
@@ -55,7 +55,7 @@ namespace Great_backpack
             AttachmentHoveringUIManager.Initialize();
 
             // 初始化圆孔拖拽高亮缓存管理器
-            Great_backpack.AttachmentUI.SlotIndicatorCacheManager.Initialize();
+            Backpack_QuickWheel.AttachmentUI.SlotIndicatorCacheManager.Initialize();
 
             // 订阅关卡初始化事件
             LevelManager.OnLevelInitialized += OnLevelInitialized;
@@ -159,7 +159,7 @@ namespace Great_backpack
             Debug.Log("[ModBehaviour] 已取消订阅 LevelManager.OnLevelInitialized 事件");
 
             // 反初始化管理器
-            Great_backpack.AttachmentUI.SlotIndicatorCacheManager.Uninitialize();
+            Backpack_QuickWheel.AttachmentUI.SlotIndicatorCacheManager.Uninitialize();
         }
 
         void ExportAllTagsForDevelopment()

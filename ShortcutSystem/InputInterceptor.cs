@@ -1,7 +1,7 @@
 using UnityEngine;
 using ItemStatsSystem;
 
-namespace Great_backpack.ShortcutSystem
+namespace Backpack_QuickWheel.ShortcutSystem
 {
     /// <summary>
     /// 拦截和处理快捷键输入，检测长按与短按

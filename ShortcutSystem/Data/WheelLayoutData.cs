@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Great_backpack.ShortcutSystem.Data
+namespace Backpack_QuickWheel.ShortcutSystem.Data
 {
     /// <summary>
     /// 单个物品的位置记录

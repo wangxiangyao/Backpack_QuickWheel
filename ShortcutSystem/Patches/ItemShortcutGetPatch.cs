@@ -2,7 +2,7 @@ using HarmonyLib;
 using ItemStatsSystem;
 using UnityEngine;
 
-namespace Great_backpack.ShortcutSystem.Patches
+namespace Backpack_QuickWheel.ShortcutSystem.Patches
 {
     /// <summary>
     /// 补丁 ItemShortcut.Get 方法，使其能够返回背包配件中的物品

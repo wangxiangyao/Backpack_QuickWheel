@@ -2,7 +2,7 @@ using UnityEngine;
 using ItemStatsSystem;
 using Duckov.UI;
 
-namespace Great_backpack.ShortcutSystem
+namespace Backpack_QuickWheel.ShortcutSystem
 {
     /// <summary>
     /// 轮盘格子适配器 - 封装ItemDisplay

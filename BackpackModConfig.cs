@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
-using Great_backpack.AttachmentSystem;
-using Great_backpack.Localization;
+using Backpack_QuickWheel.AttachmentSystem;
+using Backpack_QuickWheel.Localization;
 
-namespace Great_backpack
+namespace Backpack_QuickWheel
 {
     public static class BackpackModConfig
     {

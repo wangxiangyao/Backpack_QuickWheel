@@ -4,7 +4,7 @@ using ItemStatsSystem;
 using System.Collections.Generic;
 using Duckov.UI;
 
-namespace Great_backpack.ShortcutSystem
+namespace Backpack_QuickWheel.ShortcutSystem
 {
     /// <summary>
     /// 物品轮盘选择器UI组件 - 九宫格布局版本

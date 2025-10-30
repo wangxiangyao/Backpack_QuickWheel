@@ -4,7 +4,7 @@ using ItemStatsSystem;
 using ItemStatsSystem.Items;
 using Duckov.Utilities;
 
-namespace Great_backpack.ShortcutSystem
+namespace Backpack_QuickWheel.ShortcutSystem
 {
     public static class BackpackItemCollector
     {
