@@ -54,6 +54,9 @@ namespace Great_backpack
             // 初始化配件Hover信息显示
             AttachmentHoveringUIManager.Initialize();
 
+            // 初始化圆孔拖拽高亮缓存管理器
+            Great_backpack.AttachmentUI.SlotIndicatorCacheManager.Initialize();
+
             // 订阅关卡初始化事件
             LevelManager.OnLevelInitialized += OnLevelInitialized;
             Debug.Log("[ModBehaviour] 已订阅 LevelManager.OnLevelInitialized 事件");
@@ -154,6 +157,9 @@ namespace Great_backpack
             // 取消订阅事件
             LevelManager.OnLevelInitialized -= OnLevelInitialized;
             Debug.Log("[ModBehaviour] 已取消订阅 LevelManager.OnLevelInitialized 事件");
+
+            // 反初始化管理器
+            Great_backpack.AttachmentUI.SlotIndicatorCacheManager.Uninitialize();
         }
 
         void ExportAllTagsForDevelopment()

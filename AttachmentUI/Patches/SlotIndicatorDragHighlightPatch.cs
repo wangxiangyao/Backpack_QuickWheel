@@ -1,35 +1,32 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using Duckov.UI;
+using Great_backpack.AttachmentSystem;
 using HarmonyLib;
 using ItemStatsSystem;
+using ItemStatsSystem.Items;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Great_backpack.AttachmentUI.Patches
 {
     /// <summary>
-    /// 圆孔拖拽高亮Patch - 每个SlotIndicator独立处理
+    /// 圆孔拖拽高亮Patch - 集中管理模式
     ///
     /// 原理：
-    /// 1. 在SlotIndicator.Setup时，仅为主背包中的指示器订阅IItemDragSource的全局拖拽事件
-    /// 2. 在SlotIndicator.OnDisable时，取消订阅事件
-    /// 3. 当拖拽开始时，通过多帧分散Coroutine检查每个SlotIndicator是否可以接收该物品，能则高亮
-    /// 4. 当拖拽结束时，停止Coroutine并恢复所有圆孔为原色
+    /// 1. 在SlotIndicator.Setup时，计算插槽规则 → 注册到SlotIndicatorCacheManager
+    /// 2. 在SlotIndicator.OnDisable时，从Manager中反注册
+    /// 3. Manager订阅全局拖拽事件，分帧匹配规则，高亮对应indicator
+    /// 4. Manager负责协调所有高亮/取消高亮操作
     ///
     /// 性能优化：
-    /// - 使用Coroutine多帧分散处理：避免在一帧内调用40个CanPlug()导致卡顿
-    /// - 每帧处理2个indicator，40个指标分散到约20帧（~333ms）
-    /// - 主背包过滤：只订阅主背包中的indicator，减少不必要的事件处理
+    /// - 事件订阅从O(40) → O(1)（只Manager订阅）
+    /// - 分帧按规则匹配，而非按indicator遍历
+    /// - Setup时完成规则计算和注册，拖拽时纯查表
     /// </summary>
     [HarmonyPatch(typeof(SlotIndicator))]
     public class SlotIndicatorDragHighlightPatch
     {
-        // 存储每个 SlotIndicator 实例的事件处理代理，用于取消订阅
-        private static Dictionary<SlotIndicator, (Action<Item> onStart, Action<Item> onEnd)> _subscribedIndicators
-            = new Dictionary<SlotIndicator, (Action<Item>, Action<Item>)>();
-
         // 存储高亮状态下被激活的 contentIndicator，以便稍后恢复状态
         private static HashSet<SlotIndicator> _highlightedIndicators
             = new HashSet<SlotIndicator>();
@@ -41,45 +38,15 @@ namespace Great_backpack.AttachmentUI.Patches
         // 反射字段缓存
         private static System.Reflection.FieldInfo _contentIndicatorField;
 
-        // Coroutine宿主 - 用于执行多帧分散处理
-        private static GameObject _coroutineHost;
-
-        // 当前正在运行的拖拽检查Coroutine
-        private static Coroutine _dragCheckCoroutine;
-
-        // 静态构造函数，初始化反射字段和Coroutine宿主
+        // 静态构造函数，初始化反射字段
         static SlotIndicatorDragHighlightPatch()
         {
             _contentIndicatorField = typeof(SlotIndicator).GetField("contentIndicator",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-
-            // 创建Coroutine宿主
-            _coroutineHost = new GameObject("[SlotIndicatorDragHighlight] CoroutineHost");
-            _coroutineHost.AddComponent<CoroutineRunner>();
-            GameObject.DontDestroyOnLoad(_coroutineHost);
         }
 
         /// <summary>
-        /// 简单的Coroutine执行器
-        /// </summary>
-        private class CoroutineRunner : MonoBehaviour { }
-
-        /// <summary>
-        /// 获取Coroutine执行器
-        /// </summary>
-        private static CoroutineRunner GetCoroutineRunner()
-        {
-            if (_coroutineHost == null || _coroutineHost.GetComponent<CoroutineRunner>() == null)
-            {
-                _coroutineHost = new GameObject("[SlotIndicatorDragHighlight] CoroutineHost");
-                _coroutineHost.AddComponent<CoroutineRunner>();
-                GameObject.DontDestroyOnLoad(_coroutineHost);
-            }
-            return _coroutineHost.GetComponent<CoroutineRunner>();
-        }
-
-        /// <summary>
-        /// Patch Setup - 订阅拖拽事件（仅对主背包中的物品）
+        /// Patch Setup - 计算规则并注册到Manager
         /// </summary>
         [HarmonyPatch("Setup")]
         [HarmonyPostfix]
@@ -93,7 +60,6 @@ namespace Great_backpack.AttachmentUI.Patches
                 var parentItem = __instance.Target.Master;
 
                 // 检查槽位所属的物品是否在主背包中
-                // 只有在主背包中的indicator才需要订阅拖拽事件，避免不必要的事件处理
                 if (!IsItemInMainBackpack(parentItem))
                     return;
 
@@ -111,21 +77,93 @@ namespace Great_backpack.AttachmentUI.Patches
                     }
                 }
 
-                // 创建事件处理方法，使用闭包捕获当前的SlotIndicator实例
-                Action<Item> onStartHandler = (draggedItem) => OnDragStarted(__instance, draggedItem);
-                Action<Item> onEndHandler = (draggedItem) => OnDragEnded(__instance, draggedItem);
-
-                // 订阅全局拖拽事件（只有在主背包的indicator才会订阅）
-                IItemDragSource.OnStartDragItem += onStartHandler;
-                IItemDragSource.OnEndDragItem += onEndHandler;
-
-                // 保存代理，以便OnDisable时取消订阅
-                _subscribedIndicators[__instance] = (onStartHandler, onEndHandler);
+                // 计算规则key并注册到Manager
+                string ruleKey = GenerateRuleKey(__instance.Target);
+                SlotIndicatorCacheManager.RegisterIndicator(__instance, ruleKey);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[SlotIndicatorDragHighlight] Setup订阅失败: {ex}");
+                Debug.LogError($"[SlotIndicatorDragHighlight] Setup注册失败: {ex}");
             }
+        }
+
+        /// <summary>
+        /// 根据Slot生成规则key
+        /// 官方插槽: "require: [tag1|tag2], exclusive: [tag3]"
+        /// 自定义插槽: "require_or: [tag1|tag2], exclusive: [tag3]"
+        /// </summary>
+        private static string GenerateRuleKey(Slot slot)
+        {
+            if (slot == null)
+                return "";
+
+            string requireKey;
+            if (slot.Key != null && slot.Key.StartsWith("wxy_"))
+            {
+                // 自定义插槽：使用OR逻辑
+                // 需要从SlotConfig中获取RestrictTags
+                string slotType = ExtractSlotType(slot.Key);
+                List<string> restrictTags = GetRestrictTags(slotType);
+                requireKey = "require_or: [" + string.Join("|", restrictTags) + "]";
+            }
+            else
+            {
+                // 官方插槽：使用AND逻辑
+                List<string> requireTags = new List<string>();
+                foreach (var tag in slot.requireTags)
+                {
+                    if (tag != null)
+                        requireTags.Add(tag.name);
+                }
+                requireKey = "require: [" + string.Join("|", requireTags) + "]";
+            }
+
+            // 获取排除标签
+            List<string> exclusiveTags = new List<string>();
+            foreach (var tag in slot.excludeTags)
+            {
+                if (tag != null)
+                    exclusiveTags.Add(tag.name);
+            }
+            string exclusiveKey = "exclusive: [" + string.Join("|", exclusiveTags) + "]";
+
+            return requireKey + ", " + exclusiveKey;
+        }
+
+        /// <summary>
+        /// 从插槽key中提取插槽类型（例如 wxy_Small_0 → Small）
+        /// </summary>
+        private static string ExtractSlotType(string slotKey)
+        {
+            try
+            {
+                string withoutPrefix = slotKey.Substring(4); // 去掉 "wxy_"
+                string[] parts = withoutPrefix.Split('_');
+                return parts.Length > 0 ? parts[0] : "";
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
+        /// <summary>
+        /// 根据插槽类型获取RestrictTags
+        /// </summary>
+        private static List<string> GetRestrictTags(string slotType)
+        {
+            try
+            {
+                // 从BackpackModConfig.UnifiedSlotTypes中查找
+                if (BackpackModConfig.UnifiedSlotTypes.ContainsKey(slotType))
+                {
+                    return BackpackModConfig.UnifiedSlotTypes[slotType].RestrictTags;
+                }
+            }
+            catch
+            {
+            }
+            return new List<string>();
         }
 
         /// <summary>
@@ -166,7 +204,7 @@ namespace Great_backpack.AttachmentUI.Patches
         }
 
         /// <summary>
-        /// Patch OnDisable - 取消订阅拖拽事件
+        /// Patch OnDisable - 从Manager中反注册
         /// </summary>
         [HarmonyPatch("OnDisable")]
         [HarmonyPostfix]
@@ -177,116 +215,26 @@ namespace Great_backpack.AttachmentUI.Patches
 
             try
             {
-                // 查找并移除该SlotIndicator的事件订阅
-                if (_subscribedIndicators.TryGetValue(__instance, out var handlers))
-                {
-                    IItemDragSource.OnStartDragItem -= handlers.onStart;
-                    IItemDragSource.OnEndDragItem -= handlers.onEnd;
-                    _subscribedIndicators.Remove(__instance);
+                // 从Manager中反注册
+                SlotIndicatorCacheManager.UnregisterIndicator(__instance);
 
-                    // 清理缓存
-                    _cachedComponents.Remove(__instance);
-                    _highlightedIndicators.Remove(__instance);
-                }
+                // 清理本地缓存
+                _cachedComponents.Remove(__instance);
+                _highlightedIndicators.Remove(__instance);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[SlotIndicatorDragHighlight] OnDisable取消订阅失败: {ex}");
+                Debug.LogError($"[SlotIndicatorDragHighlight] OnDisable反注册失败: {ex}");
             }
         }
 
         /// <summary>
-        /// 处理拖拽开始事件 - 启动多帧分散处理Coroutine
-        /// 在这一帧就立即取消前一个拖拽的高亮，然后异步检查新拖拽的CanPlug结果
-        /// </summary>
-        private static void OnDragStarted(SlotIndicator slotIndicator, Item draggedItem)
-        {
-            // 停止上一个拖拽的Coroutine（如果有）
-            if (_dragCheckCoroutine != null)
-            {
-                GetCoroutineRunner().StopCoroutine(_dragCheckCoroutine);
-            }
-
-            // 立即取消所有高亮（不需要等待Coroutine）
-            var toUnhighlight = new List<SlotIndicator>(_highlightedIndicators);
-            foreach (var indicator in toUnhighlight)
-            {
-                UnhighlightSlot(indicator);
-            }
-
-            // 启动新的Coroutine来分散处理所有indicator的CanPlug检查
-            _dragCheckCoroutine = GetCoroutineRunner().StartCoroutine(
-                CheckAllIndicatorsCoroutine(draggedItem)
-            );
-        }
-
-        /// <summary>
-        /// 多帧分散处理：每帧检查2个indicator的CanPlug
-        /// 平衡速度和流畅性：40个indicator分散到20帧（~333ms），每帧CPU占用低
-        /// </summary>
-        private static IEnumerator CheckAllIndicatorsCoroutine(Item draggedItem)
-        {
-            if (draggedItem == null)
-                yield break;
-
-            int processedCount = 0;
-            const int itemsPerFrame = 2; // 每帧处理2个indicator
-
-            foreach (var kvp in _subscribedIndicators)
-            {
-                SlotIndicator indicator = kvp.Key;
-                if (indicator == null || indicator.Target == null)
-                    continue;
-
-                // 检查槽位是否已有物品
-                if (indicator.Target.Content != null)
-                {
-                    // 槽位已有物品，不能高亮
-                    continue;
-                }
-
-                // 检查物品是否可以插入
-                if (indicator.Target.CanPlug(draggedItem))
-                {
-                    HighlightSlot(indicator);
-                }
-
-                // 每处理2个indicator就让出控制权，等待下一帧
-                processedCount++;
-                if (processedCount % itemsPerFrame == 0)
-                {
-                    yield return null;
-                }
-            }
-        }
-
-        /// <summary>
-        /// 处理拖拽结束事件 - 停止Coroutine并立即取消所有高亮
-        /// </summary>
-        private static void OnDragEnded(SlotIndicator slotIndicator, Item draggedItem)
-        {
-            // 停止Coroutine
-            if (_dragCheckCoroutine != null)
-            {
-                GetCoroutineRunner().StopCoroutine(_dragCheckCoroutine);
-                _dragCheckCoroutine = null;
-            }
-
-            // 立即取消所有高亮
-            var toUnhighlight = new List<SlotIndicator>(_highlightedIndicators);
-            foreach (var indicator in toUnhighlight)
-            {
-                UnhighlightSlot(indicator);
-            }
-        }
-
-        /// <summary>
-        /// 高亮SlotIndicator的圆孔为绿色
+        /// 高亮SlotIndicator的圆孔为绿色（供Manager调用）
         /// 使用缓存的组件避免重复反射和GetComponent调用
         /// </summary>
-        private static void HighlightSlot(SlotIndicator slotIndicator)
+        public static void HighlightSlotPublic(SlotIndicator slotIndicator)
         {
-            if (!_cachedComponents.TryGetValue(slotIndicator, out var cached))
+            if (slotIndicator == null || !_cachedComponents.TryGetValue(slotIndicator, out var cached))
                 return;
 
             var contentIndicatorGO = cached.contentIndicator;
@@ -309,12 +257,12 @@ namespace Great_backpack.AttachmentUI.Patches
         }
 
         /// <summary>
-        /// 恢复SlotIndicator的圆孔为白色，并恢复激活状态
+        /// 恢复SlotIndicator的圆孔为白色（供Manager调用）
         /// 使用缓存的组件避免重复反射和GetComponent调用
         /// </summary>
-        private static void UnhighlightSlot(SlotIndicator slotIndicator)
+        public static void UnhighlightSlotPublic(SlotIndicator slotIndicator)
         {
-            if (!_cachedComponents.TryGetValue(slotIndicator, out var cached))
+            if (slotIndicator == null || !_cachedComponents.TryGetValue(slotIndicator, out var cached))
                 return;
 
             var contentIndicatorGO = cached.contentIndicator;
