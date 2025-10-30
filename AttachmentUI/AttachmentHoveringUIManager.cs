@@ -24,8 +24,6 @@ namespace Great_backpack.AttachmentUI
 
             // 订阅ItemHoveringUI的onSetupItem事件
             ItemHoveringUI.onSetupItem += OnItemHoveringSetup;
-
-            UnityEngine.Debug.Log("[AttachmentHoveringUIManager] 已初始化，订阅ItemHoveringUI.onSetupItem事件");
         }
 
         /// <summary>
@@ -34,7 +32,6 @@ namespace Great_backpack.AttachmentUI
         public static void Uninitialize()
         {
             ItemHoveringUI.onSetupItem -= OnItemHoveringSetup;
-            UnityEngine.Debug.Log("[AttachmentHoveringUIManager] 已取消订阅");
         }
 
         /// <summary>
@@ -81,8 +78,6 @@ namespace Great_backpack.AttachmentUI
                             : $"[配件槽位 {slotUsage}]";
 
                         itemDesc.text += "\n\n" + header + "\n" + slotInfo;
-
-                        UnityEngine.Debug.Log($"[AttachmentHoveringUIManager] 为配件'{item.DisplayName}'追加了槽位信息");
                     }
                 }
             }

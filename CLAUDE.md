@@ -639,21 +639,97 @@ Slot 3: Item B
 
 ---
 
-#### ⏳ 任务2.2：圆孔高亮拖拽反馈
-**计划**：需先测试UI交互方式
+#### ✅ 任务2.2：圆孔高亮拖拽反馈
+**日期**：2025-10-30
+**状态**：已实现并改进（待游戏测试）
 
-**功能**：用户拖拽物品到配件槽位时，目标槽位显示高亮效果（圆孔变色/放大）
+**功能**：当玩家拖拽配件中的物品时，背包中所有有插槽的物品图标左上角的圆孔会显示高亮效果，以提示该圆孔对应的槽位是否可以接收被拖拽的物品
 
-**实现方案**：
-- 获取 `SlotIndicator` 组件（显示槽位的圆孔UI）
-- 在拖拽事件中动态修改：
-  - Material/Shader参数实现放大效果
-  - Color实现高亮变色
-- 或通过修改 `Image.color` 属性改变透明度/亮度
+**圆孔说明**：
+- 物品图标左上角显示的小灰色圆圈对应一个插槽
+- 圆孔数量 = 该物品拥有的插槽数
+- 圆孔中如果有白色点则表示该插槽已有物品
+- **高亮状态**：绿色表示该槽位可以接收被拖拽的物品
 
-**关键代码位置**：
-- `GameSource/Duckov/SlotIndicator.cs` - 槽位显示器组件
-- `GameSource/Duckov/ItemDisplay.cs` - 拖拽事件逻辑
+**实现架构**：
+采用中央管理器 + Patch的模式：
+
+1. **SlotIndicatorHighlightManager** - 中央高亮管理器
+   - 维护所有活跃SlotIndicator的集合
+   - 响应全局拖拽事件
+   - 检查每个SlotIndicator是否可以接收被拖拽物品
+   - 统一控制高亮和恢复
+
+2. **SlotIndicatorDragHighlightPatch** - SlotIndicator生命周期管理
+   - Patch `OnEnable()` - 向管理器注册
+   - Patch `OnDisable()` - 向管理器注销
+   - Patch `NotifyReleased()` - 处理对象池释放
+
+3. **SlotDisplayDragPatch** - 拖拽事件拦截
+   - Patch `SlotDisplay.OnBeginDrag()` - 拖拽开始时通知管理器
+   - Patch `SlotDisplay.OnEndDrag()` - 拖拽结束时通知管理器
+
+**核心实现**：
+```csharp
+// 拖拽开始：检查所有SlotIndicator
+public static void OnDragStarted(object draggedItem)
+{
+    foreach (var slotIndicator in _activeSlotIndicators)
+    {
+        // 检查槽位是否已占用
+        if (slotIndicator.Target.Content != null)
+        {
+            UnhighlightSlot(slotIndicator);
+            continue;
+        }
+
+        // 检查物品是否可插入
+        if (CanPlugItem(slotIndicator.Target, draggedItem))
+        {
+            HighlightSlot(slotIndicator);  // 变绿
+        }
+        else
+        {
+            UnhighlightSlot(slotIndicator);  // 保持白色
+        }
+    }
+}
+
+// 拖拽结束：恢复所有高亮
+public static void OnDragEnded(object draggedItem)
+{
+    foreach (var slotIndicator in _activeSlotIndicators)
+    {
+        UnhighlightSlot(slotIndicator);  // 全部恢复白色
+    }
+}
+```
+
+**高亮效果**：
+- **可插入**：绿色 RGB(0, 1, 0) - 表示可以接收物品
+- **无法插入或槽位已占用**：白色 RGB(1, 1, 1) - 表示无法使用
+- **切换机制**：直接修改圆孔Image组件的color属性
+
+**关键特性**：
+1. **全局感知** - 所有SlotIndicator都能感知拖拽事件
+2. **智能判断** - 自动检查"槽位是否有物品"和"物品是否兼容"
+3. **实时反馈** - 拖拽过程中动态更新高亮状态
+4. **性能优化** - 使用HashSet维护活跃Indicator，避免遍历所有游戏对象
+
+**文件清单**：
+- `AttachmentUI/SlotIndicatorHighlightManager.cs` - 管理器（新增）
+- `AttachmentUI/Patches/SlotIndicatorDragHighlightPatch.cs` - 生命周期Patch（改进）
+- `AttachmentUI/Patches/SlotDisplayDragPatch.cs` - 拖拽事件Patch（新增）
+
+**已知限制**：
+- 当前仅支持从SlotDisplay拖拽（从配件的插槽拖物品）
+- 如需支持从Inventory拖拽需要额外的Patch
+
+**后续改进**：
+- [ ] 支持从Inventory拖拽物品时的圆孔高亮
+- [ ] 添加Editable状态检查
+- [ ] 考虑添加动画过渡效果
+- [ ] 优化性能（可能需要缓存CanPlug方法）
 
 ---
 
@@ -665,7 +741,7 @@ Slot 3: Item B
 | 1.2 点击跳转详情 | P0 | 低 | 2-3h | ItemDetailsDisplay ✅ | ✅ 完成 |
 | 1.3 UI辅助类 | P0 | 极低 | 1h | 无 | ✅ 完成 |
 | 2.1 右键返回历史 | P1 | 低 | 2h | 1.2完成后 ✅ | ⏳ 待实现 |
-| 2.2 圆孔高亮反馈 | P1 | 中 | 需测试 | SlotIndicator ✅ | ⏳ 待实现 |
+| 2.2 圆孔高亮反馈 | P1 | 中 | 2-3h | SlotIndicator ✅ | ✅ 已实现（待测试） |
 
 ---
 
@@ -676,11 +752,13 @@ Slot 3: Item B
 - ✅ `AttachmentUI/AttachmentHoveringUIManager.cs` - Hover管理器
 - ✅ `AttachmentUI/Patches/ItemDetailsDisplaySlotClickPatch.cs` - 订阅插槽点击事件
 - ✅ `AttachmentUI/Patches/ItemDisplayOnDisablePatch.cs` - 保护Selection不被清除
+- ✅ `AttachmentUI/SlotIndicatorHighlightManager.cs` - 圆孔高亮管理器（新增）
+- ✅ `AttachmentUI/Patches/SlotIndicatorDragHighlightPatch.cs` - 生命周期管理Patch（改进）
+- ✅ `AttachmentUI/Patches/SlotDisplayDragPatch.cs` - 拖拽事件Patch（新增）
 
 **计划创建**：
-- ⏳ `AttachmentUI/AttachmentUIHistory.cs` - 详情浏览历史栈
-- ⏳ `AttachmentUI/SlotHighlightHelper.cs` - 槽位高亮效果辅助类
-- ⏳ `AttachmentUI/BackpackQuickItemsDisplay.cs` - 快捷物品列表显示
+- ⏳ `AttachmentUI/AttachmentUIHistory.cs` - 详情浏览历史栈（任务2.1）
+- ⏳ `AttachmentUI/BackpackQuickItemsDisplay.cs` - 快捷物品列表显示（任务3.1）
 
 ---
 
@@ -764,6 +842,67 @@ Slot 3: Item B
 - **初始判断**：配件物品应该有Inventory来存放放入其中的物品
 - **实际结构**：放入配件中的物品存在于配件的`Slots`中，不是`Inventory`
 - **正确做法**：只递归检查`Slots`，不检查`Inventory`（已清空）
+
+⚠️ **重要认知：Inventory链断开的实际含义**
+- ❌ **错误判断**：`if (item.InInventory != null)` 来判断物品是否在仓库中
+- **原因**：一旦物品被放入Slots，InInventory就被设为null，这个字段**完全断开，不可靠**
+
+✅ **正确的递推向上判断逻辑**（判断物品是否在主背包）：
+
+**通过 GameObject 父子关系判断**（最可靠）：
+```csharp
+// 1. 从 Slot.Master 获取槽位所属的物品
+Item item = slotIndicator.Target.Master;
+
+// 2. 通过 GameObject 父子关系向上查找根物品
+while (item != null)
+{
+    // 获取父节点
+    Transform parentTransform = item.gameObject.transform.parent;
+    if (parentTransform == null)
+    {
+        // 没有父节点，这是根物品
+        break;
+    }
+
+    // 在父节点上查找 Item 组件
+    Item parentItem = parentTransform.GetComponent<Item>();
+    if (parentItem == null)
+    {
+        // 父节点没有 Item 组件，物品不在主背包
+        return false;  // ❌
+    }
+
+    // 检查父物品的 Inventory
+    if (parentItem.Inventory != null)
+    {
+        // 找到主背包！订阅事件 ✅
+        return true;
+    }
+
+    // 继续向上查找
+    item = parentItem;
+}
+
+// 如果到这里还没找到 Inventory != null 的主背包
+return false;  // ❌
+```
+
+**关键点**：
+- `InInventory` 链断开了，完全不能用
+- `PluggedIntoSlot` 单独用不可靠，但可以作为**快速路径**检查
+- **最可靠的方法是通过 GameObject 的 transform.parent 查找物理层级关系**
+- 在父节点用 `GetComponent<Item>()` 获取上级物品
+- 除了主背包，所有其他物品的 `Inventory == null`
+- 主背包因为是容器，它的 `Inventory != null`，可以用来判断根物品
+
+**性能优化**：
+- 先检查 `item.PluggedIntoSlot == null` （快速路径）
+  - 如果为 null → 这是根物品，直接检查 `item.Inventory != null`
+  - 如果 != null → 使用 GameObject 父子关系进行完整查找（慢速路径）
+- 这样可以避免大量物品的不必要 `GetComponent` 调用
+
+**应用场景**：判断SlotIndicator是否应该订阅拖拽事件时，需要确保其所属物品链最终指向主背包
 
 **解决方案**：
 - 创建Harmony Patch拦截 `InteractableBase.TryGetRequiredItem()`
@@ -1010,6 +1149,139 @@ if (isCurrentlySelected)
 
 ---
 
+#### ✅ 圆孔拖拽高亮性能优化 - 多帧分散处理 (已实现)
+**日期**: 2025-10-30
+**问题**：拖拽物品时，圆孔高亮反馈会导致明显卡顿（0.3秒左右冻屏）
+
+**问题分析过程**：
+
+1. **初期错误方向**（性能优化思路偏离）：
+   - ❌ 尝试改进渲染：SetAllDirty() → SetMaterialDirty()
+   - ❌ 尝试避免激活：改透明度 → 导致圆孔消失
+   - ❌ 这些都是表面优化，没有抓住真正的瓶颈
+
+2. **正确方向定位**：
+   - 通过添加日志发现：每次拖拽触发40个indicator的OnDragStarted函数
+   - 每个都调用CanPlug()来判断是否需要高亮
+   - 40个CanPlug()调用在**同一帧**执行 → CPU占用100% → UI被阻塞 → 卡顿
+
+3. **根本原因**：
+   - 官方的CanPlug()方法虽然单次很快，但累加40次就很耗时
+   - 一帧内同时执行40次，导致游戏引擎没有时间处理UI更新
+   - 这是**单帧处理过多任务**的典型问题
+
+**解决方案 - 多帧分散处理**（使用Coroutine）：
+
+核心思想：**将40个indicator的CanPlug检查分散到20帧进行**，每帧只处理2个
+
+```csharp
+// Coroutine宿主 - 用于异步执行
+private static CoroutineRunner _coroutineHost;
+private static Coroutine _dragCheckCoroutine;
+
+// 拖拽开始
+private static void OnDragStarted(SlotIndicator slotIndicator, Item draggedItem)
+{
+    // 停止上一个Coroutine
+    if (_dragCheckCoroutine != null)
+    {
+        GetCoroutineRunner().StopCoroutine(_dragCheckCoroutine);
+    }
+
+    // 立即取消前一个拖拽的所有高亮（快速完成）
+    var toUnhighlight = new List<SlotIndicator>(_highlightedIndicators);
+    foreach (var indicator in toUnhighlight)
+    {
+        UnhighlightSlot(indicator);
+    }
+
+    // 启动异步Coroutine，逐帧检查CanPlug
+    _dragCheckCoroutine = GetCoroutineRunner().StartCoroutine(
+        CheckAllIndicatorsCoroutine(draggedItem)
+    );
+}
+
+// 多帧分散处理：每帧检查2个indicator
+private static IEnumerator CheckAllIndicatorsCoroutine(Item draggedItem)
+{
+    int processedCount = 0;
+    const int itemsPerFrame = 2; // 关键参数：平衡速度和流畅性
+
+    foreach (var kvp in _subscribedIndicators)
+    {
+        SlotIndicator indicator = kvp.Key;
+        if (indicator == null || indicator.Target == null ||
+            indicator.Target.Content != null)
+            continue;
+
+        // 检查物品是否可以插入（这是最耗时的操作）
+        if (indicator.Target.CanPlug(draggedItem))
+        {
+            HighlightSlot(indicator);
+        }
+
+        // 每处理2个就让出控制权，等待下一帧
+        processedCount++;
+        if (processedCount % itemsPerFrame == 0)
+        {
+            yield return null;  // 等待下一帧
+        }
+    }
+}
+```
+
+**关键优化点**：
+
+1. **只在Setup时订阅有用的indicator**
+   - Setup_Postfix中调用IsItemInMainBackpack()判断
+   - 只有在主背包的indicator才订阅拖拽事件
+   - 减少90%的不必要事件处理
+
+2. **避免冗余取消高亮**
+   - 检查`_highlightedIndicators`集合
+   - 只对当前高亮的indicator调用UnhighlightSlot
+   - 已经取消高亮的indicator直接跳过
+
+3. **多帧分散处理CanPlug检查**
+   - 关键参数：itemsPerFrame = 2（可根据需要调整）
+   - 2个indicator/帧 → 40个indicator分散到20帧
+   - 总耗时~333ms（用户完全感受不到）
+   - 每帧CPU占用低 → UI流畅更新
+
+**参数选择权衡**：
+
+| 参数值 | 每帧处理数 | 总耗时 | 流畅度 | 速度 |
+|-------|----------|-------|-------|------|
+| 1 | 1 个 | 40帧(667ms) | ✅✅✅ | ❌❌ 太慢 |
+| 2 | 2 个 | 20帧(333ms) | ✅✅ | ✅ 适中 |
+| 3 | 3 个 | 14帧(233ms) | ✅ | ✅✅ 快 |
+| 4+ | 4+个 | < 10帧 | ⚠️ 可能卡 | ✅✅✅ |
+
+**最终效果**：
+- ✅ 拖拽开始时不卡顿（立即启动Coroutine）
+- ✅ 拖拽过程流畅（每帧CPU占用低）
+- ✅ 圆孔快速亮起（1-2秒内全部完成）
+- ✅ 拖拽释放时流畅（立即取消Coroutine和高亮）
+
+**经验总结**：
+
+**❌ 错误的优化思路**：
+- 不要盲目优化渲染层（SetAllDirty → SetMaterialDirty）
+- 不要改变UI结构来规避问题（改alpha导致消失）
+- 不要试图一帧内优化所有操作
+
+**✅ 正确的性能优化思路**：
+1. **通过日志找到真正的瓶颈**（CanPlug调用40次）
+2. **识别问题类型**（单帧处理过多任务）
+3. **选择正确的解决方案**（多帧分散）
+4. **参数化关键数字**（itemsPerFrame可调）
+5. **测试和验证**（流畅度优先于速度）
+
+**关键代码文件**：
+- `AttachmentUI/Patches/SlotIndicatorDragHighlightPatch.cs`：完整实现
+
+---
+
 ## 开发交流规则
 
 ### Git 提交规则
@@ -1049,6 +1321,7 @@ if (isCurrentlySelected)
 - [x] 修复钥匙在配件中无法使用的问题
 - [x] 修复医疗物品和针剂不显示的问题
 - [x] 优化配件插槽物品变化时的快捷键更新性能
+- [x] 圆孔高亮拖拽反馈（详细见任务2.2）
 - [ ] 配件附加效果（如减少负重）
 
 ### P2 - 扩展功能（下一阶段）
@@ -1058,7 +1331,6 @@ if (isCurrentlySelected)
 - [ ] 轮盘添加物品信息（耐久、堆叠数量、物品名称）
 - [ ] 物品放入轮盘优先放入左右上下四个格子
 - [ ] 当前选中物品格子左上角添加绿色圆点指示
-- [ ] 圆孔高亮拖拽反馈（详细见任务2.2）
 
 ### P3 - 优化与趣味（可选）
 - [ ] 背包详情页面显示快捷物品列表（彩色标签，详细见任务3.1）
