@@ -57,3 +57,12 @@ packages/
 # 临时文件
 *.tmp
 *.temp
+
+# 备份和存档
+.archive/
+*- Backup.csproj
+*- Backup*.csproj
+
+# 开源版本排除的目录
+GameSource/
+CLAUDE_FULL.md
