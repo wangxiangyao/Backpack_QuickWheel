@@ -1,11 +1,11 @@
 using System;
 using System.Collections;
 using UnityEngine;
-using VoiceWheelSystem;
+using Backpack_QuickWheel.VoiceWheelSystem;
 using HarmonyLib;
 using Duckov;
 
-namespace VoiceWheelSystem
+namespace Backpack_QuickWheel.VoiceWheelSystem
 {
     /// <summary>
     /// 语音轮盘系统主控制器
@@ -227,10 +227,22 @@ namespace VoiceWheelSystem
             _isPlayingVoice = true;
             _currentPlayingVoice = voice;
 
+            Debug.LogError($"[VoiceWheelManager] === 开始播放语音 ===");
+            Debug.LogError($"[VoiceWheelManager] 语音: {voice.displayName}");
+            Debug.LogError($"[VoiceWheelManager] 气泡文本: '{voice.bubbleText}'");
+            Debug.LogError($"[VoiceWheelManager] 音频路径: {voice.audioPath}");
+            Debug.LogError($"[VoiceWheelManager] 气泡管理器: {(_bubbleManager != null ? "存在" : "不存在")}");
+
             // 显示气泡文字
             if (_bubbleManager != null)
             {
+                Debug.LogError($"[VoiceWheelManager] 调用气泡管理器显示文本: '{voice.bubbleText}'");
                 _bubbleManager.ShowBubble(voice.bubbleText);
+                Debug.LogError($"[VoiceWheelManager] ✓ 气泡管理器调用完成");
+            }
+            else
+            {
+                Debug.LogError("[VoiceWheelManager] ✗ 气泡管理器为null");
             }
 
             // 影响NPC
@@ -242,19 +254,23 @@ namespace VoiceWheelSystem
             // 播放音频（使用VoiceAudioManager）
             if (_audioManager != null)
             {
+                Debug.LogError($"[VoiceWheelManager] 开始播放音频: {voice.audioPath}");
                 _audioManager.PlayVoiceAudio(voice.audioPath);
 
-                // 等待音频播放完成（简化处理，实际应该等待音频长度）
-                yield return new WaitForSeconds(1.0f);
+                // 立即完成，不等待
+                // 协程自动结束
             }
             else
             {
-                // 没有音频管理器时，只显示气泡
-                yield return new WaitForSeconds(1.0f);
+                Debug.LogError("[VoiceWheelManager] 音频管理器为null，立即完成");
+                // 没有音频管理器时，立即完成
+                // 协程自动结束
             }
 
+            Debug.LogError($"[VoiceWheelManager] === 语音播放完成 ===");
             _isPlayingVoice = false;
             _currentPlayingVoice = null;
+            yield break;
         }
 
         public void StopCurrentVoice()

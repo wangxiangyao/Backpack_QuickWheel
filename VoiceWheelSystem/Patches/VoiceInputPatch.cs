@@ -2,7 +2,7 @@ using HarmonyLib;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace VoiceWheelSystem.Patches
+namespace Backpack_QuickWheel.VoiceWheelSystem.Patches
 {
     /// <summary>
     /// 补丁 CharacterInputControl 的Quack输入方法，拦截F1/嘎声音输入
@@ -14,6 +14,11 @@ namespace VoiceWheelSystem.Patches
         // 语音按键的事件
         public static event System.Action OnVoiceKeyPressed;
         public static event System.Action OnVoiceKeyReleased;
+
+        // 长按检查
+        private static bool _isKeyPressed = false;
+        private static float _pressStartTime = 0f;
+        private static bool _wheelShown = false;
 
         /// <summary>
         /// 处理语音按键的前置补丁

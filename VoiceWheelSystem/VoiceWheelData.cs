@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace VoiceWheelSystem
+namespace Backpack_QuickWheel.VoiceWheelSystem
 {
     /// <summary>
     /// 语音轮盘配置数据
@@ -126,7 +126,7 @@ namespace VoiceWheelSystem
                 "voice_default_ga",
                 "嘎",
                 "嘎",
-                "", // 路径稍后设置
+                "VoiceWheelSystem/Audio/Ga_Sound.mp3", // 嵌入资源路径
                 "嘎", // 直接显示文字
                 25f
             );

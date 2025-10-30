@@ -1,41 +1,44 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
-using VoiceWheelSystem;
+using Backpack_QuickWheel.VoiceWheelSystem;
+using Backpack_QuickWheel.ShortcutSystem;
+using Backpack_QuickWheel.AttachmentSystem;
+using ItemStatsSystem;
+using Duckov.UI;
 
-namespace VoiceWheelSystem
+namespace Backpack_QuickWheel.VoiceWheelSystem
 {
     /// <summary>
     /// 语音轮盘选择器UI组件
-    /// 复用物品轮盘的九宫格布局和矢量选择逻辑
+    /// 完全复制ItemWheelSelector的实现，只是将Item替换为VoiceItem
     /// </summary>
     public class VoiceWheelSelector : MonoBehaviour
     {
-        #region UI组件
+        #region UI组件 - 完全复制ItemWheelSelector
         private Canvas _wheelCanvas;
         private RectTransform _wheelContainer;
-        private List<GameObject> _voiceDisplayObjects = new List<GameObject>();
-        private List<VoiceItemDisplay> _voiceDisplayComponents = new List<VoiceItemDisplay>();
-        private int _selectedVoiceIndex = -1;
+        private List<GameObject> _itemDisplayClones = new List<GameObject>();
+        private List<VoiceWheelDisplay> _voiceDisplayComponents = new List<VoiceWheelDisplay>();
+        private int _selectedItemIndex = -1;
         private List<VoiceItem> _currentVoices = new List<VoiceItem>();
+
+        // 轮盘位置
+        private Vector2 _wheelCenterScreenPos;
+        private bool _wheelActive = false;
 
         // 全屏拦截面板（防止鼠标输入传给游戏）
         private GameObject _inputBlockerPanel;
         private Image _inputBlockerImage;
-        #endregion
 
-        #region 轮盘状态
-        private Vector2 _wheelCenterScreenPos;
-        private bool _wheelActive = false;
+        // 矢量选择逻辑
+        private Vector2 _pressDownMousePos = Vector2.zero;       // 按下时的鼠标位置
+        private Vector2 _wheelShowMousePos = Vector2.zero;       // 轮盘显示时的鼠标位置
+        private const float FIRST_VECTOR_THRESHOLD = 20f;        // 第一矢量的激活阈值（死区）
 
-        // 输入检测
-        private Vector2 _pressDownMousePos = Vector2.zero;
-        private Vector2 _wheelShowMousePos = Vector2.zero;
-        private const float FIRST_VECTOR_THRESHOLD = 20f;
-
-        // 九宫格配置（复用物品轮盘的配置）
-        private const float CELL_SIZE = 40f;
-        private const float GRID_OFFSET = CELL_SIZE + 5f;
+        // 九宫格配置（完全复制ItemWheelSelector的配置）
+        private const float CELL_SIZE = 95f;                        // 调整格子尺寸
+        private const float GRID_OFFSET = CELL_SIZE + 6f;          // 调整间距
 
         // 九宫格位置（相对于中心的偏移）
         private static readonly Vector2Int[] GRID_POSITIONS = new Vector2Int[]
@@ -84,19 +87,68 @@ namespace VoiceWheelSystem
         }
         #endregion
 
-        #region 初始化
+        #region 初始化 - 完全复制ItemWheelSelector
         private void InitializeWheel()
         {
-            Debug.Log("[VoiceWheelSelector] 初始化语音轮盘...");
+            Debug.Log("[VoiceWheelSelector] 初始化九宫格轮盘（中心为空）...");
 
             // 创建Canvas
-            CreateWheelCanvas();
+            var canvasObj = new GameObject("VoiceWheelCanvas");
+            canvasObj.transform.SetParent(transform, false);
+            canvasObj.transform.localPosition = Vector3.zero;
+            Debug.Log($"[VoiceWheelSelector] Canvas 父节点: {canvasObj.transform.parent.name}, Canvas 活跃: {canvasObj.activeInHierarchy}");
+
+            // 配置Canvas的RectTransform
+            var canvasRect = canvasObj.GetComponent<RectTransform>();
+            if (canvasRect == null)
+            {
+                canvasRect = canvasObj.AddComponent<RectTransform>();
+            }
+            canvasRect.anchorMin = Vector2.zero;
+            canvasRect.anchorMax = Vector2.one;
+            canvasRect.offsetMin = Vector2.zero;
+            canvasRect.offsetMax = Vector2.zero;
+            canvasRect.localPosition = Vector3.zero;
+
+            _wheelCanvas = canvasObj.AddComponent<Canvas>();
+            _wheelCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            _wheelCanvas.sortingOrder = 100;
+            canvasObj.AddComponent<GraphicRaycaster>();
+
+            var canvasScaler = canvasObj.AddComponent<CanvasScaler>();
+            canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            canvasScaler.referenceResolution = new Vector2(1920, 1080);
+
+            // 创建全屏拦截面板
+            var blockerObj = new GameObject("InputBlocker");
+            blockerObj.transform.SetParent(canvasObj.transform, false);
+            var blockerRect = blockerObj.AddComponent<RectTransform>();
+            blockerRect.anchorMin = Vector2.zero;
+            blockerRect.anchorMax = Vector2.one;
+            blockerRect.offsetMin = Vector2.zero;
+            blockerRect.offsetMax = Vector2.zero;
+
+            _inputBlockerImage = blockerObj.AddComponent<Image>();
+            _inputBlockerImage.color = new Color(0, 0, 0, 0.1f);
+            _inputBlockerPanel = blockerObj;
+            _inputBlockerPanel.SetActive(false);
 
             // 创建轮盘容器
-            CreateWheelContainer();
+            var wheelObj = new GameObject("WheelContainer");
+            wheelObj.transform.SetParent(canvasObj.transform, false);
+            wheelObj.transform.localPosition = Vector3.zero;
+            var wheelRectTransform = wheelObj.GetComponent<RectTransform>();
+            if (wheelRectTransform == null)
+            {
+                wheelRectTransform = wheelObj.AddComponent<RectTransform>();
+            }
+            // 中心锚点
+            wheelRectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            wheelRectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            wheelRectTransform.pivot = new Vector2(0.5f, 0.5f);
+            wheelRectTransform.sizeDelta = new Vector2(GRID_OFFSET * 3, GRID_OFFSET * 3);
 
-            // 创建输入拦截面板
-            CreateInputBlocker();
+            _wheelContainer = wheelRectTransform;
 
             // 创建轮盘格子（8个）
             CreateWheelSlots();
@@ -105,115 +157,76 @@ namespace VoiceWheelSystem
             SetWheelActive(false);
         }
 
-        private void CreateWheelCanvas()
-        {
-            var canvasGO = new GameObject("VoiceWheelCanvas");
-            canvasGO.transform.SetParent(transform);
-
-            _wheelCanvas = canvasGO.AddComponent<Canvas>();
-            _wheelCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            _wheelCanvas.sortingOrder = 100; // 确保在最上层
-
-            var canvasScaler = canvasGO.AddComponent<CanvasScaler>();
-            canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            canvasScaler.referenceResolution = new Vector2(1920, 1080);
-
-            canvasGO.AddComponent<GraphicRaycaster>();
-        }
-
-        private void CreateWheelContainer()
-        {
-            var containerGO = new GameObject("WheelContainer");
-            containerGO.transform.SetParent(_wheelCanvas.transform, false);
-
-            _wheelContainer = containerGO.AddComponent<RectTransform>();
-            _wheelContainer.anchorMin = Vector2.zero;
-            _wheelContainer.anchorMax = Vector2.one;
-            _wheelContainer.pivot = new Vector2(0.5f, 0.5f);
-        }
-
-        private void CreateInputBlocker()
-        {
-            var blockerGO = new GameObject("InputBlocker");
-            blockerGO.transform.SetParent(_wheelCanvas.transform, false);
-
-            var blockerRect = blockerGO.AddComponent<RectTransform>();
-            blockerRect.anchorMin = Vector2.zero;
-            blockerRect.anchorMax = Vector2.one;
-            blockerRect.sizeDelta = Vector2.zero;
-
-            _inputBlockerImage = blockerGO.AddComponent<Image>();
-            _inputBlockerImage.color = new Color(0, 0, 0, 0.1f); // 半透明黑色
-
-            _inputBlockerPanel = blockerGO;
-            _inputBlockerPanel.SetActive(false);
-        }
-
         private void CreateWheelSlots()
         {
-            // 创建8个轮盘位置
+            // 完全复制ItemWheelSelector的实现
             for (int i = 0; i < 8; i++)
             {
-                CreateWheelSlot(i);
+                VoiceItem voiceToDisplay = (i < _currentVoices.Count) ? _currentVoices[i] : null;
+
+                if (voiceToDisplay != null)
+                {
+                    Debug.Log($"[VoiceWheelSelector] 格子 {i} (位置 {GRID_POSITIONS[i]}): 创建 '{voiceToDisplay.displayName}'");
+                }
+                else
+                {
+                    Debug.Log($"[VoiceWheelSelector] 格子 {i} (位置 {GRID_POSITIONS[i]}): 空格子");
+                }
+
+                var displayClone = CreateWheelItemDisplay(i, GRID_POSITIONS[i], voiceToDisplay);
+                if (displayClone != null)
+                {
+                    _itemDisplayClones.Add(displayClone);
+
+                    // 如果有语音，记录显示组件
+                    if (voiceToDisplay != null)
+                    {
+                        var voiceDisplay = displayClone.GetComponent<VoiceWheelDisplay>();
+                        if (voiceDisplay != null)
+                        {
+                            _voiceDisplayComponents.Add(voiceDisplay);
+                            Debug.Log($"[VoiceWheelSelector] 格子 {i} VoiceWheelDisplay组件已记录: {voiceToDisplay.displayName}");
+                        }
+                    }
+                }
             }
+
+            Debug.Log($"[VoiceWheelSelector] ✓ 创建完成：克隆了8个格子，其中 {_voiceDisplayComponents.Count} 个有语音");
         }
 
-        private void CreateWheelSlot(int index)
+        /// <summary>
+        /// 完全复制ItemWheelSelector的格子创建方法
+        /// </summary>
+        private GameObject CreateWheelItemDisplay(int cellIndex, Vector2Int gridPos, VoiceItem voice)
         {
-            var slotGO = new GameObject($"VoiceSlot_{index}");
-            slotGO.transform.SetParent(_wheelContainer.transform, false);
+            // 创建格子
+            var cellObj = new GameObject($"VoiceWheelItem_{cellIndex}");
+            cellObj.transform.SetParent(_wheelContainer, false);
 
-            // 设置位置
-            var rectTransform = slotGO.AddComponent<RectTransform>();
+            var rectTransform = cellObj.AddComponent<RectTransform>();
+            Vector2 localPos = new Vector2(gridPos.x * GRID_OFFSET, gridPos.y * GRID_OFFSET);
+            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            rectTransform.anchoredPosition = localPos;
             rectTransform.sizeDelta = new Vector2(CELL_SIZE, CELL_SIZE);
-            rectTransform.anchoredPosition = (Vector2)GRID_POSITIONS[index] * GRID_OFFSET;
 
-            // 创建背景
-            var background = new GameObject("Background");
-            background.transform.SetParent(rectTransform.transform, false);
-            var bgRect = background.AddComponent<RectTransform>();
-            bgRect.anchorMin = Vector2.zero;
-            bgRect.anchorMax = Vector2.one;
-            bgRect.sizeDelta = Vector2.zero;
-            var bgImage = background.AddComponent<Image>();
-            bgImage.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
-            bgImage.type = Image.Type.Sliced;
+            Debug.Log($"[VoiceWheelSelector] 创建格子 {cellIndex} 在位置 {localPos} (网格位置: {gridPos})");
 
-            // 创建文本显示
-            var textGO = new GameObject("Text");
-            textGO.transform.SetParent(rectTransform.transform, false);
-            var textRect = textGO.AddComponent<RectTransform>();
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.sizeDelta = new Vector2(-10f, -10f);
-            textRect.offsetMin = new Vector2(5f, 5f);
-            textRect.offsetMax = new Vector2(-5f, -5f);
+            // 添加VoiceWheelDisplay组件
+            var voiceDisplay = cellObj.AddComponent<VoiceWheelDisplay>();
+            voiceDisplay.Initialize(voice, cellIndex);
 
-            var text = textGO.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            text.fontSize = 20;
-            text.color = Color.white;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.text = "?"; // 默认显示
-
-            // 添加VoiceItemDisplay组件
-            var voiceDisplay = slotGO.AddComponent<VoiceItemDisplay>();
-            voiceDisplay.Initialize(text, bgImage, index);
-
-            _voiceDisplayObjects.Add(slotGO);
-            _voiceDisplayComponents.Add(voiceDisplay);
-
-            // 默认禁用
-            slotGO.SetActive(false);
+            return cellObj;
         }
         #endregion
 
-        #region 轮盘控制
+        #region 轮盘控制 - 复制ItemWheelSelector方法
         public void Show(List<VoiceItem> voices)
         {
             if (voices == null || voices.Count == 0)
             {
-                Debug.LogWarning("[VoiceWheelSelector] 没有可显示的语音");
+                Debug.LogError("[VoiceWheelSelector] ERROR: 没有可显示的语音");
                 return;
             }
 
@@ -229,13 +242,15 @@ namespace VoiceWheelSystem
             // 显示轮盘
             SetWheelActive(true);
 
-            Debug.Log($"[VoiceWheelSelector] 显示语音轮盘，包含 {voices.Count} 个语音");
+            Debug.LogError($"[VoiceWheelSelector] === SHOW CALLED === 显示语音轮盘，包含 {voices.Count} 个语音");
+            Debug.LogError($"[VoiceWheelSelector] 轮盘容器尺寸: {_wheelContainer?.sizeDelta}");
+            Debug.LogError($"[VoiceWheelSelector] Canvas活跃: {_wheelCanvas?.gameObject.activeInHierarchy}");
         }
 
         public void Hide()
         {
             SetWheelActive(false);
-            _selectedVoiceIndex = -1;
+            _selectedItemIndex = -1;
             _wheelActive = false;
 
             Debug.Log("[VoiceWheelSelector] 隐藏语音轮盘");
@@ -288,77 +303,127 @@ namespace VoiceWheelSystem
 
         private void UpdateWheelContent()
         {
-            // 先禁用所有格子
-            foreach (var slot in _voiceDisplayObjects)
-            {
-                slot.SetActive(false);
-            }
+            Debug.Log($"[VoiceWheelSelector] 更新轮盘内容，语音数量: {_currentVoices.Count}, 格子对象数: {_itemDisplayClones.Count}");
 
-            // 更新8个位置的语音
-            for (int i = 0; i < 8 && i < _currentVoices.Count; i++)
+            // 始终显示所有8个格子，不管有没有语音
+            for (int i = 0; i < 8; i++)
             {
-                var voice = _currentVoices[i];
-                if (voice != null && voice.IsAvailable())
+                var slotObj = _itemDisplayClones[i];
+                if (slotObj == null) continue;
+
+                // 始终激活格子
+                slotObj.SetActive(true);
+
+                if (i < _currentVoices.Count)
                 {
-                    _voiceDisplayObjects[i].SetActive(true);
-                    _voiceDisplayComponents[i].SetVoiceItem(voice);
+                    var voice = _currentVoices[i];
+                    if (voice != null && voice.IsAvailable())
+                    {
+                        Debug.Log($"[VoiceWheelSelector] 格子 {i} 显示语音: {voice.displayName}");
+
+                        // 找到对应的VoiceWheelDisplay组件
+                        var voiceDisplay = slotObj.GetComponent<VoiceWheelDisplay>();
+                        if (voiceDisplay != null)
+                        {
+                            voiceDisplay.SetVoice(voice);
+                            Debug.Log($"[VoiceWheelSelector] 格子 {i} 已设置语音内容");
+                        }
+                        else
+                        {
+                            Debug.LogError($"[VoiceWheelSelector] 格子 {i} 找不到VoiceWheelDisplay组件！");
+                        }
+                    }
+                    else
+                    {
+                        Debug.Log($"[VoiceWheelSelector] 格子 {i} 语音不可用，显示空格子");
+                    }
+                }
+                else
+                {
+                    Debug.Log($"[VoiceWheelSelector] 格子 {i} 无语音，显示空格子");
                 }
             }
+
+            Debug.Log($"[VoiceWheelSelector] ✓ 轮盘内容更新完成，所有8个格子都已激活显示");
         }
         #endregion
 
-        #region 选择逻辑
+        #region 选择逻辑 - 复制ItemWheelSelector方法
         private void UpdateWheelSelection()
         {
             if (!_wheelActive) return;
 
+            // 完全复制ItemWheelSelector的选择逻辑
             Vector2 currentMousePos = Input.mousePosition;
-            Vector2 direction = currentMousePos - _wheelCenterScreenPos;
+            Vector2 currentVector = currentMousePos - _wheelCenterScreenPos;
 
-            // 检查是否超过死区阈值
-            if (direction.magnitude < FIRST_VECTOR_THRESHOLD)
+            // 检查矢量长度是否超过阈值
+            if (currentVector.magnitude < FIRST_VECTOR_THRESHOLD)
             {
-                // 在死区内，不选择任何语音
-                SetSelectedVoice(-1);
+                // 矢量长度不足，不做选择
                 return;
             }
 
-            // 计算角度并确定选择的格子
-            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-            if (angle < 0) angle += 360f;
-
-            int selectedIndex = GetSelectedIndexFromAngle(angle);
-            SetSelectedVoice(selectedIndex);
+            // 矢量长度足够，根据当前矢量方向选中语音
+            SelectByVector(currentVector, "当前矢量");
         }
 
-        private int GetSelectedIndexFromAngle(float angle)
+        /// <summary>
+        /// 完全复制ItemWheelSelector的矢量选择方法
+        /// </summary>
+        private void SelectByVector(Vector2 vector, string vectorName)
         {
-            // 将角度映射到8个方向
-            for (int i = 0; i < DIRECTION_ANGLES.Length; i++)
-            {
-                float angleDiff = Mathf.Abs(angle - DIRECTION_ANGLES[i]);
-                if (angleDiff > 180f) angleDiff = 360f - angleDiff;
+            if (_itemDisplayClones.Count == 0) return;
 
-                if (angleDiff <= 22.5f) // 每个方向22.5度范围
+            // 如果矢量长度为0，不做处理
+            if (vector.magnitude < 0.1f)
+            {
+                return;
+            }
+
+            Vector2 direction = vector.normalized;
+            float vectorAngle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+            if (vectorAngle < 0) vectorAngle += 360f;
+
+            // 找到最接近的语音
+            int closestIndex = 0;
+            float closestAngleDiff = 360f;
+
+            for (int i = 0; i < _itemDisplayClones.Count && i < DIRECTION_ANGLES.Length; i++)
+            {
+                float cellAngle = DIRECTION_ANGLES[i];
+                float angleDiff = Mathf.Abs(vectorAngle - cellAngle);
+
+                // 处理跨越0度的情况
+                if (angleDiff > 180f)
                 {
-                    return i;
+                    angleDiff = 360f - angleDiff;
+                }
+
+                if (angleDiff < closestAngleDiff)
+                {
+                    closestAngleDiff = angleDiff;
+                    closestIndex = i;
                 }
             }
 
-            return -1; // 没有匹配的方向
+            SetSelectedVoice(closestIndex);
         }
 
         private void SetSelectedVoice(int index)
         {
-            if (_selectedVoiceIndex == index) return;
+            if (_selectedItemIndex == index) return;
 
-            _selectedVoiceIndex = index;
+            _selectedItemIndex = index;
 
-            // 更新所有格子的选中状态
+            // 更新所有VoiceWheelDisplay的选中状态
             for (int i = 0; i < _voiceDisplayComponents.Count; i++)
             {
-                bool isSelected = (i == index);
-                _voiceDisplayComponents[i].SetSelected(isSelected);
+                if (_voiceDisplayComponents[i] != null)
+                {
+                    bool isSelected = (i == index);
+                    _voiceDisplayComponents[i].SetSelected(isSelected);
+                }
             }
 
             // 通知管理器悬停变化
@@ -370,9 +435,9 @@ namespace VoiceWheelSystem
 
         public VoiceItem GetSelectedVoice()
         {
-            if (_selectedVoiceIndex >= 0 && _selectedVoiceIndex < _currentVoices.Count)
+            if (_selectedItemIndex >= 0 && _selectedItemIndex < _currentVoices.Count)
             {
-                return _currentVoices[_selectedVoiceIndex];
+                return _currentVoices[_selectedItemIndex];
             }
             return null;
         }
@@ -405,80 +470,13 @@ namespace VoiceWheelSystem
     }
 
     /// <summary>
-    /// 语音轮盘格子显示组件
+    /// 语音类别枚举
     /// </summary>
-    public class VoiceItemDisplay : MonoBehaviour
+    public enum VoiceCategory
     {
-        #region 组件引用
-        private Text _displayText;
-        private Image _backgroundImage;
-        private VoiceItem _currentVoice;
-        private int _wheelIndex;
-        #endregion
-
-        #region 显示参数
-        private const float NORMAL_SCALE = 1.0f;
-        private const float HOVER_SCALE = 1.2f;
-        private const float SELECTED_SCALE = 1.3f;
-        private const float ANIMATION_SPEED = 8f;
-
-        private bool _isSelected = false;
-        private Vector3 _targetScale;
-        #endregion
-
-        public void Initialize(Text displayText, Image backgroundImage, int wheelIndex)
-        {
-            _displayText = displayText;
-            _backgroundImage = backgroundImage;
-            _wheelIndex = wheelIndex;
-
-            _targetScale = Vector3.one * NORMAL_SCALE;
-        }
-
-        public void SetVoiceItem(VoiceItem voice)
-        {
-            _currentVoice = voice;
-
-            if (_displayText != null)
-            {
-                _displayText.text = voice.GetDisplayText();
-            }
-
-            if (_backgroundImage != null)
-            {
-                // 可以根据语音类型设置不同的颜色
-                _backgroundImage.color = GetVoiceColor(voice);
-            }
-        }
-
-        public void SetSelected(bool selected)
-        {
-            if (_isSelected == selected) return;
-
-            _isSelected = selected;
-            _targetScale = Vector3.one * (selected ? SELECTED_SCALE : NORMAL_SCALE);
-        }
-
-        private void Update()
-        {
-            // 平滑缩放动画
-            if (transform.localScale != _targetScale)
-            {
-                transform.localScale = Vector3.Lerp(transform.localScale, _targetScale, Time.deltaTime * ANIMATION_SPEED);
-            }
-        }
-
-        private Color GetVoiceColor(VoiceItem voice)
-        {
-            // 根据语音影响范围返回不同颜色
-            float normalizedRange = Mathf.InverseLerp(10f, 50f, voice.affectRange);
-
-            if (normalizedRange < 0.33f)
-                return new Color(0.2f, 0.6f, 0.2f, 0.8f); // 绿色 - 小范围
-            else if (normalizedRange < 0.67f)
-                return new Color(0.6f, 0.6f, 0.2f, 0.8f); // 黄色 - 中范围
-            else
-                return new Color(0.8f, 0.2f, 0.2f, 0.8f); // 红色 - 大范围
-        }
+        General,
+        Combat,
+        Social,
+        Emergency
     }
 }

@@ -3,7 +3,7 @@ using System.Collections;
 using System.IO;
 using Duckov;
 
-namespace VoiceWheelSystem
+namespace Backpack_QuickWheel.VoiceWheelSystem
 {
     /// <summary>
     /// 语音音频播放管理器
@@ -74,7 +74,7 @@ namespace VoiceWheelSystem
             {
                 // 获取当前程序集
                 var assembly = System.Reflection.Assembly.GetExecutingAssembly();
-                string resourceName = "VoiceWheelSystem.Audio.Ga_Sound.mp3";
+                string resourceName = "Backpack_QuickWheel.VoiceWheelSystem.Audio.Ga_Sound.mp3";
 
                 // 获取嵌入资源流
                 using (var stream = assembly.GetManifestResourceStream(resourceName))

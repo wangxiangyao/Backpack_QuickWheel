@@ -14,7 +14,7 @@ namespace Backpack_QuickWheel.AttachmentSystem
                 Assembly executingAssembly = Assembly.GetExecutingAssembly();
 
                 // 资源路径需要包含默认命名空间
-                string fullResourcePath = $"Great_backpack.{resourcePath}";
+                string fullResourcePath = $"Backpack_QuickWheel.{resourcePath}";
 
                 using (Stream stream = executingAssembly.GetManifestResourceStream(fullResourcePath))
                 {

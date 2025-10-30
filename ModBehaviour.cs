@@ -3,6 +3,7 @@ using Backpack_QuickWheel.AttachmentSystem;
 using Backpack_QuickWheel.AttachmentUI;
 using Backpack_QuickWheel.BackpackSystem;
 using Backpack_QuickWheel.ShortcutSystem;
+using Backpack_QuickWheel.VoiceWheelSystem;
 using HarmonyLib;
 using UnityEngine;
 
@@ -18,6 +19,7 @@ namespace Backpack_QuickWheel
         // Mod初始化状态标志
         private bool _isModInitialized = false;
         private bool _isShortcutSystemInitialized = false;
+        private bool _isVoiceWheelSystemInitialized = false;
 
         void Awake()
         {
@@ -111,6 +113,15 @@ namespace Backpack_QuickWheel
 
                     // 初始化输入拦截器和轮盘选择器
                     InitializeWheelSelectorSystem();
+
+                    // 初始化语音轮盘系统
+                    if (!_isVoiceWheelSystemInitialized)
+                    {
+                        Debug.Log("[ModBehaviour] 开始初始化语音轮盘系统");
+                        InitializeVoiceWheelSystem();
+                        _isVoiceWheelSystemInitialized = true;
+                        Debug.Log("[ModBehaviour] 语音轮盘系统初始化完成");
+                    }
                 }
                 else
                 {
@@ -151,6 +162,37 @@ namespace Backpack_QuickWheel
             Debug.Log("[ModBehaviour] 轮盘选择器已关联到输入拦截器");
         }
 
+
+        void InitializeVoiceWheelSystem()
+        {
+            Debug.Log("[ModBehaviour] 开始初始化语音轮盘系统");
+
+            try
+            {
+                // 创建语音轮盘管理器容器
+                var voiceManagerObj = new GameObject("VoiceWheelManager");
+                DontDestroyOnLoad(voiceManagerObj);
+
+                // 添加VoiceWheelManager主控制器
+                var voiceManager = voiceManagerObj.AddComponent<VoiceWheelManager>();
+
+                // 添加语音轮盘的所有必需组件
+                voiceManagerObj.AddComponent<VoiceBubbleManager>();
+                voiceManagerObj.AddComponent<VoiceNPCManager>();
+                voiceManagerObj.AddComponent<VoiceWheelSelector>();
+                voiceManagerObj.AddComponent<VoiceAudioManager>();
+
+                // 创建语音输入拦截器（自动单例）
+                var voiceInputInterceptor = VoiceInputInterceptor.Instance;
+
+                Debug.Log("[ModBehaviour] 语音轮盘系统初始化完成");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[ModBehaviour] 语音轮盘系统初始化失败: {e.Message}");
+                Debug.LogError($"[ModBehaviour] Exception stack trace: {e.StackTrace}");
+            }
+        }
 
         void OnDestroy()
         {

@@ -1,6 +1,6 @@
 using System;
 
-namespace VoiceWheelSystem
+namespace Backpack_QuickWheel.VoiceWheelSystem
 {
     /// <summary>
     /// 语音轮盘中的单个语音项数据结构

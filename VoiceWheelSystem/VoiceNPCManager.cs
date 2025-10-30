@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections;
 
-namespace VoiceWheelSystem
+namespace Backpack_QuickWheel.VoiceWheelSystem
 {
     /// <summary>
     /// 语音NPC交互管理器

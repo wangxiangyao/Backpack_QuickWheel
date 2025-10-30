@@ -2,7 +2,7 @@ using UnityEngine;
 using HarmonyLib;
 using ItemStatsSystem;
 
-namespace VoiceWheelSystem
+namespace Backpack_QuickWheel.VoiceWheelSystem
 {
     /// <summary>
     /// 语音轮盘输入拦截器
@@ -43,9 +43,11 @@ namespace VoiceWheelSystem
         private bool _isKeyPressed = false;
         private float _pressDuration = 0f;
         private bool _wheelShown = false;
+        private float _pressStartTime = 0f;
 
         // 鼠标位置记录
         private Vector2 _pressDownMousePos = Vector2.zero;
+        private Coroutine _longPressCheckCoroutine;
         #endregion
 
         #region Unity生命周期
@@ -62,58 +64,11 @@ namespace VoiceWheelSystem
             Debug.Log("[VoiceInputInterceptor] 初始化完成，使用F1/Quack键作为语音轮盘触发");
         }
 
-        private void Update()
-        {
-            // 简单直接的U键检测（使用旧的Input System）
-            HandleVoiceKeyInput();
-        }
+        // Update方法已移除 - 我们完全依赖Harmony补丁来处理输入，不再需要轮询
         #endregion
 
         #region 输入处理
-        /// <summary>
-        /// 处理语音轮盘键输入
-        /// </summary>
-        private void HandleVoiceKeyInput()
-        {
-            // 调试：每帧都检测按键状态
-            bool uKeyDown = Input.GetKeyDown(VOICE_WHEEL_KEY);
-            bool uKeyUp = Input.GetKeyUp(VOICE_WHEEL_KEY);
-            bool uKeyPressed = Input.GetKey(VOICE_WHEEL_KEY);
-
-            // 每秒输出一次状态（避免刷屏）
-            if (Time.frameCount % 60 == 0)
-            {
-                Debug.Log($"[VoiceInputInterceptor] F1/Quack键状态检测: Down={uKeyDown}, Up={uKeyUp}, Pressed={uKeyPressed}");
-            }
-
-            // 检测按键按下
-            if (uKeyDown)
-            {
-                Debug.Log("[VoiceInputInterceptor] F1/Quack键按下 - Input.GetKeyDown检测到");
-                OnVoiceKeyPressed();
-            }
-
-            // 检测按键释放
-            if (uKeyUp)
-            {
-                Debug.Log("[VoiceInputInterceptor] F1/Quack键释放 - Input.GetKeyUp检测到");
-                OnVoiceKeyReleased();
-            }
-
-            // 处理长按检测
-            if (_isKeyPressed)
-            {
-                _pressDuration += Time.deltaTime;
-
-                // 如果达到长按阈值且轮盘未显示，显示轮盘
-                if (_pressDuration >= LONG_PRESS_THRESHOLD && !_wheelShown)
-                {
-                    Debug.Log($"[VoiceInputInterceptor] 长按时间达到 {_pressDuration:F2}s，显示语音轮盘");
-                    ShowVoiceWheel();
-                    _wheelShown = true;
-                }
-            }
-        }
+        // HandleVoiceKeyInput方法已移除 - 我们完全依赖Harmony补丁来处理输入
 
         /// <summary>
         /// T键按下处理
@@ -225,20 +180,46 @@ namespace VoiceWheelSystem
         /// </summary>
         private void ExecuteShortPress()
         {
+            Debug.LogError("[VoiceInputInterceptor] === 执行短按操作开始 ===");
+
             if (VoiceWheelManager.Instance != null)
             {
+                Debug.LogError($"[VoiceInputInterceptor] VoiceWheelManager实例存在");
+                Debug.LogError($"[VoiceInputInterceptor] 语音数据总数: {VoiceWheelManager.Instance.VoiceData.voiceItems.Count}");
+                Debug.LogError($"[VoiceInputInterceptor] 选中索引: {VoiceWheelManager.Instance.VoiceData.selectedVoiceIndex}");
+
                 var currentVoice = VoiceWheelManager.Instance.VoiceData.GetSelectedVoice();
                 if (currentVoice != null)
                 {
+                    Debug.LogError($"[VoiceInputInterceptor] ✓ 找到当前语音: {currentVoice.displayName}");
+                    Debug.LogError($"[VoiceInputInterceptor] 气泡文本: '{currentVoice.bubbleText}'");
+                    Debug.LogError($"[VoiceInputInterceptor] 音频路径: {currentVoice.audioPath}");
+                    Debug.LogError($"[VoiceInputInterceptor] IsAvailable: {currentVoice.IsAvailable()}");
+
                     // 直接播放语音
+                    Debug.LogError($"[VoiceInputInterceptor] 调用VoiceWheelManager.PlayVoice");
                     VoiceWheelManager.Instance.PlayVoice(currentVoice);
-                    Debug.Log($"[VoiceInputInterceptor] ✓ 短按播放语音: {currentVoice.displayName}");
+                    Debug.LogError($"[VoiceInputInterceptor] ✓ PlayVoice调用完成");
                 }
                 else
                 {
-                    Debug.LogWarning("[VoiceInputInterceptor] 没有选中的语音可播放");
+                    Debug.LogError("[VoiceInputInterceptor] ✗ 没有选中的语音可播放");
+                    Debug.LogError($"[VoiceInputInterceptor] 语音数据状态: 总数={VoiceWheelManager.Instance.VoiceData.voiceItems.Count}, 选中索引={VoiceWheelManager.Instance.VoiceData.selectedVoiceIndex}");
+
+                    // 列出所有语音
+                    for (int i = 0; i < VoiceWheelManager.Instance.VoiceData.voiceItems.Count; i++)
+                    {
+                        var voice = VoiceWheelManager.Instance.VoiceData.voiceItems[i];
+                        Debug.LogError($"[VoiceInputInterceptor] 语音[{i}]: {voice.displayName}, Available: {voice.IsAvailable()}");
+                    }
                 }
             }
+            else
+            {
+                Debug.LogError("[VoiceInputInterceptor] ✗ VoiceWheelManager实例不存在");
+            }
+
+            Debug.LogError("[VoiceInputInterceptor] === 执行短按操作完成 ===");
         }
         #endregion
 
@@ -285,11 +266,15 @@ namespace VoiceWheelSystem
             if (_isKeyPressed) return; // 防止重复触发
 
             _isKeyPressed = true;
+            _pressStartTime = Time.time;
             _pressDuration = 0f;
             _wheelShown = false;
             _pressDownMousePos = Input.mousePosition;
 
             Debug.LogError("[VoiceInputInterceptor] ✓ F1键按下（通过VoiceInputPatch）");
+
+            // 启动长按检查协程
+            _longPressCheckCoroutine = StartCoroutine(LongPressCheckCoroutine());
 
             // 通知VoiceWheelManager开始计时
             if (VoiceWheelManager.Instance != null)
@@ -306,25 +291,37 @@ namespace VoiceWheelSystem
             if (!_isKeyPressed) return;
 
             _isKeyPressed = false;
+            _pressDuration = Time.time - _pressStartTime;
 
-            Debug.Log($"[VoiceInputInterceptor] U键释放（通过VoiceInputPatch），按下时长: {_pressDuration:F2}s");
+            Debug.LogError($"[VoiceInputInterceptor] === F1键释放事件开始 ===");
+            Debug.LogError($"[VoiceInputInterceptor] 按下时长: {_pressDuration:F2}s");
+            Debug.LogError($"[VoiceInputInterceptor] 轮盘是否已显示: {_wheelShown}");
+            Debug.LogError($"[VoiceInputInterceptor] 长按阈值: {LONG_PRESS_THRESHOLD:F2}s");
+
+            // 停止长按检查协程
+            if (_longPressCheckCoroutine != null)
+            {
+                StopCoroutine(_longPressCheckCoroutine);
+                _longPressCheckCoroutine = null;
+            }
 
             if (_wheelShown)
             {
                 // 轮盘已显示，执行选择
-                Debug.Log("[VoiceInputInterceptor] 轮盘显示中，执行选择");
+                Debug.LogError("[VoiceInputInterceptor] 轮盘显示中，执行选择");
                 ExecuteWheelSelection();
             }
             else
             {
                 // 轮盘未显示，执行短按（直接播放当前选中的语音）
-                Debug.Log("[VoiceInputInterceptor] 轮盘未显示，执行短按");
+                Debug.LogError("[VoiceInputInterceptor] 轮盘未显示，执行短按");
                 ExecuteShortPress();
             }
 
             // 重置状态
             _wheelShown = false;
             _pressDuration = 0f;
+            Debug.LogError($"[VoiceInputInterceptor] === F1键释放事件完成 ===");
         }
 
         /// <summary>
@@ -352,6 +349,27 @@ namespace VoiceWheelSystem
         public void SetWheelShown(bool shown)
         {
             _wheelShown = shown;
+        }
+
+        /// <summary>
+        /// 长按检查协程
+        /// </summary>
+        private System.Collections.IEnumerator LongPressCheckCoroutine()
+        {
+            while (_isKeyPressed)
+            {
+                _pressDuration = Time.time - _pressStartTime;
+
+                // 检查是否达到长按阈值且轮盘未显示
+                if (_pressDuration >= LONG_PRESS_THRESHOLD && !_wheelShown)
+                {
+                    _wheelShown = true;
+                    Debug.Log($"[VoiceInputInterceptor] 长按阈值达到（{_pressDuration:F2}s），显示语音轮盘");
+                    ShowVoiceWheel();
+                }
+
+                yield return null; // 下一帧继续检查
+            }
         }
 
         /// <summary>
