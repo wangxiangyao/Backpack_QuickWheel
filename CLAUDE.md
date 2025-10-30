@@ -1398,6 +1398,101 @@ private static IEnumerator CheckAllIndicatorsCoroutine(Item draggedItem)
 
 ---
 
+#### ✅ 圆孔拖拽高亮的两个关键bug修复 (已修复)
+**提交**: e780095
+**日期**: 2025-10-30
+**问题1**: 自定义插槽（Magazine、Food等）规则匹配失败，圆孔不高亮
+**问题2**: 物品放入插槽后，已填充的槽位显示消失，而不是官方的白色圆点
+
+**问题1分析 - Tag提取逻辑bug（SlotIndicatorCacheManager.cs）**：
+
+❌ **初始实现的缺陷**：
+```csharp
+bool isOrLogic = ruleKey.Contains("require_or:");
+List<string> requireTags = ExtractTagsFromKey(ruleKey, "require");  // ❌ 硬编码查找 "require"
+```
+
+当规则是 `require_or: [Magazine]` 时：
+- `ExtractTagsFromKey()` 查找的前缀是 `"require: ["` （因为传入了 "require"）
+- 但实际规则中的前缀是 `"require_or: ["`
+- 找不到前缀 → 返回空列表 → 触发警告，拒绝所有物品
+
+**解决方案**：
+```csharp
+bool isOrLogic = ruleKey.Contains("require_or:");
+string tagTypePrefix = isOrLogic ? "require_or" : "require";  // ✅ 动态选择正确前缀
+List<string> requireTags = ExtractTagsFromKey(ruleKey, tagTypePrefix);
+```
+
+**关键认知**：
+- 官方插槽规则：`require: [tag1|tag2]` → 使用 "require" 前缀
+- 自定义插槽规则：`require_or: [Magazine]` → 使用 "require_or" 前缀
+- 两种规则并存，必须根据实际规则内容动态选择正确的前缀
+
+---
+
+**问题2分析 - 已填充槽位显示消失（SlotIndicatorDragHighlightPatch.cs）**：
+
+❌ **初始实现的缺陷**：
+```csharp
+if (_highlightedIndicators.Contains(slotIndicator))
+{
+    contentIndicatorGO.SetActive(false);  // ❌ 无条件隐藏，即使槽位有内容
+    _highlightedIndicators.Remove(slotIndicator);
+}
+```
+
+拖拽流程：
+1. 拖拽开始 → `contentIndicatorGO.SetActive(true)` + 绿色
+2. 拖拽结束且物品放入 → 无条件 `SetActive(false)` ❌
+3. 结果：已填充的槽位看起来是空的（没有任何指示）
+
+**官方的正确行为**：
+- 空槽位：contentIndicator 隐藏（无圆点）
+- 已填充槽位：contentIndicator 激活且为白色（白色圆点）
+
+**解决方案**：
+```csharp
+if (_highlightedIndicators.Contains(slotIndicator))
+{
+    // ✅ 检查槽位现在是否有内容
+    bool slotHasContent = slotIndicator.Target != null && slotIndicator.Target.Content != null;
+    if (!slotHasContent)
+    {
+        contentIndicatorGO.SetActive(false);  // 只在槽位真正为空时隐藏
+    }
+    _highlightedIndicators.Remove(slotIndicator);
+}
+```
+
+**关键认知**：
+- 我们激活 contentIndicator 是为了显示拖拽高亮（绿点）
+- 但物品放入后，该 GameObject 应该保持激活状态，让官方的白色圆点显示
+- 只有当槽位最终为空时，才应该隐藏它
+
+---
+
+**联合效果**：
+
+| 操作 | 问题1修复前 | 问题1修复后 | 问题2修复前 | 问题2修复后 |
+|------|-----------|-----------|-----------|-----------|
+| 拖拽弹匣 | ❌ 没有圆孔亮 | ✅ 4个圆孔变绿 | - | - |
+| 放入弹匣 | - | - | ❌ 槽位消失 | ✅ 白色圆点 |
+
+**测试验证**：
+- ✅ 拖拽弹匣到Magazine插槽 → 对应插槽圆孔立即变绿
+- ✅ 松开放入 → 插槽显示官方的白色圆点指示器
+- ✅ 放入食物到Food插槽 → 白色圆点正常显示
+- ✅ 拖拽其他物品 → 无关规则的插槽不高亮
+
+**经验总结**：
+- ❌ **不要硬编码规则前缀**：规则格式可能多变，必须动态识别
+- ❌ **不要假设UI生命周期**：物品放入后 contentIndicator 需要保持激活，让官方样式工作
+- ✅ **测试多种物品类型**：Magazine、Food等不同规则，确保都能高亮
+- ✅ **验证状态转换**：从高亮绿点 → 白色圆点，完整的视觉反馈链
+
+---
+
 ## 开发交流规则
 
 ### Git 提交规则
@@ -1437,12 +1532,13 @@ private static IEnumerator CheckAllIndicatorsCoroutine(Item draggedItem)
 - [x] 修复钥匙在配件中无法使用的问题
 - [x] 修复医疗物品和针剂不显示的问题
 - [x] 优化配件插槽物品变化时的快捷键更新性能
-- [x] 圆孔高亮拖拽反馈（详细见任务2.2）
+- [x] 圆孔高亮拖拽反馈（已完成：自定义插槽tag提取bug修复 + 已填充槽位显示修复）
 - [ ] 配件附加效果（如减少负重）
 
 ### P2 - 扩展功能（下一阶段）
 - [ ] 物品详情页面支持右键后退（访问历史记录，详细见任务2.1）
 - [ ] 修复新引入的bug（如ItemShortcutIsItemValidPatch的边界情况）
+- [ ] 圆孔拖拽时的动画反馈优化（放大、阴影等视觉效果）
 - [ ] 近战武器接入轮盘系统
 - [ ] 轮盘添加物品信息（耐久、堆叠数量、物品名称）
 - [ ] 物品放入轮盘优先放入左右上下四个格子
