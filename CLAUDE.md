@@ -1538,7 +1538,6 @@ if (_highlightedIndicators.Contains(slotIndicator))
 ### P2 - 扩展功能（下一阶段）
 - [ ] 物品详情页面支持右键后退（访问历史记录，详细见任务2.1）
 - [ ] 修复新引入的bug（如ItemShortcutIsItemValidPatch的边界情况）
-- [ ] 圆孔拖拽时的动画反馈优化（放大、阴影等视觉效果）
 - [ ] 近战武器接入轮盘系统
 - [ ] 轮盘添加物品信息（耐久、堆叠数量、物品名称）
 - [ ] 物品放入轮盘优先放入左右上下四个格子
