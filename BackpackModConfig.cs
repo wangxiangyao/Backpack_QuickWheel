@@ -138,7 +138,7 @@ namespace Backpack_QuickWheel
             new AttachmentItemConfig(
                 "GagaStorage_Item", "ITEM_GAGA_STORAGE_NAME",
                 349120, 0.7f, 8200, "SidePocket_Large",
-                new List<SlotConfig> { UnifiedSlotTypes["Small"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Small"] },
+                new List<SlotConfig> { UnifiedSlotTypes["Small"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Large"] },
                 "Textures.GagaStorage_Item.png"
             ){
                 Quality = 6,
@@ -411,7 +411,7 @@ namespace Backpack_QuickWheel
             new AttachmentItemConfig(
                 "TacticalAmmoPouch_Item", "ITEM_TACTICAL_AMMO_POUCH_NAME",
                 349180, 0.6f, 7100, "AmmoPouch",
-                new List<SlotConfig> { UnifiedSlotTypes["Magazine"], UnifiedSlotTypes["Magazine"], UnifiedSlotTypes["Magazine"], UnifiedSlotTypes["Magazine"] },
+                new List<SlotConfig> { UnifiedSlotTypes["Magazine"], UnifiedSlotTypes["Magazine"], UnifiedSlotTypes["Magazine"] },
                 "Textures.TacticalAmmoPouch_Item.png"
             ){
                 Quality = 6,
@@ -424,14 +424,14 @@ namespace Backpack_QuickWheel
                             "zh-CN", new Dictionary<string, string>
                             {
                                 { "ITEM_TACTICAL_AMMO_POUCH_NAME", "战术子弹袋" },
-                                { "ITEM_TACTICAL_AMMO_POUCH_NAME_Desc", "弹匣杀手！四个弹夹齐排队。火力全开从它开始" }
+                                { "ITEM_TACTICAL_AMMO_POUCH_NAME_Desc", "弹匣杀手！三个弹夹齐排队。火力全开从它开始" }
                             }
                         },
                         {
                             "en-US", new Dictionary<string, string>
                             {
                                 { "ITEM_TACTICAL_AMMO_POUCH_NAME", "Tactical Ammo Pouch" },
-                                { "ITEM_TACTICAL_AMMO_POUCH_NAME_Desc", "Magazine heaven! Four mags ready to roll. Non-stop firepower begins here!" }
+                                { "ITEM_TACTICAL_AMMO_POUCH_NAME_Desc", "Magazine heaven! Three mags ready to roll. Non-stop firepower begins here!" }
                             }
                         }
                     }
