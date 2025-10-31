@@ -139,6 +139,60 @@ UpdateShortcutUIForCategory() 显示合并后的数据
 - ✅ **协程等待必须完整**：使用 `yield return StartCoroutine()` 而非 `WaitForSeconds`
 - ✅ **事件回调参数**：仔细确认回调参数的含义（配件内容变化时是容器，不是变化的物品）
 
+#### ✅ 拖拽系统和快捷键UI关键问题修复 (已修复)
+**提交**: 4f2bb94
+**日期**: 2025-10-31
+**问题**：
+1. 拖拽物品后绿点指示器不消失，视觉残留问题
+2. 新增物品类别快捷键不显示，功能缺失
+3. 拖拽操作时出现卡顿，性能问题
+
+**根本原因分析**：
+1. **事件覆盖不完整**：仅依赖OnEndDragItem事件，但从仓库拖拽到ItemDisplay时OnEndDrag可能不触发
+2. **新类别UI更新缺失**：系统检测到新类别但未主动触发UI更新，导致"从无到有"的类别变化无法显示
+3. **同步处理性能问题**：大型背包的递归物品收集和UI更新在同一帧执行，造成卡顿
+
+**解决方案**：
+
+**问题1：绿点指示器残留修复**
+- 添加`ItemUIUtilities.OnPutItem`事件监听作为OnEndDrag的补充机制
+- 创建`ClearAllHighlights()`方法确保高亮状态正确清理
+- 解决从仓库拖拽到ItemDisplay时事件不触发的边界情况
+
+**问题2：新类别快捷键显示修复**
+- 在`IncrementalUpdateCategorizedItems`中检测"从无到有"的类别变化
+- 使用`_tempNewCategories`临时变量存储新类别信息
+- 为新类别主动触发`UpdateShortcutUI()`，确保快捷键正确显示
+
+**问题3：分帧处理性能优化**
+- 重构`IncrementalUpdateCategorizedItems`为分帧版本`IncrementalUpdateCategorizedItemsFrameDistributed`
+- 添加`CollectAllItemsFromBackpackFrameDistributed`方法，每处理5个slot等待一帧
+- 新类别UI更新也采用分帧处理，每个更新后等待一帧避免连续UI更新
+- 优化日志输出，减少UI更新时的性能消耗
+
+**关键代码变更**：
+- `AttachmentUI/SlotIndicatorCacheManager.cs`:
+  - 添加OnItemPut事件监听和ClearAllHighlights方法
+  - 完善事件清理机制，确保高亮状态正确管理
+- `ShortcutSystem/BackpackShortcutManager.cs`:
+  - 添加_tempNewCategories成员变量用于协程间传递新类别信息
+  - 实现IncrementalUpdateCategorizedItemsFrameDistributed分帧处理版本
+  - 新增CollectAllItemsFromBackpackFrameDistributed递归收集方法
+- `ShortcutSystem/Patches/ItemShortcutGetPatch.cs`:
+  - 优化日志输出，避免UI刷新时频繁打印导致卡顿
+
+**性能改善指标**：
+- 大型背包拖拽操作：从明显卡顿 → 流畅体验
+- UI更新响应：从同步阻塞 → 分帧平滑处理
+- 内存使用：优化日志输出减少字符串分配
+
+**调试方法论建立**：
+这次修复建立了一套完整的调试方法论：
+1. **源码驱动原则**：任何Unity系统问题必须先查看官方源码
+2. **事件完整性验证**：确保所有相关事件都被正确订阅和处理
+3. **性能分帧处理**：大量数据处理必须分散到多帧执行
+4. **边界情况覆盖**：测试各种拖拽场景，包括仓库→配件、配件→配件等
+
 ---
 
 ### 已知问题
