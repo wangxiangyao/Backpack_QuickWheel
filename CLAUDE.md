@@ -65,15 +65,18 @@ Object.DestroyImmediate(obj);                 // 同步删除
 **配置修改** → `BackpackModConfig.cs`
 **任务查询** → `docs/01-core/TODO.md`
 **详细记忆** → `docs/memory/` 目录
+**文档系统** → `docs/README.md` （文档总览和使用指南）
+**文档使用方法** → `docs/memory/documentation-system-guide.md` （详细使用指南）
 
 ## 📋 会话启动检查清单
 
 新会话开始时必须：
 1. ✅ 阅读当前文件（CLAUDE.md）
-2. ✅ 知道项目是背包配件Mod
-3. ✅ 记住源码在GameSource/Duckov/
-4. ✅ 理解源码驱动开发原则
-5. ✅ 查看TODO文件了解当前任务
+2. ✅ 查看 `docs/README.md` 了解文档系统结构
+3. ✅ 知道项目是背包配件Mod
+4. ✅ 记住源码在GameSource/Duckov/
+5. ✅ 理解源码驱动开发原则
+6. ✅ 查看 `docs/01-core/TODO.md` 了解当前任务
 
 ## 🎯 任务完成守则 【最高优先级】
 

@@ -26,6 +26,9 @@
 - `serialization-patterns.md` - 数据序列化模式
 - `network-sync-guide.md` - 网络同步指南
 
+### 📖 文档系统使用
+- `documentation-system-guide.md` - 文档系统完整使用指南
+
 ### 📋 项目特定信息
 - `file-locations.md` - 重要文件位置索引
 - `config-modifications.md` - 配置修改记录
