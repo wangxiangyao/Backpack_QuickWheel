@@ -63,7 +63,7 @@ Object.DestroyImmediate(obj);                 // 同步删除
 **物品/背包问题** → `GameSource/Duckov/Item*.cs`
 **UI交互问题** → `ItemDisplay.cs` + `AttachmentUI/`
 **配置修改** → `BackpackModConfig.cs`
-**任务查询** → `docs/TODO-待做清单.md`
+**任务查询** → `docs/01-core/TODO.md`
 **详细记忆** → `docs/memory/` 目录
 
 ## 📋 会话启动检查清单
