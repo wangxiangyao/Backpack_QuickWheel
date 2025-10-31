@@ -67,6 +67,7 @@ Object.DestroyImmediate(obj);                 // 同步删除
 **详细记忆** → `docs/memory/` 目录
 **文档系统** → `docs/README.md` （文档总览和使用指南）
 **文档使用方法** → `docs/memory/documentation-system-guide.md` （详细使用指南）
+**关键经验** → `docs/memory/key-experiences.md` （核心经验和最佳实践）
 
 ## 📋 会话启动检查清单
 
@@ -77,6 +78,11 @@ Object.DestroyImmediate(obj);                 // 同步删除
 4. ✅ 记住源码在GameSource/Duckov/
 5. ✅ 理解源码驱动开发原则
 6. ✅ 查看 `docs/01-core/TODO.md` 了解当前任务
+
+**遇到复杂任务时**：
+- ✅ 复杂任务识别：>4小时、多文件、新技术？
+- ✅ 执行任务开始三重分析（详见 `docs/memory/task-planning-best-practices.md`）
+- ✅ 问题理解 → 方案规划 → 任务分解
 
 ## 🎯 任务完成守则 【最高优先级】
 

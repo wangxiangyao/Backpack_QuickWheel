@@ -93,6 +93,18 @@
 5. 根据需要查阅 memory/technical-principles.md
 ```
 
+### 复杂任务处理流程
+```
+接收复杂任务时:
+1. 识别任务复杂度（>4小时，多文件，新技术？）
+2. 查阅 memory/task-planning-best-practices.md
+3. 执行任务开始三重分析：
+   - 问题理解分析 → docs/03-planning/analyses/
+   - 解决方案规划 → docs/03-planning/designs/
+   - 任务分解执行 → docs/01-core/TODO.md
+4. 开始执行子任务
+```
+
 ### 日常开发工作流
 ```
 开始工作:
@@ -147,6 +159,7 @@ API使用问题:
 | 需求类型 | 主要文档 | 备用文档 |
 |---------|----------|----------|
 | **当前任务** | `01-core/TODO.md` | - |
+| **复杂任务规划** | `memory/task-planning-best-practices.md` | `03-planning/active-plans/` |
 | **开发原则** | `memory/technical-principles.md` | `01-core/DEVELOPMENT.md` |
 | **技术守则** | `memory/technical-principles.md` | - |
 | **成功案例** | `memory/success-stories.md` | `04-technical/` |

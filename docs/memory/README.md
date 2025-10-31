@@ -32,6 +32,9 @@
 ### 🎯 任务规划方法
 - `task-planning-best-practices.md` - 任务开始三重分析最佳实践
 
+### 💎 关键经验总结
+- `key-experiences.md` - 项目开发核心经验和最佳实践
+
 ### 📋 项目特定信息
 - `file-locations.md` - 重要文件位置索引
 - `config-modifications.md` - 配置修改记录
