@@ -100,6 +100,14 @@ Object.DestroyImmediate(obj);                 // 同步删除
 
 **详细指南**: `docs/memory/task-planning-best-practices.md`
 
+### 元认知核心原则
+**"每次完成重要工作或发现宝贵经验时，必须自动进行三重记忆固化：
+1. 凝练核心要点到主要记忆入口
+2. 详细方法到经验总结文档
+3. 使用指导到实践指南文档"**
+
+**详细指南**: `docs/memory/meta-cognition-patterns.md`
+
 ## 🔗 详细记忆库索引
 
 详见 `docs/memory/README.md`

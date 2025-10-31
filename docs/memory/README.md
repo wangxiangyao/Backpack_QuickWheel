@@ -35,6 +35,9 @@
 ### 💎 关键经验总结
 - `key-experiences.md` - 项目开发核心经验和最佳实践
 
+### 🧠 元认知模式
+- `meta-cognition-patterns.md` - 总结→记忆的自动化机制
+
 ### 📋 项目特定信息
 - `file-locations.md` - 重要文件位置索引
 - `config-modifications.md` - 配置修改记录
