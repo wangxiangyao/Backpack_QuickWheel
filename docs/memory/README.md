@@ -29,6 +29,9 @@
 ### 📖 文档系统使用
 - `documentation-system-guide.md` - 文档系统完整使用指南
 
+### 🎯 任务规划方法
+- `task-planning-best-practices.md` - 任务开始三重分析最佳实践
+
 ### 📋 项目特定信息
 - `file-locations.md` - 重要文件位置索引
 - `config-modifications.md` - 配置修改记录

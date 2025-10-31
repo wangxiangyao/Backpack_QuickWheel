@@ -89,6 +89,11 @@ Object.DestroyImmediate(obj);                 // 同步删除
 
 **详细说明**: `docs/memory/technical-principles.md`
 
+### 复杂任务规划原则
+**"复杂任务开始时，必须进行三重分析：问题理解 → 方案规划 → 任务分解"**
+
+**详细指南**: `docs/memory/task-planning-best-practices.md`
+
 ## 🔗 详细记忆库索引
 
 详见 `docs/memory/README.md`

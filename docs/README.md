@@ -20,10 +20,15 @@
 - **[PROJECT_STRUCTURE-项目结构总结.md](02-architecture/PROJECT_STRUCTURE-项目结构总结.md)** - 详细结构分析
 
 ### 📋 03-planning/ - 计划文档
-功能规划和开发计划。
+功能规划、复杂任务分析和设计方案。
 
 - **[ui-features.md](03-planning/ui-features.md)** - UI功能规划
 - **[voice-wheel.md](03-planning/voice-wheel.md)** - 语音轮盘开发计划
+- **[active-plans/](03-planning/active-plans/)** - 当前进行中的复杂任务规划
+- **[analyses/](03-planning/analyses/)** - 问题分析文档归档
+- **[designs/](03-planning/designs/)** - 解决方案设计文档归档
+
+**任务规划指南**: 参考 `memory/task-planning-best-practices.md`
 
 ### 🔧 04-technical/ - 技术设计
 具体功能的技术实现文档。
