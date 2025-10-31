@@ -5,6 +5,7 @@ using ItemStatsSystem;
 using ItemStatsSystem.Items;
 using UnityEngine;
 using SlotCollection = ItemStatsSystem.Items.SlotCollection;
+using Backpack_QuickWheel.ShortcutSystem;
 
 namespace Backpack_QuickWheel.AttachmentUI
 {
@@ -57,24 +58,26 @@ namespace Backpack_QuickWheel.AttachmentUI
                 // 槽位内容或可接收标签
                 if (slot.Content != null)
                 {
-                    // 显示物品及数量 - 非空槽位，槽位名称正常显示
+                    // 显示物品及数量 - 根据物品类型显示不同颜色
                     Item content = slot.Content;
                     string contentName = content.DisplayName;
+                    string itemColor = GetItemCategoryColor(content);
+
                     sb.Append(slotName).Append(": ");
 
                     if (content.Stackable && content.StackCount > 1)
                     {
-                        sb.Append(contentName).Append(" x").Append(content.StackCount);
+                        sb.Append("<color=").Append(itemColor).Append(">").Append(contentName).Append("</color>").Append(" x").Append(content.StackCount);
                     }
                     else
                     {
-                        sb.Append(contentName);
+                        sb.Append("<color=").Append(itemColor).Append(">").Append(contentName).Append("</color>");
                     }
                 }
                 else
                 {
-                    // 空槽位 - 槽位名称着绿色，简化显示为(tag1、tag2、...)
-                    sb.Append("<color=green>").Append(slotName).Append("</color>: (");
+                    // 空槽位 - 槽位名称着天蓝色，简化显示为(tag1、tag2、...)
+                    sb.Append("<color=#00FFFF>").Append(slotName).Append("</color>: (");
 
                     bool hasLabel = false;
                     if (slot.requireTags != null && slot.requireTags.Count > 1)
@@ -154,6 +157,26 @@ namespace Backpack_QuickWheel.AttachmentUI
             }
 
             return $"{attachmentItem.DisplayName} [{usage}]";
+        }
+
+        /// <summary>
+        /// 根据物品类型获取对应的颜色
+        /// </summary>
+        private static string GetItemCategoryColor(Item item)
+        {
+            if (item == null) return "white";
+
+            var category = ItemCategorizer.CategorizeItem(item);
+
+            return category switch
+            {
+                ItemCategory.Medical => "#FF4444",     // 医疗 - 红色 ❤️
+                ItemCategory.Stim => "#CC44FF",     // 兴奋剂 - 紫色 ⚡
+                ItemCategory.Food => "#FF8800",      // 食物 - 橙色 🟠
+                ItemCategory.Explosive => "#FFFF44",  // 爆炸物 - 黄色 🔴
+                ItemCategory.Melee => "#FFFFFF",     // 近战武器 - 白色 ⚔️
+                _ => "#808080"                        // 未分类 - 灰色 ⚪
+            };
         }
     }
 }
