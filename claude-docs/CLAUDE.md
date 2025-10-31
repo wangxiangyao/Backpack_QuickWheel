@@ -6,6 +6,26 @@
 
 这是一个为游戏《逃离鸭科夫》开发的 Unity Mod，主要功能是**背包配件系统**，允许为背包添加配件插槽和各种配件物品，支持嵌套插槽功能。
 
+## 🏗️ 项目结构（已标准化）
+
+**目录结构**（2025-10-31标准化）:
+```
+Backpack_QuickWheel/
+├── 🧠 claude-docs/              # Claude的主场
+│   ├── CLAUDE.md               # 项目记忆入口（当前文件）
+│   ├── docs/                   # 项目文档
+│   └── memory/                 # 详细经验库
+├── 📁 src/                     # 源代码目录
+│   ├── AttachmentSystem/       # 配件系统
+│   ├── AttachmentUI/           # 配件UI
+│   ├── BackpackSystem/         # 背包系统
+│   ├── ShortcutSystem/         # 快捷键系统
+│   ├── VoiceWheelSystem/       # 语音轮系统
+│   └── *.cs                    # 核心源码文件
+├── 📁 GameSource/              # 游戏官方源码
+└── 📋 其他项目文件/
+```
+
 ## 📁 核心记忆体系
 
 ### 🚀 主要入口（当前文件）

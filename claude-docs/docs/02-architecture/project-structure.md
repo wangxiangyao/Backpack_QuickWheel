@@ -273,7 +273,7 @@ if (gridLayout == null) return;  // 防守检查
 - 新增 `ShortcutSystem/ItemWheelSelector.cs`：轮盘显示和矢量选择逻辑
 - 新增 `ShortcutSystem/WheelItemDisplay.cs`：单个格子的UI和聚焦效果
 - 修改 `Textures/grid_bg.png`：嵌入式格子背景图片
-- `Great_backpack.csproj`：添加嵌入资源配置
+- `Backpack_QuickWheel.csproj`：添加嵌入资源配置
 
 **调整参数**：
 - `LONG_PRESS_THRESHOLD = 0.2f`：轮盘显示时间阈值

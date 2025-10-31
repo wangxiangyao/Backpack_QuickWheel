@@ -4,9 +4,9 @@
 
 ### 构建命令
 ```bash
-dotnet build Great_backpack.csproj
+dotnet build Backpack_QuickWheel.csproj
 ```
-*输出到游戏目录：`D:\steam\steamapps\common\Escape from Duckov\Duckov_Data\Mods\Great_backpack\`*
+*输出到游戏目录：`D:\steam\steamapps\common\Escape from Duckov\Duckov_Data\Mods\Backpack_QuickWheel\`*
 
 ### 开发环境
 - **框架**: .NET Standard 2.1

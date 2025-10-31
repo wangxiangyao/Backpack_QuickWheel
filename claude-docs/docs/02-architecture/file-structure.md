@@ -3,7 +3,7 @@
 ## 📁 项目根目录结构
 
 ```
-Great_backpack/
+Backpack_QuickWheel/
 ├── GameSource/                    # 🎯 游戏官方源码（最高优先级）
 │   ├── Duckov/                   # 游戏核心源码
 │   │   ├── Item.cs               # 物品基类
