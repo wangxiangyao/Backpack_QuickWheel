@@ -50,10 +50,7 @@ namespace Backpack_QuickWheel.ShortcutSystem.Patches
                         {
                             __result = ourItem;
                         }
-                        else
-                        {
-                            Debug.Log($"[ItemShortcutGetPatch] 物品已无效，返回null: {ourItem.DisplayName}");
-                        }
+                        // 注意：物品无效时不打印日志，避免UI刷新时频繁打印导致卡顿
                     }
                 }
             }

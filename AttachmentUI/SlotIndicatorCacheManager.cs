@@ -56,6 +56,9 @@ namespace Backpack_QuickWheel.AttachmentUI
             IItemDragSource.OnStartDragItem += OnDragStarted;
             IItemDragSource.OnEndDragItem += OnDragEnded;
 
+            // 订阅物品放置事件（作为OnEndDrag的补充，确保indicator高亮被清除）
+            ItemUIUtilities.OnPutItem += OnItemPut;
+
             Debug.Log("[SlotIndicatorCacheManager] 已初始化");
         }
 
@@ -66,6 +69,7 @@ namespace Backpack_QuickWheel.AttachmentUI
         {
             IItemDragSource.OnStartDragItem -= OnDragStarted;
             IItemDragSource.OnEndDragItem -= OnDragEnded;
+            ItemUIUtilities.OnPutItem -= OnItemPut;
 
             _indicatorsByRule.Clear();
             _indicatorToRules.Clear();
@@ -233,6 +237,8 @@ namespace Backpack_QuickWheel.AttachmentUI
         /// </summary>
         private static void OnDragEnded(Item draggedItem)
         {
+            Debug.Log($"[SlotIndicatorCacheManager] OnDragEnded 触发，物品: {(draggedItem != null ? draggedItem.DisplayName : "null")}");
+
             // 停止Coroutine
             if (_dragCheckCoroutine != null && _coroutineHost != null)
             {
@@ -241,6 +247,42 @@ namespace Backpack_QuickWheel.AttachmentUI
             }
 
             // 立即取消所有高亮
+            ClearAllHighlights();
+        }
+
+        /// <summary>
+        /// 物品放置事件：作为OnDragEnded的补充，确保indicator高亮被清除
+        /// 这个方法解决了从仓库拖拽物品到ItemDisplay时，OnEndDrag可能不触发的问题
+        /// </summary>
+        private static void OnItemPut(Item item, bool pickup)
+        {
+            // 只在放置（非拾取）时清除高亮
+            if (pickup)
+                return;
+
+            Debug.Log($"[SlotIndicatorCacheManager] OnItemPut 触发，物品: {(item != null ? item.DisplayName : "null")}, pickup={pickup}");
+
+            // 停止Coroutine
+            if (_dragCheckCoroutine != null && _coroutineHost != null)
+            {
+                _coroutineHost.GetComponent<CoroutineRunner>().StopCoroutine(_dragCheckCoroutine);
+                _dragCheckCoroutine = null;
+            }
+
+            // 立即取消所有高亮
+            ClearAllHighlights();
+        }
+
+        /// <summary>
+        /// 清除所有indicator高亮
+        /// </summary>
+        private static void ClearAllHighlights()
+        {
+            if (_highlightedIndicators.Count == 0)
+                return;
+
+            Debug.Log($"[SlotIndicatorCacheManager] 清除 {_highlightedIndicators.Count} 个高亮indicator");
+
             var toUnhighlight = new List<SlotIndicator>(_highlightedIndicators);
             foreach (var indicator in toUnhighlight)
             {

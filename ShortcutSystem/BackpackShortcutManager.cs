@@ -41,6 +41,9 @@ namespace Backpack_QuickWheel.ShortcutSystem
         // 初始化状态标记
         private bool _isInitializing = true;
 
+        // 临时变量：用于在协程间传递新类别信息
+        private HashSet<ItemCategory> _tempNewCategories = null;
+
         public static bool IsShortcutSystemEnabled { get; private set; }
         public static event System.Action<bool> OnShortcutSystemStateChanged;
 
@@ -326,18 +329,27 @@ namespace Backpack_QuickWheel.ShortcutSystem
             // 通过这个延迟，所有这些事件都会被合并成一次更新
             yield return new WaitForSeconds(ATTACHMENT_UPDATE_DEBOUNCE_TIME);
 
-            Debug.Log($"[BackpackShortcutManager] 去抖完成，执行延迟更新");
+            Debug.Log($"[BackpackShortcutManager] 去抖完成，执行延迟更新（分帧处理）");
 
-            // 只增量更新分类数据（_categorizedItems），不更新UI
-            // 原因：
-            // 1. 物品被放入配件时，ShortcutUIUpdater已经单独处理了该快捷键的UI更新（清除物品）
-            // 2. 物品从配件移出时，也会通过相同的流程更新
-            // 3. 这里只需要保持内存数据与实际背包状态同步
-            // 4. 做全量UI更新会造成不必要的性能消耗
-            var incrementalCoroutine = IncrementalUpdateCategorizedItems();
+            // 增量更新分类数据（_categorizedItems）- 使用分帧处理
+            // 对于已存在的类别，不更新UI（ShortcutUIUpdater已单独处理）
+            // 对于新类别，需要手动触发UI更新
+            _tempNewCategories = null;  // 清空临时变量
+            var incrementalCoroutine = IncrementalUpdateCategorizedItemsFrameDistributed();
             yield return StartCoroutine(incrementalCoroutine);
 
             Debug.Log($"[BackpackShortcutManager] 配件内物品变化，_categorizedItems 已更新");
+
+            // 为新类别触发UI更新（新类别之前没有快捷键显示，需要主动刷新）- 分帧处理
+            if (_tempNewCategories != null && _tempNewCategories.Count > 0)
+            {
+                Debug.Log($"[BackpackShortcutManager] 检测到 {_tempNewCategories.Count} 个新类别，分帧触发UI更新");
+                foreach (var category in _tempNewCategories)
+                {
+                    UpdateShortcutUI(category);
+                    yield return null; // 每个UI更新后等待一帧，避免连续UI更新造成卡顿
+                }
+            }
 
             // 清除待处理协程的引用
             _pendingAttachmentUpdateCoroutine = null;
@@ -362,9 +374,13 @@ namespace Backpack_QuickWheel.ShortcutSystem
         /// 增量更新分类物品（不重新收集所有物品）
         /// 当配件内物品添加/移除时调用
         /// 只移除已删除的物品，添加新物品，保留其他物品的顺序和轮盘布局
+        /// 新类别会被设置到 _tempNewCategories 成员变量中
         /// </summary>
         private System.Collections.IEnumerator IncrementalUpdateCategorizedItems()
         {
+            // 初始化临时变量用于存储新类别
+            _tempNewCategories = new HashSet<ItemCategory>();
+
             yield return null;  // 等待一帧，确保物品状态已更新
 
             if (_currentBackpack == null) yield break;
@@ -385,12 +401,9 @@ namespace Backpack_QuickWheel.ShortcutSystem
                     if (item != null && currentBackpackItems.Contains(item))
                     {
                         newItems.Add(item);
-                        Debug.Log($"[BackpackShortcutManager] 增量保留: {category} - {item.DisplayName}");
+                        // 移除详细日志以提升性能
                     }
-                    else if (item != null)
-                    {
-                        Debug.Log($"[BackpackShortcutManager] 增量移除: {category} - {item.DisplayName}");
-                    }
+                    // 移除详细日志以提升性能
                 }
 
                 // 添加任何新的物品（背包中有但列表中没有的）
@@ -401,19 +414,60 @@ namespace Backpack_QuickWheel.ShortcutSystem
                     if (!oldItemsSet.Contains(item) && ItemCategorizer.CategorizeItem(item) == category)
                     {
                         newItems.Add(item);
-                        Debug.Log($"[BackpackShortcutManager] 增量添加: {category} - {item.DisplayName}");
+                        // 移除详细日志以提升性能
                     }
                 }
 
-                // 更新列表
+                // 更新列表 - 只打印汇总信息
                 if (newItems.Count != oldItems.Count || !newItems.SequenceEqual(oldItems))
                 {
                     _categorizedItems[category] = newItems;
-                    Debug.Log($"[BackpackShortcutManager] 增量更新 _categorizedItems: {category} ({oldItems.Count} → {newItems.Count} 个物品)");
+                    Debug.Log($"[BackpackShortcutManager] 更新 {category}: {oldItems.Count} → {newItems.Count} 个物品");
+
+                    // 检测"从无到有"的类别变化，也需要触发UI更新
+                    if (oldItems.Count == 0 && newItems.Count > 0)
+                    {
+                        _tempNewCategories.Add(category);
+                        Debug.Log($"[BackpackShortcutManager] 检测到类别从无到有: {category}，需要UI更新");
+                    }
                 }
             }
 
-            // 步骤 2：同步更新 _wheelLayouts（保留 null 占位符）
+            // 步骤 2：检测并添加新类别（如果背包中出现了新类别的物品）
+            foreach (var item in currentBackpackItems)
+            {
+                var category = ItemCategorizer.CategorizeItem(item);
+
+                // 如果这是一个新类别（之前没有出现过）
+                if (!_categorizedItems.ContainsKey(category))
+                {
+                    _tempNewCategories.Add(category);
+                }
+            }
+
+            // 为所有新类别初始化空列表和布局
+            foreach (var category in _tempNewCategories)
+            {
+                _categorizedItems[category] = new List<Item>();
+                _wheelLayouts[category] = new List<Item>();
+                Debug.Log($"[BackpackShortcutManager] 检测到新类别: {category}，初始化数据结构");
+            }
+
+            // 为新类别添加所有相应的物品
+            if (_tempNewCategories.Count > 0)
+            {
+                foreach (var item in currentBackpackItems)
+                {
+                    var category = ItemCategorizer.CategorizeItem(item);
+                    if (_tempNewCategories.Contains(category))
+                    {
+                        _categorizedItems[category].Add(item);
+                        _wheelLayouts[category].Add(item);
+                    }
+                }
+            }
+
+            // 步骤 3：同步更新 _wheelLayouts（保留 null 占位符）
             foreach (var category in new List<ItemCategory>(_wheelLayouts.Keys))
             {
                 var oldLayout = _wheelLayouts[category];
@@ -426,18 +480,18 @@ namespace Backpack_QuickWheel.ShortcutSystem
                     {
                         // 保留 null 占位符
                         newLayout.Add(null);
-                        Debug.Log($"[BackpackShortcutManager] 增量保留布局: {category} - <null占位符>");
+                        // 移除详细日志以提升性能
                     }
                     else if (currentBackpackItems.Contains(item))
                     {
                         // 保留仍然存在的物品
                         newLayout.Add(item);
-                        Debug.Log($"[BackpackShortcutManager] 增量保留布局: {category} - {item.DisplayName}");
+                        // 移除详细日志以提升性能
                     }
                     else
                     {
                         // 移除已删除的物品
-                        Debug.Log($"[BackpackShortcutManager] 增量移除布局: {category} - {item.DisplayName}（不在背包中）");
+                        // 移除详细日志以提升性能
                     }
                 }
 
@@ -445,6 +499,150 @@ namespace Backpack_QuickWheel.ShortcutSystem
             }
 
             Debug.Log("[BackpackShortcutManager] 增量更新分类物品和轮盘布局完成");
+        }
+
+        /// <summary>
+        /// 增量更新分类物品（分帧处理版本）
+        /// 当配件内物品添加/移除时调用，使用分帧处理避免卡顿
+        /// 只移除已删除的物品，添加新物品，保留其他物品的顺序和轮盘布局
+        /// 新类别会被设置到 _tempNewCategories 成员变量中
+        /// </summary>
+        private System.Collections.IEnumerator IncrementalUpdateCategorizedItemsFrameDistributed()
+        {
+            // 初始化临时变量用于存储新类别
+            _tempNewCategories = new HashSet<ItemCategory>();
+
+            yield return null;  // 等待一帧，确保物品状态已更新
+
+            if (_currentBackpack == null) yield break;
+
+            // 步骤 1：分帧收集所有物品
+            var currentBackpackItems = new HashSet<Item>();
+            var collectCoroutine = CollectAllItemsFromBackpackFrameDistributed(_currentBackpack, currentBackpackItems);
+            yield return StartCoroutine(collectCoroutine);
+
+            // 步骤 2：分帧处理每个类别
+            var categories = new List<ItemCategory>(_categorizedItems.Keys);
+            for (int i = 0; i < categories.Count; i++)
+            {
+                var category = categories[i];
+                var oldItems = _categorizedItems[category];
+                var newItems = new List<Item>();
+
+                // 保留所有仍然存在于背包中的物品（保持原有顺序，但过滤掉 null）
+                foreach (var item in oldItems)
+                {
+                    if (item != null && currentBackpackItems.Contains(item))
+                    {
+                        newItems.Add(item);
+                    }
+                }
+
+                // 添加任何新的物品（背包中有但列表中没有的）
+                var oldItemsSet = new HashSet<Item>(oldItems);
+                foreach (var item in currentBackpackItems)
+                {
+                    // 检查这个物品是否属于这个类别且不在旧列表中
+                    if (!oldItemsSet.Contains(item) && ItemCategorizer.CategorizeItem(item) == category)
+                    {
+                        newItems.Add(item);
+                    }
+                }
+
+                // 更新列表 - 只打印汇总信息
+                if (newItems.Count != oldItems.Count || !newItems.SequenceEqual(oldItems))
+                {
+                    _categorizedItems[category] = newItems;
+                    Debug.Log($"[BackpackShortcutManager] 更新 {category}: {oldItems.Count} → {newItems.Count} 个物品");
+
+                    // 检测"从无到有"的类别变化，也需要触发UI更新
+                    if (oldItems.Count == 0 && newItems.Count > 0)
+                    {
+                        _tempNewCategories.Add(category);
+                        Debug.Log($"[BackpackShortcutManager] 检测到类别从无到有: {category}，需要UI更新");
+                    }
+                }
+
+                // 每处理完一个类别就等待一帧，避免连续处理造成卡顿
+                if (i % 2 == 0) // 每两个类别等待一帧，平衡性能和响应速度
+                {
+                    yield return null;
+                }
+            }
+
+            // 步骤 3：分帧检测新类别
+            foreach (var item in currentBackpackItems)
+            {
+                var category = ItemCategorizer.CategorizeItem(item);
+
+                // 如果这是一个新类别（之前没有出现过）
+                if (!_categorizedItems.ContainsKey(category))
+                {
+                    _tempNewCategories.Add(category);
+                }
+
+                // 每检测5个物品等待一帧
+                if (currentBackpackItems.Count % 5 == 0)
+                {
+                    yield return null;
+                }
+            }
+
+            // 步骤 4：为新类别初始化数据结构
+            foreach (var category in _tempNewCategories)
+            {
+                if (!_categorizedItems.ContainsKey(category))
+                {
+                    _categorizedItems[category] = new List<Item>();
+                    _wheelLayouts[category] = new List<Item>();
+                    Debug.Log($"[BackpackShortcutManager] 检测到新类别: {category}，初始化数据结构");
+                }
+
+                // 为新类别添加所有相应的物品
+                foreach (var item in currentBackpackItems)
+                {
+                    var itemCategory = ItemCategorizer.CategorizeItem(item);
+                    if (itemCategory == category)
+                    {
+                        _categorizedItems[category].Add(item);
+                        _wheelLayouts[category].Add(item);
+                    }
+                }
+            }
+
+            Debug.Log("[BackpackShortcutManager] 分帧增量更新分类物品和轮盘布局完成");
+        }
+
+        /// <summary>
+        /// 递归收集背包和所有配件中的所有物品（分帧处理版本）
+        /// </summary>
+        private System.Collections.IEnumerator CollectAllItemsFromBackpackFrameDistributed(Item backpack, HashSet<Item> result)
+        {
+            if (backpack == null || backpack.Slots == null) yield break;
+
+            int processedCount = 0;
+            foreach (var slot in backpack.Slots)
+            {
+                if (slot != null && slot.Content != null)
+                {
+                    var item = slot.Content;
+                    result.Add(item);
+
+                    // 递归检查配件中的物品
+                    if (item.Slots != null && item.Slots.Count > 0)
+                    {
+                        var subCoroutine = CollectAllItemsFromBackpackFrameDistributed(item, result);
+                        yield return StartCoroutine(subCoroutine);
+                    }
+                }
+
+                processedCount++;
+                // 每处理5个slot等待一帧，避免一次性处理过多
+                if (processedCount % 5 == 0)
+                {
+                    yield return null;
+                }
+            }
         }
 
         /// <summary>
