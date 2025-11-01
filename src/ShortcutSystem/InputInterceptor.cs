@@ -197,7 +197,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
             Debug.Log($"[InputInterceptor] 快捷键索引: {_currentPressedIndex}，对应类别: {category}");
             Debug.Log($"[InputInterceptor] 正在从 BackpackShortcutManager 获取物品列表...");
 
-            var items = BackpackShortcutManager.Instance?.GetItemsForCategory(category);
+            var items = BackpackShortcutManager.Instance?.GetAllItemsForCategory(category);
 
             if (items == null || items.Count == 0)
             {

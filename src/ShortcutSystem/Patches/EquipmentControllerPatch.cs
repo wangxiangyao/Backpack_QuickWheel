@@ -2,6 +2,7 @@
 using ItemStatsSystem;
 using ItemStatsSystem.Items;
 using UnityEngine;
+using System.Collections;
 
 namespace Backpack_QuickWheel.ShortcutSystem.Patches
 {
@@ -13,8 +14,11 @@ namespace Backpack_QuickWheel.ShortcutSystem.Patches
         static void OnBackpackChanged(CharacterEquipmentController __instance, Slot slot)
         {
             Debug.Log("═══════════════════════════════════════");
-            Debug.Log($"[EquipmentControllerPatch] ChangeBackpackModel 被调用");
+            Debug.Log($"[EquipmentControllerPatch] 🚨 ChangeBackpackModel 被调用！");
             Debug.Log($"[EquipmentControllerPatch] 时间: {Time.time}");
+            Debug.Log($"[EquipmentControllerPatch] __instance: {__instance?.name}");
+            Debug.Log($"[EquipmentControllerPatch] slot: {slot?.GetType().Name}");
+            Debug.Log($"[EquipmentControllerPatch] slot.Content: {slot?.Content?.DisplayName ?? "null"}");
 
             // 检查是否是无效的调用（比如背包内容为null或者正在销毁）
             if (slot?.Content != null && slot.Content.IsBeingDestroyed)
@@ -49,54 +53,32 @@ namespace Backpack_QuickWheel.ShortcutSystem.Patches
                 Debug.Log($"[EquipmentControllerPatch] 初始化完成");
             }
 
-            // 现在调用OnBackpackChanged
+            // 直接调用OnBackpackChanged，现在初始化流程更可靠了
+            Debug.Log($"[EquipmentControllerPatch] 直接调用OnBackpackChanged: {slot?.Content?.DisplayName ?? "null"}");
             BackpackShortcutManager.Instance.OnBackpackChanged(slot);
 
             Debug.Log($"[EquipmentControllerPatch] OnBackpackChanged 调用完成");
-            Debug.Log("═══════════════════════════════════════");
         }
 
         /// <summary>
-        /// 检查背包是否属于主角
+        /// 检查背包是否属于有CharacterMainControl的角色
+        /// 直接递归查找，简单可靠
         /// </summary>
         private static bool IsMainCharacterBackpack(Slot backpackSlot)
         {
-            // 如果背包槽或其所有者为空，不处理
-            if (backpackSlot == null)
+            // 快速检查：空值验证
+            if (backpackSlot?.Master?.gameObject == null)
             {
                 return false;
             }
 
-            // 获取背包所属的角色
-            Item backpackOwner = backpackSlot.Master;
-            if (backpackOwner == null)
-            {
-                return false;
-            }
+            // 直接递归查找CharacterMainControl组件
+            bool hasCharacterMainControl = backpackSlot.Master.gameObject.GetComponentInParent<CharacterMainControl>() != null;
 
-            // 获取主角
-            CharacterMainControl mainCharacter = CharacterMainControl.Main;
-            if (mainCharacter == null)
-            {
-                // 主角尚未初始化，允许处理（可能是初始化阶段）
-                return true;
-            }
+            Debug.Log($"[EquipmentControllerPatch] 背包 {backpackSlot.Content?.DisplayName ?? "null"} 属于 {(hasCharacterMainControl ? "✅ 玩家角色" : "❌ NPC/其他")}");
 
-            Item mainCharacterItem = mainCharacter.CharacterItem;
-            if (mainCharacterItem == null)
-            {
-                return false;
-            }
-
-            // 比较：背包的所有者是否是主角
-            bool isMainCharacter = backpackOwner == mainCharacterItem;
-
-            if (!isMainCharacter)
-            {
-                Debug.Log($"[EquipmentControllerPatch] 背包所有者: {backpackOwner.DisplayName}, 主角: {mainCharacterItem.DisplayName}");
-            }
-
-            return isMainCharacter;
+            return hasCharacterMainControl;
         }
-    }
+
+      }
 }

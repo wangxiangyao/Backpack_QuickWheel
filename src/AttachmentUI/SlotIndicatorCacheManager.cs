@@ -113,7 +113,7 @@ namespace Backpack_QuickWheel.AttachmentUI
                 }
                 _indicatorToRules[indicator].Add(ruleKey);
 
-                Debug.Log($"[RegisterIndicator] 注册indicator到规则: {ruleKey} (当前该规则下有{_indicatorsByRule[ruleKey].Count}个indicator)");
+                // Debug.Log($"[RegisterIndicator] 注册indicator到规则: {ruleKey} (当前该规则下有{_indicatorsByRule[ruleKey].Count}个indicator)");
             }
             catch (Exception ex)
             {

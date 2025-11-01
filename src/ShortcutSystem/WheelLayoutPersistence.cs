@@ -25,7 +25,71 @@ namespace Backpack_QuickWheel.ShortcutSystem
         }
 
         /// <summary>
-        /// 将轮盘布局转换为可序列化的数据格式
+        /// 🆕 新架构：将WheelSlot布局转换为可序列化的数据格式
+        /// </summary>
+        public static WheelLayoutData ConvertFromWheelSlots(WheelLayoutManager layoutManager)
+        {
+            var data = new WheelLayoutData();
+            var categoriesList = new List<CategoryLayout>();
+
+            // 获取所有类别的轮盘格子
+            foreach (ItemCategory category in Enum.GetValues(typeof(ItemCategory)))
+            {
+                if (category == ItemCategory.None) continue;
+
+                var slots = layoutManager.GetSlots(category);
+                if (slots.Count == 0) continue;
+
+                var categoryLayout = new CategoryLayout(category.ToString());
+                var itemLocationsList = new List<ItemLocation>();
+
+                foreach (var slot in slots)
+                {
+                    if (slot.HasValidItem())
+                    {
+                        // 创建物品位置记录
+                        var itemLocation = new ItemLocation
+                        {
+                            ItemID = slot.Item.GetInstanceID(), // 使用GetInstanceID替代UniqueID
+                            TypeID = slot.Item.TypeID,
+                            CustomName = slot.Item.DisplayName,
+                            Position = slot.OriginalIndex,
+                            IsEmpty = false,
+                            Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+                        };
+                        itemLocationsList.Add(itemLocation);
+                    }
+                    else
+                    {
+                        // 记录空格子状态
+                        var emptyLocation = new ItemLocation
+                        {
+                            ItemID = -1,
+                            TypeID = -1,
+                            CustomName = "",
+                            Position = slot.OriginalIndex,
+                            IsEmpty = true,
+                            State = slot.State.ToString(),
+                            Timestamp = slot.CreatedTimestamp,
+                            IsUserCleared = slot.IsUserCleared
+                        };
+                        itemLocationsList.Add(emptyLocation);
+                    }
+                }
+
+                categoryLayout.ConvertListToArray(itemLocationsList);
+                categoriesList.Add(categoryLayout);
+            }
+
+            data.Categories = categoriesList;
+            data.SaveTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            data.Version = "2.0"; // 新架构版本
+
+            return data;
+        }
+
+        /// <summary>
+        /// 将轮盘布局转换为可序列化的数据格式（旧版本兼容）
         /// </summary>
         public static WheelLayoutData ConvertToData(Dictionary<ItemCategory, List<Item>> wheelLayouts)
         {
@@ -226,10 +290,27 @@ namespace Backpack_QuickWheel.ShortcutSystem
                     }
                 }
 
-                // 检查数量是否相等
+                // 🔧 修复：检查非null物品数量是否相等
                 if (restoredItems.Count != collected.Count)
                 {
                     Debug.LogWarning($"[WheelLayoutPersistence] 分类 {category} 物品数不匹配: 收集{collected.Count}项, 恢复{restoredItems.Count}项");
+                    return false;
+                }
+
+                // 🔧 新增：检查布局长度是否合理
+                // 布局长度不应该超过实际物品数量的2倍（防止过多的null占位符）
+                if (restored.Count > collected.Count * 2)
+                {
+                    Debug.LogWarning($"[WheelLayoutPersistence] 分类 {category} 布局长度异常: 收集{collected.Count}项, 布局长度{restored.Count}");
+                    return false;
+                }
+
+                // 🔧 新增：检查布局中null占比是否过高
+                int nullCount = restored.Count - restoredItems.Count;
+                float nullRatio = (float)nullCount / restored.Count;
+                if (nullRatio > 0.5f) // null占比超过50%
+                {
+                    Debug.LogWarning($"[WheelLayoutPersistence] 分类 {category} null占比过高: {nullRatio:P} ({nullCount}/{restored.Count})");
                     return false;
                 }
 
@@ -292,7 +373,25 @@ namespace Backpack_QuickWheel.ShortcutSystem
         }
 
         /// <summary>
-        /// 保存轮盘布局到文件
+        /// 🆕 新架构：保存WheelSlot布局到文件
+        /// </summary>
+        public static void SaveWheelSlots(WheelLayoutManager layoutManager)
+        {
+            try
+            {
+                var data = ConvertFromWheelSlots(layoutManager);
+                string json = JsonUtility.ToJson(data, true);
+                File.WriteAllText(GetSavePath(), json);
+                Debug.Log($"[WheelLayoutPersistence] 已保存新架构轮盘布局到: {GetSavePath()}");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[WheelLayoutPersistence] 保存新架构轮盘布局失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 保存轮盘布局到文件（旧版本兼容）
         /// </summary>
         public static void SaveToFile(WheelLayoutData data)
         {
@@ -589,6 +688,32 @@ namespace Backpack_QuickWheel.ShortcutSystem
             {
                 Debug.LogError($"[WheelLayoutPersistence] ✗ 加载轮盘布局失败: {e.Message}\n{e.StackTrace}");
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// 清理轮盘布局文件
+        /// 当布局验证失败时调用，避免下次再次加载无效布局
+        /// </summary>
+        public static void ClearLayoutFile()
+        {
+            try
+            {
+                string filePath = GetSavePath();
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                    Debug.Log($"[WheelLayoutPersistence] 已删除轮盘布局文件: {filePath}");
+                }
+                else
+                {
+                    Debug.Log($"[WheelLayoutPersistence] 轮盘布局文件不存在，无需删除: {filePath}");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[WheelLayoutPersistence] 删除轮盘布局文件失败: {ex.Message}");
+                throw;
             }
         }
     }

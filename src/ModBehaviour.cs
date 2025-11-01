@@ -4,6 +4,7 @@ using Backpack_QuickWheel.AttachmentUI;
 using Backpack_QuickWheel.BackpackSystem;
 using Backpack_QuickWheel.ShortcutSystem;
 using Backpack_QuickWheel.VoiceWheelSystem;
+using ItemStatsSystem.Items;
 // LootDebugSystem 已移除 - 使用官方掉落系统
 using HarmonyLib;
 using UnityEngine;
@@ -38,6 +39,10 @@ namespace Backpack_QuickWheel
             harmony = new Harmony("com.yourname.great_backpack");
             harmony.PatchAll(); // 自动补丁所有带有[HarmonyPatch]的类
             Debug.Log("Harmony补丁已应用");
+
+            // 🚀 优先初始化快捷键系统 - 在程序入口点尽早初始化，确保不会错过任何背包装备事件
+            Debug.Log("[ModBehaviour] 开始在程序入口点初始化快捷键系统");
+            InitializeShortcutSystemAtEntryPoint();
 
             // 检测并导出支持的语言（开发时使用，完成后注释掉）
             // LanguageDetector.ExportSupportedLanguages();
@@ -100,6 +105,46 @@ namespace Backpack_QuickWheel
 
 
 
+        /// <summary>
+        /// 🆕 在程序入口点初始化快捷键系统 - 确保不会错过任何背包装备事件
+        /// 这个方法在Awake中尽早调用，在任何游戏对象初始化之前
+        /// </summary>
+        void InitializeShortcutSystemAtEntryPoint()
+        {
+            Debug.Log("[ModBehaviour] 🚀 在程序入口点初始化快捷键系统");
+
+            try
+            {
+                // 设置初始化中状态，防止自动初始化
+                BackpackShortcutManager.SetInitializing(true);
+
+                // 创建InputInterceptor
+                var interceptorObj = new GameObject("InputInterceptor");
+                DontDestroyOnLoad(interceptorObj);
+                var interceptor = interceptorObj.AddComponent<InputInterceptor>();
+                Debug.Log("[ModBehaviour] InputInterceptor已创建（程序入口点）");
+
+                // 创建ItemWheelSelector
+                var wheelObj = new GameObject("ItemWheelSelector");
+                DontDestroyOnLoad(wheelObj);
+                var wheelSelector = wheelObj.AddComponent<ItemWheelSelector>();
+                Debug.Log("[ModBehaviour] ItemWheelSelector已创建（程序入口点）");
+
+                // 将轮盘选择器关联到输入拦截器
+                InputInterceptor.SetWheelSelector(wheelSelector);
+                Debug.Log("[ModBehaviour] 轮盘选择器已关联到输入拦截器（程序入口点）");
+
+                // 标记系统已初始化，但EquipmentController将在后续设置
+                _isShortcutSystemInitialized = true;
+                Debug.Log("[ModBehaviour] 快捷键系统框架初始化完成（等待EquipmentController）");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[ModBehaviour] 程序入口点快捷键系统初始化失败: {e.Message}");
+                Debug.LogError($"[ModBehaviour] Exception stack trace: {e.StackTrace}");
+            }
+        }
+
         void OnLevelInitialized()
         {
             Debug.Log("[ModBehaviour] 关卡初始化完成");
@@ -118,22 +163,42 @@ namespace Backpack_QuickWheel
 
             Backpack_QuickWheel.Localization.LocalizationManager.Initialize(currentLanguage);
 
-            // 检查当前场景是否有玩家，以及快捷键系统是否已初始化
+            // 检查当前场景是否有玩家，为快捷键系统设置EquipmentController
             var player = FindObjectOfType<CharacterMainControl>();
-            if (player != null && !_isShortcutSystemInitialized)
+            if (player != null)
             {
                 var equipmentController = player.GetComponent<CharacterEquipmentController>();
                 if (equipmentController != null)
                 {
-                    Debug.Log("[ModBehaviour] 找到玩家和装备控制器，开始初始化快捷键系统");
-                    BackpackShortcutManager.Initialize(equipmentController);
-                    // 设置初始化完成状态
-                    BackpackShortcutManager.SetInitializing(false);
-                    _isShortcutSystemInitialized = true;
-                    Debug.Log("[ModBehaviour] 快捷键系统初始化完成");
+                    // 如果快捷键系统已在程序入口点初始化，只需要设置EquipmentController
+                    if (_isShortcutSystemInitialized)
+                    {
+                        Debug.Log("[ModBehaviour] 快捷键系统已初始化，设置EquipmentController");
+                        BackpackShortcutManager.Initialize(equipmentController);
+                        // 设置初始化完成状态
+                        BackpackShortcutManager.SetInitializing(false);
+                        Debug.Log("[ModBehaviour] EquipmentController设置完成");
 
-                    // 初始化输入拦截器和轮盘选择器
-                    InitializeWheelSelectorSystem();
+                        // 🔧 混合方案：主动检查当前背包状态
+                        Debug.Log("[ModBehaviour] 🚨 立即检查当前背包状态...");
+                        CheckCurrentBackpackStatus();
+                    }
+                    else
+                    {
+                        // 备用初始化路径（如果程序入口点初始化失败）
+                        Debug.LogWarning("[ModBehaviour] 程序入口点初始化失败，使用备用初始化路径");
+                        BackpackShortcutManager.Initialize(equipmentController);
+                        BackpackShortcutManager.SetInitializing(false);
+                        _isShortcutSystemInitialized = true;
+
+                        // 初始化输入拦截器和轮盘选择器
+                        InitializeWheelSelectorSystem();
+                        Debug.Log("[ModBehaviour] 备用路径：快捷键系统初始化完成");
+
+                        // 🔧 混合方案：主动检查当前背包状态
+                        Debug.Log("[ModBehaviour] 🚨 立即检查当前背包状态...");
+                        CheckCurrentBackpackStatus();
+                    }
 
                     // 初始化语音轮盘系统
                     if (!_isVoiceWheelSystemInitialized)
@@ -151,14 +216,7 @@ namespace Backpack_QuickWheel
             }
             else
             {
-                if (player == null)
-                {
-                    Debug.Log("[ModBehaviour] 当前场景没有玩家，跳过快捷键系统初始化");
-                }
-                else if (_isShortcutSystemInitialized)
-                {
-                    Debug.Log("[ModBehaviour] 快捷键系统已经初始化，跳过重复初始化");
-                }
+                Debug.Log("[ModBehaviour] 当前场景没有玩家，等待后续初始化");
             }
         }
 
@@ -212,6 +270,118 @@ namespace Backpack_QuickWheel
             {
                 Debug.LogError($"[ModBehaviour] 语音轮盘系统初始化失败: {e.Message}");
                 Debug.LogError($"[ModBehaviour] Exception stack trace: {e.StackTrace}");
+            }
+        }
+
+        /// <summary>
+        /// 🆕 立即检查当前背包状态
+        /// 在OnLevelInitialized中调用，确保不会错过已装备的背包
+        /// </summary>
+        private void CheckCurrentBackpackStatus()
+        {
+            Debug.Log("[ModBehaviour] 开始检查当前背包状态...");
+
+            try
+            {
+                // 查找玩家
+                var player = CharacterMainControl.Main;
+                if (player == null)
+                {
+                    Debug.Log("[ModBehaviour] 玩家尚未加载，稍后再试");
+                    return;
+                }
+
+                // 检查角色的装备
+                var characterItem = player.CharacterItem;
+                if (characterItem == null)
+                {
+                    Debug.Log("[ModBehaviour] 角色物品尚未初始化，稍后再试");
+                    return;
+                }
+
+                Debug.Log($"[ModBehaviour] 找到角色物品: {characterItem.DisplayName}");
+
+                // 通过反射获取背包槽位
+                var equipmentSlots = characterItem.GetType().GetField("equipmentSlots",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+                if (equipmentSlots != null)
+                {
+                    var slots = equipmentSlots.GetValue(characterItem);
+                    if (slots != null)
+                    {
+                        Debug.Log($"[ModBehaviour] 成功获取equipmentSlots，类型: {slots.GetType().Name}");
+
+                        var slotsArray = slots as object[];
+                        if (slotsArray != null)
+                        {
+                            Debug.Log($"[ModBehaviour] equipmentSlots数组长度: {slotsArray.Length}");
+
+                            if (slotsArray.Length > 3)
+                            {
+                                var backpackSlot = slotsArray[3] as Slot;
+                                Debug.Log($"[ModBehaviour] 背包槽位(索引3): {backpackSlot?.GetType().Name ?? "null"}");
+
+                                if (backpackSlot != null)
+                                {
+                                    Debug.Log($"[ModBehaviour] 背包槽位内容: {backpackSlot.Content?.DisplayName ?? "null"}");
+
+                                    if (backpackSlot.Content != null)
+                                    {
+                                        Debug.Log($"[ModBehaviour] 🎯 发现已装备背包: {backpackSlot.Content.DisplayName}");
+
+                                        // 触发背包变化事件
+                                        BackpackShortcutManager.Instance.OnBackpackChanged(backpackSlot);
+                                        Debug.Log("[ModBehaviour] 已触发背包变化事件");
+                                    }
+                                    else
+                                    {
+                                        Debug.Log("[ModBehaviour] 背包槽位为空，未装备背包");
+                                    }
+                                }
+                                else
+                                {
+                                    Debug.Log("[ModBehaviour] 背包槽位本身为null");
+                                }
+                            }
+                            else
+                            {
+                                Debug.Log($"[ModBehaviour] equipmentSlots数组长度不足，当前长度: {slotsArray.Length}，需要至少4个");
+                            }
+                        }
+                        else
+                        {
+                            Debug.Log($"[ModBehaviour] equipmentSlots不是数组类型，实际类型: {slots.GetType().Name}");
+                        }
+                    }
+                    else
+                    {
+                        Debug.Log("[ModBehaviour] equipmentSlots字段值为null");
+                    }
+                }
+                else
+                {
+                    Debug.Log("[ModBehaviour] 找不到equipmentSlots字段");
+
+                    // 尝试其他可能的字段名
+                    var alternativeFields = new string[] { "_equipmentSlots", "m_equipmentSlots", "EquipmentSlots" };
+                    foreach (var fieldName in alternativeFields)
+                    {
+                        var field = characterItem.GetType().GetField(fieldName,
+                            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance |
+                            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+
+                        if (field != null)
+                        {
+                            Debug.Log($"[ModBehaviour] 找到替代字段: {fieldName}");
+                        }
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[ModBehaviour] 检查背包状态时出错: {ex.Message}");
+                Debug.LogError($"[ModBehaviour] 错误堆栈: {ex.StackTrace}");
             }
         }
 

@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using ItemStatsSystem;
 using System.Collections.Generic;
+using System.Linq;
 using Duckov.UI;
 
 namespace Backpack_QuickWheel.ShortcutSystem
@@ -252,18 +253,9 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
             Debug.Log($"[ItemWheelSelector] ItemDisplay模板已找到");
 
-            // 最多支持8个物品
-            if (items.Count > 8)
-            {
-                Debug.LogWarning($"[ItemWheelSelector] 物品数超过8个（{items.Count}），只显示前8个");
-                _currentItems = new List<Item>(items.GetRange(0, 8));
-            }
-            else
-            {
-                _currentItems = new List<Item>(items);
-            }
-
-            Debug.Log($"[ItemWheelSelector] 实际要显示的物品数: {_currentItems.Count}");
+            // 🔧 修复：保持轮盘布局稳定性，使用null占位符代替已使用的物品
+            _currentItems = CreateStableLayout(items);
+            Debug.Log($"[ItemWheelSelector] 稳定布局创建完成，物品数: {_currentItems.Count}");
 
             // 保存鼠标位置用于矢量选择
             _pressDownMousePos = pressDownPos;           // 按下时的鼠标位置
@@ -502,6 +494,13 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 }
             }
 
+            // 🔧 修复：如果选中的位置是null，则不进行选择
+            if (closestIndex < _currentItems.Count && _currentItems[closestIndex] == null)
+            {
+                Debug.Log($"[ItemWheelSelector] {vectorName}指向位置{closestIndex}，但该位置为null，保持之前的选择");
+                return;
+            }
+
             // 更新选择
             if (closestIndex != _selectedItemIndex)
             {
@@ -513,6 +512,92 @@ namespace Backpack_QuickWheel.ShortcutSystem
                     Debug.Log($"[ItemWheelSelector] {vectorName}选择 - 索引{closestIndex}：{_currentItems[closestIndex].DisplayName}，矢量长度{vector.magnitude:F1}");
                 }
             }
+        }
+
+        /// <summary>
+        /// 创建稳定的轮盘布局，使用null占位符保持布局不变
+        /// </summary>
+        private List<Item> CreateStableLayout(List<Item> currentItems)
+        {
+            var stableLayout = new List<Item>();
+
+            // 最多支持8个物品
+            if (currentItems.Count > 8)
+            {
+                Debug.LogWarning($"[ItemWheelSelector] 物品数超过8个（{currentItems.Count}），只显示前8个");
+                currentItems = currentItems.GetRange(0, 8);
+            }
+
+            // 获取BackpackShortcutManager中保存的轮盘布局
+            var savedLayout = BackpackShortcutManager.Instance?.GetItemsForCategory(_currentCategory);
+
+            if (savedLayout != null && savedLayout.Count > 0)
+            {
+                Debug.Log($"[ItemWheelSelector] 找到保存的轮盘布局，包含{savedLayout.Count}个位置");
+
+                // 使用保存的布局结构，但更新物品引用
+                for (int i = 0; i < savedLayout.Count && i < 8; i++)
+                {
+                    var savedItem = savedLayout[i];
+
+                    if (savedItem == null)
+                    {
+                        // 保存的位置是null，保持null
+                        stableLayout.Add(null);
+                    }
+                    else
+                    {
+                        // 保存的位置有物品，检查该物品是否还存在
+                        var existingItem = currentItems.FirstOrDefault(item =>
+                            item != null && item.TypeID == savedItem.TypeID);
+
+                        if (existingItem != null)
+                        {
+                            // 物品还存在，使用新的引用
+                            stableLayout.Add(existingItem);
+                        }
+                        else
+                        {
+                            // 物品已被使用，用null占位符保持布局稳定
+                            stableLayout.Add(null);
+                            Debug.Log($"[ItemWheelSelector] 位置{i}的物品{savedItem.DisplayName}已被使用，使用null占位符");
+                        }
+                    }
+                }
+
+                // 如果当前物品比保存的多，添加新物品到空位
+                var usedSlots = stableLayout.Count;
+                for (int i = 0; i < currentItems.Count && stableLayout.Count < 8; i++)
+                {
+                    var item = currentItems[i];
+                    if (item != null && !stableLayout.Contains(item))
+                    {
+                        stableLayout.Add(item);
+                        Debug.Log($"[ItemWheelSelector] 添加新物品{item.DisplayName}到位置{stableLayout.Count - 1}");
+                    }
+                }
+            }
+            else
+            {
+                // 没有保存的布局，直接使用当前物品
+                stableLayout = new List<Item>(currentItems);
+                Debug.Log($"[ItemWheelSelector] 没有保存的布局，使用当前物品列表");
+            }
+
+            // 确保列表长度在1-8之间
+            while (stableLayout.Count < 1 && stableLayout.Count > 0)
+            {
+                stableLayout.Insert(0, null);
+            }
+
+            Debug.Log($"[ItemWheelSelector] 最终稳定布局包含{stableLayout.Count}个位置");
+            for (int i = 0; i < stableLayout.Count; i++)
+            {
+                var item = stableLayout[i];
+                Debug.Log($"[ItemWheelSelector] 位置{i}: {(item != null ? item.DisplayName : "null")}");
+            }
+
+            return stableLayout;
         }
 
         /// <summary>
@@ -597,12 +682,23 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
         /// <summary>
         /// 获取当前选中的物品
+        /// 🔧 修复：确保不会返回null物品
         /// </summary>
         public Item GetSelectedItem()
         {
             if (_selectedItemIndex >= 0 && _selectedItemIndex < _currentItems.Count)
             {
-                return _currentItems[_selectedItemIndex];
+                var selectedItem = _currentItems[_selectedItemIndex];
+                // 🔧 修复：如果选中的是null，返回null表示没有有效选择
+                if (selectedItem != null)
+                {
+                    return selectedItem;
+                }
+                else
+                {
+                    Debug.Log($"[ItemWheelSelector] 选中索引{_selectedItemIndex}为null，返回null表示无有效选择");
+                    return null;
+                }
             }
             return null;
         }

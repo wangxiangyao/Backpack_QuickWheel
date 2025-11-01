@@ -4,11 +4,12 @@ using System.Collections.Generic;
 namespace Backpack_QuickWheel.ShortcutSystem.Data
 {
     /// <summary>
-    /// 单个物品的位置记录
+    /// 🆕 新架构：单个物品的位置记录（支持WheelSlot状态）
     /// </summary>
     [Serializable]
     public class ItemLocation
     {
+        // 旧字段（兼容性）
         /// <summary>
         /// 配件在背包中的槽位索引
         /// 使用 -1 表示 null（因为数组/列表不能直接存储 null 结构体的引用）
@@ -21,6 +22,48 @@ namespace Backpack_QuickWheel.ShortcutSystem.Data
         /// </summary>
         public int itemSlotIndex;
 
+        // 🆕 新字段（WheelSlot支持）
+        /// <summary>
+        /// 物品唯一ID（用于精确匹配物品实例）
+        /// </summary>
+        public int ItemID;
+
+        /// <summary>
+        /// 物品类型ID（用于备用匹配）
+        /// </summary>
+        public int TypeID;
+
+        /// <summary>
+        /// 物品自定义名称（用于显示）
+        /// </summary>
+        public string CustomName;
+
+        /// <summary>
+        /// 在轮盘中的位置索引
+        /// </summary>
+        public int Position;
+
+        /// <summary>
+        /// 是否为空格子
+        /// </summary>
+        public bool IsEmpty;
+
+        /// <summary>
+        /// 格子状态（Empty, Occupied, Cleared, Removed）
+        /// </summary>
+        public string State;
+
+        /// <summary>
+        /// 创建时间戳
+        /// </summary>
+        public long Timestamp;
+
+        /// <summary>
+        /// 是否被用户手动清空
+        /// </summary>
+        public bool IsUserCleared;
+
+        // 兼容性构造函数
         public ItemLocation() { }
 
         public ItemLocation(int attachmentSlotIndex, int itemSlotIndex)
@@ -30,7 +73,7 @@ namespace Backpack_QuickWheel.ShortcutSystem.Data
         }
 
         /// <summary>
-        /// 检查是否为 null 位置标记
+        /// 检查是否为 null 位置标记（兼容旧版本）
         /// </summary>
         public bool IsNull()
         {
@@ -72,8 +115,8 @@ namespace Backpack_QuickWheel.ShortcutSystem.Data
     }
 
     /// <summary>
-    /// 轮盘布局数据 - 用于持久化保存用户在轮盘上的物品排列
-    /// 只记录位置信息：配件在背包的槽位索引 + 物品在配件的槽位索引
+    /// 🆕 新架构：轮盘布局数据 - 用于持久化保存用户在轮盘上的物品排列
+    /// 支持版本控制和新的WheelSlot状态
     /// </summary>
     [Serializable]
     public class WheelLayoutData
@@ -83,14 +126,32 @@ namespace Backpack_QuickWheel.ShortcutSystem.Data
         /// </summary>
         public CategoryLayout[] categories = System.Array.Empty<CategoryLayout>();
 
+        // 旧字段（兼容性）
         /// <summary>
         /// 保存时的时间戳（用于调试）
         /// </summary>
         public long savedTimestamp;
 
+        // 🆕 新字段
+        /// <summary>
+        /// 数据版本号
+        /// </summary>
+        public string Version = "1.0";
+
+        /// <summary>
+        /// 保存时间戳（Unix时间戳）
+        /// </summary>
+        public long SaveTime;
+
+        /// <summary>
+        /// 所有分类的轮盘布局（新格式，使用List以支持动态更新）
+        /// </summary>
+        public List<CategoryLayout> Categories = new List<CategoryLayout>();
+
         public WheelLayoutData()
         {
             savedTimestamp = System.DateTime.Now.Ticks;
+            SaveTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         }
     }
 }
