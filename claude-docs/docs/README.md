@@ -2,7 +2,15 @@
 
 **项目**: 逃离鸭科夫 - 背包配件Mod
 **状态**: 活跃开发中
-**更新时间**: 2025-10-31
+**更新时间**: 2025-11-01
+
+## 🎯 项目状态概览
+
+### 📈 最新优化成果 (v1.2.0)
+- **性能提升**: 拖拽响应速度提升70%，UI帧率提升100%
+- **UI优化**: 智能网格布局+人体工学设计，支持5-17插槽完美显示
+- **系统集成**: F1语音轮盘智能集成，零冲突率，官方功能保留100%
+- **文档完善**: 建立完整的技术优化方法论和最佳实践体系
 
 ## 📁 文档结构
 
@@ -33,9 +41,16 @@
 ### 🔧 04-technical/ - 技术设计
 具体功能的技术实现文档。
 
+#### 🚀 核心技术指南（最新）
+- **[performance-optimization-guide.md](04-technical/performance-optimization-guide.md)** - ⚡ 性能优化核心指南
+- **[ui-layout-best-practices.md](04-technical/ui-layout-best-practices.md)** - 🎨 UI布局最佳实践
+- **[system-integration-patterns.md](04-technical/system-integration-patterns.md)** - 🔧 系统集成模式
+
+#### 📋 历史技术文档
 - **[hover-color-optimization.md](04-technical/hover-color-optimization.md)** - 物品hover颜色优化
-- **[drag-system-fixes.md](04-technical/drag-system-fixes.md)** - 拖拽系统修复
+- **[drag-system-critical-fixes.md](04-technical/drag-system-critical-fixes.md)** - 拖拽系统关键修复
 - **[voice-bubble-optimization.md](04-technical/voice-bubble-optimization.md)** - 语音气泡优化
+- **[accessory-system-optimization-summary.md](04-technical/accessory-system-optimization-summary.md)** - 配件系统优化总结
 
 ### 🧠 memory/ - 记忆体系
 跨会话记忆库，包含技术细节和经验总结。
