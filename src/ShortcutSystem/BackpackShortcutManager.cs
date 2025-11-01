@@ -925,10 +925,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 {
                     if (attachment != null)
                     {
-                        attachment.onSlotContentChanged -= OnAttachmentContentChanged;
-                        attachment.onDestroy -= OnAttachmentDestroyed;
                         attachment.onParentChanged -= OnAttachmentParentChanged;
-                        attachment.onSlotTreeChanged -= OnAttachmentSlotTreeChanged;
                     }
                 }
                 _subscribedAttachments.Clear();
@@ -956,19 +953,20 @@ namespace Backpack_QuickWheel.ShortcutSystem
         {
             if (backpack == null || backpack.Slots == null) return;
 
-            foreach (var slot in backpack.Slots)
+            // 🔧 关键修复：根据背包配置判断哪些slot应该放配件
+            var attachmentSlotIndices = GetAttachmentSlotIndices(backpack);
+
+            for (int i = 0; i < backpack.Slots.Count; i++)
             {
-                if (slot != null && slot.Content != null)
+                var slot = backpack.Slots[i];
+                if (slot != null && slot.Content != null && attachmentSlotIndices.Contains(i))
                 {
                     var attachment = slot.Content;
 
-                    // 订阅配件内容变化
-                    attachment.onSlotContentChanged += OnAttachmentContentChanged;
+                    Debug.Log($"[BackpackShortcutManager] 发现配件: {attachment.DisplayName} (在slot {i})");
 
-                    // 🔧 新增：订阅配件本身的生命周期事件，检测配件移动
-                    attachment.onDestroy += OnAttachmentDestroyed;
-                    attachment.onParentChanged += OnAttachmentParentChanged;
-                    attachment.onSlotTreeChanged += OnAttachmentSlotTreeChanged;
+                    // 🔧 简化：只订阅配件移动事件
+            attachment.onParentChanged += OnAttachmentParentChanged;
 
                     _subscribedAttachments.Add(attachment);
 
@@ -978,9 +976,51 @@ namespace Backpack_QuickWheel.ShortcutSystem
                         SubscribeToAttachmentsChanges(attachment);
                     }
                 }
+                else if (slot != null && slot.Content != null && !attachmentSlotIndices.Contains(i))
+                {
+                    Debug.Log($"[BackpackShortcutManager] 跳过普通物品: {slot.Content.DisplayName} (在slot {i})");
+                }
             }
 
-            Debug.Log($"[BackpackShortcutManager] 已订阅 {_subscribedAttachments.Count} 个配件的变化事件（包括移动检测）");
+            Debug.Log($"[BackpackShortcutManager] 已订阅 {_subscribedAttachments.Count} 个配件的变化事件");
+        }
+
+        /// <summary>
+        /// 🎯 根据背包配置获取配件slot的索引
+        /// </summary>
+        private List<int> GetAttachmentSlotIndices(Item backpack)
+        {
+            var attachmentIndices = new List<int>();
+
+            if (backpack?.TypeID == null) return attachmentIndices;
+
+            // 查找当前背包类型的配置
+            if (BackpackModConfig.BackpackSlotConfigs.TryGetValue(backpack.TypeID, out var slotConfigs))
+            {
+                // 获取所有配件slot的名称
+                var attachmentSlotNames = new HashSet<string>(slotConfigs);
+                Debug.Log($"[BackpackShortcutManager] 背包 {backpack.DisplayName} (TypeID: {backpack.TypeID}) 配件slot: {string.Join(", ", attachmentSlotNames)}");
+
+                // 根据slot名称匹配实际slot的requireTags
+                for (int i = 0; i < backpack.Slots.Count; i++)
+                {
+                    var slot = backpack.Slots[i];
+                    if (slot?.requireTags != null)
+                    {
+                        foreach (var requireTag in slot.requireTags)
+                        {
+                            if (requireTag != null && attachmentSlotNames.Contains(requireTag.name))
+                            {
+                                attachmentIndices.Add(i);
+                                Debug.Log($"[BackpackShortcutManager] 找到配件slot: {i} (requireTag: {requireTag.name})");
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return attachmentIndices;
         }
 
         /// <summary>
@@ -1000,23 +1040,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
             _pendingAttachmentUpdateCoroutine = StartCoroutine(IncrementalUpdateCategorizedItems());
         }
 
-        /// <summary>
-        /// 配件内容变化处理
-        /// </summary>
-        private void OnAttachmentContentChanged(Item item, Slot slot)
-        {
-            if (!IsShortcutSystemEnabled || _isRefreshing) return;
-
-            Debug.Log($"[BackpackShortcutManager] 配件内容变化: {item?.DisplayName}");
-
-            // 启动增量更新协程
-            if (_pendingAttachmentUpdateCoroutine != null)
-            {
-                StopCoroutine(_pendingAttachmentUpdateCoroutine);
-            }
-            _pendingAttachmentUpdateCoroutine = StartCoroutine(IncrementalUpdateCategorizedItems());
-        }
-
+    
         /// <summary>
         /// 快捷键输入处理
         /// </summary>
@@ -1194,28 +1218,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
         #region 🔧 配件移动检测机制
 
-        /// <summary>
-        /// 🎯 配件销毁事件处理
-        /// </summary>
-        private void OnAttachmentDestroyed(Item item)
-        {
-            if (item == null) return;
-
-            Debug.Log($"[BackpackShortcutManager] 配件销毁: {item.DisplayName}");
-
-            // 检查是否为已订阅的配件
-            if (_subscribedAttachments.Contains(item))
-            {
-                Debug.Log($"[BackpackShortcutManager] 配件本身被销毁，清理相关数据: {item.DisplayName}");
-
-                // 移除配件订阅
-                _subscribedAttachments.Remove(item);
-
-                // 配件被销毁后，其中的所有物品都需要从系统中移除
-                RefreshCategoriesAfterAttachmentChange();
-            }
-        }
-
+  
         /// <summary>
         /// 🎯 配件父级变化事件处理 - 检测配件是否从背包移出
         /// </summary>
@@ -1246,29 +1249,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
             }
         }
 
-        /// <summary>
-        /// 🎯 配件插槽树变化事件处理 - 检测配件结构变化
-        /// </summary>
-        private void OnAttachmentSlotTreeChanged(Item item)
-        {
-            if (item == null) return;
-
-            Debug.Log($"[BackpackShortcutManager] 配件插槽树结构变化: {item.DisplayName}");
-
-            // 检查是否为已订阅的配件
-            if (_subscribedAttachments.Contains(item))
-            {
-                // 验证配件是否还在系统中，可能已经被移除或结构发生变化
-                if (!IsAttachmentStillInBackpack(item))
-                {
-                    Debug.Log($"[BackpackShortcutManager] 插槽树变化检测到配件已离开背包: {item.DisplayName}");
-
-                    _subscribedAttachments.Remove(item);
-                    RefreshCategoriesAfterAttachmentChange();
-                }
-            }
-        }
-
+      
         /// <summary>
         /// 🎯 检查配件是否仍在背包中
         /// </summary>
