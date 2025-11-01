@@ -4,6 +4,8 @@ using Backpack_QuickWheel.AttachmentUI;
 using Backpack_QuickWheel.BackpackSystem;
 using Backpack_QuickWheel.ShortcutSystem;
 using Backpack_QuickWheel.VoiceWheelSystem;
+using Backpack_QuickWheel.LootDebugSystem;
+using LootDebugSystem;
 using HarmonyLib;
 using UnityEngine;
 
@@ -41,9 +43,8 @@ namespace Backpack_QuickWheel
             // 检测并导出支持的语言（开发时使用，完成后注释掉）
             // LanguageDetector.ExportSupportedLanguages();
 
-            // 初始化本地化系统
-            SystemLanguage currentLanguage = Application.systemLanguage; // 或者从游戏设置获取
-            Backpack_QuickWheel.Localization.LocalizationManager.Initialize(currentLanguage);
+            // 初始化本地化系统 - 延迟到关卡初始化后，确保游戏本地化系统已就绪
+            // Backpack_QuickWheel.Localization.LocalizationManager.Initialize(currentLanguage);
 
             // 初始化管理器
             tagManager = new TagManager();
@@ -58,6 +59,19 @@ namespace Backpack_QuickWheel
 
             // 初始化圆孔拖拽高亮缓存管理器
             Backpack_QuickWheel.AttachmentUI.SlotIndicatorCacheManager.Initialize();
+
+            // 初始化LootDebug系统（用于调试和数据分析）
+            Debug.Log("[ModBehaviour] 初始化LootDebug系统...");
+            var lootDebugObj = new GameObject("LootDebugManager");
+            lootDebugObj.transform.SetParent(transform); // 设置为ModBehaviour的子对象
+            DontDestroyOnLoad(lootDebugObj);
+            var lootDebugManager = lootDebugObj.AddComponent<LootDebugManager>();
+            Debug.Log("[ModBehaviour] LootDebugManager已创建，使用快捷键8触发");
+
+            // 初始化ItemFilter拦截器
+            Debug.Log("[ModBehaviour] 初始化ItemFilter拦截器...");
+            ItemFilterInterceptorPatch.Initialize();
+            Debug.Log("[ModBehaviour] ItemFilter拦截器已初始化");
 
             // 订阅关卡初始化事件
             LevelManager.OnLevelInitialized += OnLevelInitialized;
@@ -87,6 +101,9 @@ namespace Backpack_QuickWheel
 
             _isModInitialized = true;
             Debug.Log("行军包配件系统初始化完成");
+
+            // 调试：强制重新注册本地化，确保物品创建后本地化生效
+            StartCoroutine(DebugLocalizationAfterItemsCreated());
         }
 
 
@@ -96,6 +113,20 @@ namespace Backpack_QuickWheel
         void OnLevelInitialized()
         {
             Debug.Log("[ModBehaviour] 关卡初始化完成");
+
+            // 在关卡初始化后初始化本地化系统，确保游戏本地化系统已就绪
+            SystemLanguage currentLanguage = Application.systemLanguage;
+            Debug.Log($"[ModBehaviour] 检测到系统语言: {currentLanguage}");
+            Debug.Log($"[ModBehaviour] 转换为语言代码: {Backpack_QuickWheel.Localization.LanguageDetector.ToLanguageCode(currentLanguage)}");
+
+            // 强制使用中文，如果检测到的不是中文
+            if (currentLanguage != SystemLanguage.Chinese && currentLanguage != SystemLanguage.ChineseSimplified)
+            {
+                Debug.Log($"[ModBehaviour] 强制使用中文，覆盖检测到的语言: {currentLanguage}");
+                currentLanguage = SystemLanguage.ChineseSimplified;
+            }
+
+            Backpack_QuickWheel.Localization.LocalizationManager.Initialize(currentLanguage);
 
             // 检查当前场景是否有玩家，以及快捷键系统是否已初始化
             var player = FindObjectOfType<CharacterMainControl>();
@@ -213,6 +244,17 @@ namespace Backpack_QuickWheel
             // 发布版本中可以选择性导出，或者不导出
             // TagExporter.ExportAllTagsToFile();
 #endif
+        }
+
+        // 调试方法：在物品创建后强制重新注册本地化
+        System.Collections.IEnumerator DebugLocalizationAfterItemsCreated()
+        {
+            // 等待一帧，确保物品创建完成
+            yield return new WaitForEndOfFrame();
+
+            Debug.Log("[Debug] 物品创建完成，强制重新注册本地化...");
+            Backpack_QuickWheel.Localization.LocalizationManager.ForceReRegister();
+            Debug.Log("[Debug] 本地化强制重新注册完成");
         }
     }
 }

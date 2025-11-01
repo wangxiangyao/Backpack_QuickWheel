@@ -88,6 +88,12 @@ namespace Backpack_QuickWheel.Localization
             //}
 
             Debug.Log($"成功收集到 {_currentLanguageData.Count} 个本地化条目（包含名称和描述）");
+
+            // 调试：显示收集到的所有本地化数据
+            foreach (var entry in _currentLanguageData)
+            {
+                Debug.Log($"本地化数据: 键='{entry.Key}', 值='{entry.Value}'");
+            }
         }
 
         // 注册到游戏本地化系统
@@ -95,9 +101,54 @@ namespace Backpack_QuickWheel.Localization
         {
             foreach (var entry in _currentLanguageData)
             {
-                SodaCraft.Localizations.LocalizationManager.SetOverrideText(entry.Key, entry.Value);
-                Debug.Log($"注册本地化: {entry.Key} -> {entry.Value}");
+                // 尝试多种可能的键名格式
+                RegisterLocalizationWithMultipleFormats(entry.Key, entry.Value);
             }
+        }
+
+        // 使用多种格式注册本地化，确保覆盖所有可能的键名格式
+        private static void RegisterLocalizationWithMultipleFormats(string key, string value)
+        {
+            // 格式1: 原始键名
+            SodaCraft.Localizations.LocalizationManager.SetOverrideText(key, value);
+            Debug.Log($"注册本地化: {key} -> {value}");
+
+            //// 格式2: 移除"ITEM_"前缀（如果存在）
+            //if (key.StartsWith("ITEM_"))
+            //{
+            //    string simplifiedKey = key.Substring(5); // 移除"ITEM_"
+            //    SodaCraft.Localizations.LocalizationManager.SetOverrideText(simplifiedKey, value);
+            //    Debug.Log($"注册本地化(简化): {simplifiedKey} -> {value}");
+            //}
+
+            //// 格式3: 移除"_NAME"后缀（如果存在）
+            //if (key.EndsWith("_NAME"))
+            //{
+            //    string nameOnlyKey = key.Substring(0, key.Length - 5);
+            //    SodaCraft.Localizations.LocalizationManager.SetOverrideText(nameOnlyKey, value);
+            //    Debug.Log($"注册本地化(名称): {nameOnlyKey} -> {value}");
+            //}
+
+            //// 格式4: 移除"ITEM_"前缀和"_NAME"后缀
+            //if (key.StartsWith("ITEM_") && key.EndsWith("_NAME"))
+            //{
+            //    string cleanKey = key.Substring(5, key.Length - 10); // 移除"ITEM_"和"_NAME"
+            //    SodaCraft.Localizations.LocalizationManager.SetOverrideText(cleanKey, value);
+            //    Debug.Log($"注册本地化(清理): {cleanKey} -> {value}");
+            //}
+
+            //// 格式5: 添加额外的测试键名格式
+            //if (key.StartsWith("ITEM_") && key.EndsWith("_NAME"))
+            //{
+            //    // 尝试游戏可能使用的其他格式
+            //    string testKey1 = key.Replace("ITEM_", "").Replace("_NAME", "");
+            //    SodaCraft.Localizations.LocalizationManager.SetOverrideText(testKey1, value);
+            //    Debug.Log($"注册本地化(测试1): {testKey1} -> {value}");
+
+            //    string testKey2 = key.ToLower();
+            //    SodaCraft.Localizations.LocalizationManager.SetOverrideText(testKey2, value);
+            //    Debug.Log($"注册本地化(测试2): {testKey2} -> {value}");
+            //}
         }
 
         // 重新加载本地化（语言切换时调用）
@@ -112,10 +163,24 @@ namespace Backpack_QuickWheel.Localization
                 foreach (var key in _currentLanguageData.Keys.ToList())
                 {
                     SodaCraft.Localizations.LocalizationManager.RemoveOverrideText(key);
+                    Debug.Log($"移除本地化: {key}");
                 }
             }
 
             Initialize(newLanguage);
+        }
+
+        // 强制重新注册所有本地化（用于修复显示问题）
+        public static void ForceReRegister()
+        {
+            if (_currentLanguageData == null || _currentLanguageData.Count == 0)
+            {
+                Debug.LogWarning("本地化数据为空，无法强制重新注册");
+                return;
+            }
+
+            Debug.Log($"强制重新注册 {_currentLanguageData.Count} 个本地化条目");
+            RegisterToGameLocalization();
         }
 
         // 获取当前语言的文本

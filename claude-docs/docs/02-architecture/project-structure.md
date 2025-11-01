@@ -464,27 +464,33 @@ LoadFromFile() → ParseJson() → RestoreFromData() → 验证位置 → 恢复
 None(0), White(1), Green(2), Blue(3), Purple(4), Orange(5), Red(6), Q7(7), Q8(8)
 ```
 
-**配件品质分配方案**：
+**配件品质分配方案（2025-11-01价格优化）**：
 
 | 品质 | 配件名称 | TypeID | 重量 | 价格 | 获取难度 | 说明 |
 |------|---------|--------|------|------|---------|------|
-| 2 | 网兜 | 349100 | 0.3kg | 145 | 极易 | 最早期必需配件 |
-| 2 | 小钥匙袋 | 349130 | 0.2kg | 85 | 极易 | 钥匙初级方案 |
-| 3 | 水壶袋 | 349101 | 0.4kg | 675 | 容易 | 食物+小物件 |
-| 3 | 战术小透明 | 349131 | 0.5kg | 785 | 容易 | 战术小包升级 |
-| 4 | 工具箱 | 349140 | 1.2kg | 2050 | 中等 | 大型容器配件 |
-| 5 | 嘎嘎战术腰带 | 349151 | 0.35kg | 4850 | 困难 | 两个挂钩的高级战术腰带 |
-| 5 | 零重力肩带 | 349160 | 0.4kg | 5680 | 困难 | 减重肩带（后续可添加减重效果） |
-| 5 | 手机袋 | 349170 | 0.18kg | 4950 | 困难 | 肩带包（肩带是高级背包专有） |
-| 6 | 嘎嘎收纳包 | 349120 | 0.7kg | 8200 | 非常困难 | 行军背包独有大包 |
-| 6 | 嘎嘎战术包 | 349141 | 1.0kg | 9350 | 非常困难 | 行军背包战术配置专用 |
-| 6 | 战术子弹袋 | 349180 | 0.6kg | 7100 | 非常困难 | 行军背包弹匣神器 |
+| 1 | 网兜 | 349100 | 0.3kg | 120 | 极易 | 食物专用，比钥匙袋稍贵 |
+| 1 | 小钥匙袋 | 349130 | 0.2kg | 95 | 极易 | 钥匙专用，基础配件 |
+| 2 | 水壶袋 | 349101 | 0.4kg | 450 | 容易 | 食物+小物件双用途 |
+| 3 | 战术小透明 | 349131 | 0.5kg | 1500 | 容易 | 4个小槽，整理专家（价格调整） |
+| 3 | 工具箱 | 349140 | 1.2kg | 2200 | 中等 | 3个大槽，能放大物件（更贵） |
+| 4 | 嘎嘎战术腰带 | 349151 | 0.35kg | 4200 | 困难 | 2个挂钩，战术武器固定 |
+| 4 | 嘎嘎收纳包 | 349120 | 0.7kg | 6200 | 困难 | 3槽含大槽，容量更大（更贵） |
+| 5 | 嘎嘎战术包 | 349141 | 1.0kg | 8900 | 非常困难 | 5槽手雷专用，终极配置（最贵） |
+| 5 | 战术子弹袋 | 349180 | 0.6kg | 8500 | 非常困难 | 3弹夹槽，火力专家 |
 
-**价格逻辑**：
-- 品质2-3：远低于官方背包价格（目标：逐步接近）
-- 品质4：接近官方生存者包价格(2385)范围
-- 品质5：几乎持平行军背包价格(4760)，5000元左右
-- 品质6：远高于行军背包价格，7000-9000+元
+**暂时注释掉的配件**：
+- 零重力肩带（349160）- 原品质5，橙色
+- 手机袋（349170）- 原品质5，橙色
+
+**价格逻辑（2025-11-01优化）**：
+- 品质1：低价100左右，基础配件易获得
+- 品质2-3：中等价格，450-2200元，功能性强
+- 品质4：高价格4000-6000元，高级配件
+- 品质5：顶级价格8000-9000元以下，终极配件
+- **同品质差异化**：根据功能性、插槽数量、专精程度调整
+  - 工具箱(3大槽) > 战术小透明(4小槽)
+  - 嘎嘎收纳包(3槽含大槽) > 嘎嘎战术腰带(2挂钩)
+  - 嘎嘎战术包(5槽手雷专用) > 战术子弹袋(3弹夹槽)
 
 **设计原则**：
 1. **品质与背包等级绑定**：低品质配件对应低等级背包的插槽，高品质配件独占高等级背包
@@ -514,26 +520,120 @@ None(0), White(1), Green(2), Blue(3), Purple(4), Orange(5), Red(6), Q7(7), Q8(8)
 3. **稀有度递进** - 低品质朴实，高品质专业/霸气
 4. **双语自然** - 中英文都保持俏皮风格
 
-**12个配件描述列表**：
+**10个有效配件描述列表（2025-11-01更新）**：
 
 | 品质 | 配件名称 | 中文描述 | 英文描述 |
 |------|---------|---------|---------|
-| Green | 网兜 | 装瓶水？还是一个萝卜？反正食物就行～ | A bottle of water? A carrot? Anything food works~ |
-| Green | 小钥匙袋 | 钥匙的家，装满了就都堵门口吧 | Keys' home. Fill it up and you'll never lose one! |
-| Blue | 水壶袋 | 能放点吃喝，还能放个钥匙、针剂，就没地儿了。。 | Room for some snacks and drinks, maybe a key and syringe... but then it's full. |
+| White | 网兜 | 装瓶水？还是一个萝卜？反正食物就行～ | A bottle of water? A carrot? Anything food works~ |
+| White | 小钥匙袋 | 钥匙的家，装满了就都堵门口吧 | Keys' home. Fill it up and you'll never lose one! |
+| Green | 水壶袋 | 能放点吃喝，还能放个钥匙、针剂，就没地儿了。。 | Room for some snacks and drinks, maybe a key and syringe... but then it's full. |
 | Blue | 战术小透明 | 透明材质，小物件一目了然，专业人士的秘密武器 | Crystal clear visibility. Perfect for organizing those small essentials at a glance! |
-| Purple | 工具箱 | 行动必备！医疗包、水、粮食...这箱子就是你的移动仓库 | Your mobile supply depot! Medical kits, water, rations... pack it all in! |
-| Orange | 嘎嘎战术腰带 | 专业级战术腰带，两个挂钩稳稳地固定你的武器和装备。行动中的好搭档 | Professional-grade tactical belt with dual hooks to secure your weapons and gear. The perfect companion for action! |
-| Orange | 零重力肩带 | 仿佛背的不是物资，而是空气。你的肩膀会感谢你 | Feels like carrying air, not supplies. Your shoulders will thank you! |
-| Orange | 手机袋 | 名叫手机袋，其实啥小东西都能装。钥匙、针剂、糖果...顺手一掏 | Called a phone pocket but holds everything small. Keys, syringes, candy... grab and go! |
-| Red | 嘎嘎收纳包 | 诺亚方舟级收纳！大小物件都能装，这才是真正的整理大师 | Noah's Ark of storage! Everything finds its place. The master organizer! |
-| Red | 战术子弹袋 | 弹匣杀手！四个弹夹齐排队。火力全开从它开始 | Magazine heaven! Four mags ready to roll. Non-stop firepower begins here! |
-| Red | 嘎嘎战术包 | 终极之选！手雷、装备、补给...最专业的战术配置尽在其中 | The ultimate choice! Grenades, gear, supplies... pure tactical perfection! |
+| Blue | 工具箱 | 行动必备！医疗包、水、粮食...这箱子就是你的移动仓库 | Your mobile supply depot! Medical kits, water, rations... pack it all in! |
+| Purple | 嘎嘎战术腰带 | 专业级战术腰带，两个挂钩稳稳地固定你的武器和装备。行动中的好搭档 | Professional-grade tactical belt with dual hooks to secure your weapons and gear. The perfect companion for action! |
+| Purple | 嘎嘎收纳包 | 诺亚方舟级收纳！大小物件都能装，这才是真正的整理大师 | Noah's Ark of storage! Everything finds its place. The master organizer! |
+| Orange | 嘎嘎战术包 | 终极之选！手雷、装备、补给...最专业的战术配置尽在其中 | The ultimate choice! Grenades, gear, supplies... pure tactical perfection! |
+| Orange | 战术子弹袋 | 弹匣杀手！三个弹夹齐排队。火力全开从它开始 | Magazine heaven! Three mags ready to roll. Non-stop firepower begins here! |
+
+**暂时注释掉的配件**：
+- 零重力肩带（Orange品质） - 仿佛背的不是物资，而是空气。你的肩膀会感谢你
+- 手机袋（Orange品质） - 名叫手机袋，其实啥小东西都能装。钥匙、针剂、糖果...顺手一掏
 
 **说明**：
 - 这是初版文案，暂未涉及具体的游戏效果（如减重、加速）
 - 等配件特殊功能全部实现后（P1后期），会再次修改描述以体现具体效果
 - 比如零重力肩带会改为"能减XX%负重"，提示玩家具体效果
+
+---
+
+### 配件配置变更记录
+
+#### 2025-11-01 配件价格优化
+**变更类型**：价格体系合理化
+**变更原因**：根据品质价格逻辑，实现同品质配件价格差异化，提升游戏经济平衡
+
+**主要变更**：
+1. **品质1配件差异化**：
+   - 网兜：120元（食物专用，稍贵）
+   - 小钥匙袋：95元（钥匙专用，基础价）
+
+2. **品质3配件差异化**：
+   - 工具箱：2200元（3个大槽，能放大物件，更贵）
+   - 战术小透明：1500元（4个小槽，整理专家，价格调整）
+
+3. **品质4配件差异化**：
+   - 嘎嘎收纳包：6200元（3槽含大槽，容量更大，更贵）
+   - 嘎嘎战术腰带：4200元（2个挂钩，战术武器固定）
+
+4. **品质5配件差异化**：
+   - 嘎嘎战术包：8900元（5槽手雷专用，终极配置，最贵）
+   - 战术子弹袋：8500元（3弹夹槽，火力专家）
+
+5. **价格逻辑优化**：
+   - 品质1：100元左右（基础配件）
+   - 品质5：8000-9000元以下（终极配件，严格控制）
+   - 根据功能性、插槽数量、专精程度实现差异化定价
+
+**品质调整记录（第二轮）**：
+1. **品质下调**：
+   - 工具箱：品质4→3（Purple→Blue）
+   - 嘎嘎战术包：品质6→5（Red→Orange）
+   - 战术子弹袋：品质6→5（Red→Orange）
+
+2. **品质上调**：
+   - 嘎嘎收纳包：品质5→4（Orange→Purple）
+
+3. **保持不变**：
+   - 网兜：品质1（White）
+   - 小钥匙袋：品质1（White）
+   - 水壶袋：品质2（Green）
+   - 战术小透明：品质3（Blue）
+   - 嘎嘎战术腰带：品质4（Purple）
+
+4. **暂时禁用**：
+   - 零重力肩带（349160）：完全注释，品质5（Orange）
+   - 手机袋（349170）：完全注释，品质5（Orange）
+   - 背包插槽：ShoulderStrap和ShoulderPouch插槽也相应注释
+
+**配置细节**：
+```csharp
+// 品质调整示例
+new AttachmentItemConfig(...){
+    Quality = 1, // 网兜和小钥匙袋调整为品质1
+    DisplayQuality = ItemStatsSystem.DisplayQuality.White,
+}
+
+new AttachmentItemConfig(...){
+    Quality = 4, // 嘎嘎战术腰带调整为品质4
+    DisplayQuality = ItemStatsSystem.DisplayQuality.Purple,
+}
+
+new AttachmentItemConfig(...){
+    Quality = 5, // 嘎嘎收纳包调整为品质5
+    DisplayQuality = ItemStatsSystem.DisplayQuality.Orange,
+}
+
+// 注释的配件
+/*
+new AttachmentItemConfig(...) // 零重力肩带
+new AttachmentItemConfig(...) // 手机袋
+*/
+```
+
+**影响范围**：
+- 有效配件数量：12个 → 10个
+- 最终品质分布：White(2)、Green(1)、Blue(2)、Purple(2)、Orange(2)、Red(0)
+- 品质6完全移除，品质体系更加平衡
+- 价格差异化完成，同品质配件根据功能性合理定价
+- 背包插槽配置：高级背包的ShoulderStrap和ShoulderPouch插槽暂时禁用
+
+**价格差异化效果**：
+- 品质1：95-120元（基础配件，低价易获得）
+- 品质2：450元（功能配件，中等价格）
+- 品质3：1500-2200元（价格合理化，战术小透明调整至1500）
+- 品质4：4200-6200元（高价值配件）
+- 品质5：8500-8900元（终极配件，严格控制在9000以下）
+
+**编译状态**：✅ 所有修改编译通过
 
 ---
 

@@ -82,12 +82,17 @@ namespace Backpack_QuickWheel.AttachmentUI
                     bool hasLabel = false;
                     if (slot.requireTags != null && slot.requireTags.Count > 1)
                     {
-                        // 从第二个tag开始显示（第一个tag用作DisplayName，已经显示过了）
-                        for (int j = 1; j < slot.requireTags.Count; j++)
-                        {
-                            if (j > 1) sb.Append("、");
-                            sb.Append(slot.requireTags[j].DisplayName);
+                        if (slot.requireTags.Count == 1) {
+                            sb.Append(slot.requireTags[0].DisplayName);
                             hasLabel = true;
+                        } else {
+                            // 从第二个tag开始显示（第一个tag用作DisplayName，已经显示过了）
+                            for (int j = 1; j < slot.requireTags.Count; j++)
+                            {
+                                if (j > 1) sb.Append("、");
+                                sb.Append(slot.requireTags[j].DisplayName);
+                                hasLabel = true;
+                            }
                         }
                     }
 

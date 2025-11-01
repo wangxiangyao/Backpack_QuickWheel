@@ -56,7 +56,23 @@ GameSource/Duckov/ - 游戏官方源码（第一优先级）
 **绝对禁止**: 基于经验或参数名称猜测功能
 **标准流程**: 查看源码 → 理解参数 → 基于源码实现
 
-### 3. Item类使用规范 ⚠️
+### 3. 🔥 **究极准则：信息完整性原则** 【超级最高优先级】
+**遇到以下情况必须停止并暴露信息缺口**：
+1. **找不到类/方法定义** - ItemFilter, RandomContainer, OnQuackInput等
+2. **方法实现被编译隐藏** - 如async状态机，运行时生成的方法
+3. **缺少关键配置文件** - 掉落表、商店配置、输入映射等
+4. **任何需要假设才能继续的情况**
+
+**🔥 自检三连问（每次思考前必须问自己）**：
+1. **我是否基于假设在思考？**
+2. **我是否暴露了信息缺口？**
+3. **我是否问了用户确认？**
+
+**🔥 允许猜测但不允许基于猜测做决定**：
+- ❌ 错误："我认为OnDash可能对应F10，直接实现..."
+- ✅ 正确："我猜测OnDash可能对应某个功能键，但不确定。OnDash实际对应哪个键？请确认后再实现。"
+
+### 4. Item类使用规范 ⚠️
 ```csharp
 // ✅ 正确
 int count = item.Slots.Count;   // SlotCollection用Count
@@ -65,12 +81,12 @@ int count = item.Slots.Count;   // SlotCollection用Count
 int count = item.Slots.Length;  // 编译错误！
 ```
 
-### 4. 关键参数实例（气泡速度）⚡
+### 5. 关键参数实例（气泡速度）⚡
 - **位置**: `DialogueBubble.cs:137` - `defaultSpeed = 10f`
 - **真相**: speed数值**越大越快**（不是越小越快）
 - **正确**: `playerCharacter.PopText(text, 50f)` // 5倍速
 
-### 5. 反射操作安全
+### 6. 反射操作安全
 ```csharp
 if (_field == null) return;                    // 必须null检查
 GameObject obj = _field.GetValue(instance) as GameObject;
@@ -89,6 +105,25 @@ Object.DestroyImmediate(obj);                 // 同步删除
 **文档使用方法** → `docs/memory/documentation-system-guide.md` （详细使用指南）
 **关键经验** → `docs/memory/key-experiences.md` （核心经验和最佳实践）
 
+## 🔧 **编译指令（必须记住）**
+
+**项目编译命令**：
+```bash
+dotnet build src/Backpack_QuickWheel.csproj
+```
+
+**输出目录**：
+- `D:\steam\steamapps\common\Escape from Duckov\Duckov_Data\Mods\Backpack_QuickWheel\`
+
+**框架配置**：
+- .NET Standard 2.1
+- 游戏路径通过 `.csproj` 的 `DuckovPath` 变量设置
+
+**⚠️ 已知问题（待解决）**：
+- **编译警告** - 大量nullable引用类型警告，可能影响游戏功能
+- **缺失依赖** - SodaLocalization程序集缺失（已临时处理）
+- **优先级** - 警告问题需要以后找时间解决
+
 ## 📋 会话启动检查清单
 
 新会话开始时必须：
@@ -97,7 +132,8 @@ Object.DestroyImmediate(obj);                 // 同步删除
 3. ✅ 知道项目是背包配件Mod
 4. ✅ 记住源码在GameSource/Duckov/
 5. ✅ 理解源码驱动开发原则
-6. ✅ 查看 `docs/01-core/TODO.md` 了解当前任务
+6. ✅ 查看编译指令（dotnet build Backpack_QuickWheel.csproj）
+7. ✅ 查看 `docs/01-core/TODO.md` 了解当前任务
 
 **遇到复杂任务时**：
 - ✅ 复杂任务识别：>4小时、多文件、新技术？

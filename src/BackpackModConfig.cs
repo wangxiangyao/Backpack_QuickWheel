@@ -27,9 +27,9 @@ namespace Backpack_QuickWheel
         {
             { 36, new List<string> { "SidePocket_Small" } }, // 装饰包
             { 37, new List<string> { "SidePocket_Small", "TacticalPouch_Small", "SidePocket_Small" } }, // 小学生包
-            { 38, new List<string> { "SidePocket_Small", "TacticalPouch_Small", "LockBuckle", "ShoulderPouch", "SidePocket_Small" } }, // 旅行包
-            { 39, new List<string> { "SidePocket_Small", "TacticalPouch_Small", "TacticalPouch_Large", "LockBuckle", "ShoulderStrap", "ShoulderPouch", "SidePocket_Small" } }, // 生存者背包
-            { 40, new List<string> { "SidePocket_Large", "TacticalPouch_Small", "TacticalPouch_Large", "LockBuckle", "LockBuckle", "AmmoPouch", "AmmoPouch", "ShoulderStrap", "ShoulderPouch", "SidePocket_Large" } } // 行军背包MAX
+            { 38, new List<string> { "SidePocket_Small", "TacticalPouch_Small", "LockBuckle" /*, "ShoulderPouch"*/, "SidePocket_Small" } }, // 旅行包 - 暂时注释掉ShoulderPouch
+            { 39, new List<string> { "SidePocket_Small", "TacticalPouch_Small", "TacticalPouch_Large", "LockBuckle" /*, "ShoulderStrap", "ShoulderPouch"*/, "SidePocket_Small" } }, // 生存者背包 - 暂时注释掉ShoulderStrap和ShoulderPouch
+            { 40, new List<string> { "SidePocket_Large", "TacticalPouch_Small", "TacticalPouch_Large", "LockBuckle", "LockBuckle", "AmmoPouch", "AmmoPouch" /*, "ShoulderStrap", "ShoulderPouch"*/, "SidePocket_Large" } } // 行军背包MAX - 暂时注释掉ShoulderStrap和ShoulderPouch
         };
 
         // 定义统一的插槽类型 - 确保每个都有正确的限制Tag
@@ -76,13 +76,13 @@ namespace Backpack_QuickWheel
         {
             // === 侧面小包 ===
             new AttachmentItemConfig(
-                "NetPocket_Item", "ITEM_NET_POCKET_NAME",
-                349100, 0.3f, 145, "SidePocket_Small",
+                "NetPocket_Item", "ITEM_NET_POCKET_NAME", "",
+                349100, 0.3f, 120, "SidePocket_Small",
                 new List<SlotConfig> { UnifiedSlotTypes["Food"] },
                 "Textures.NetPocket_Item.png"
             ){
-                Quality = 2,
-                DisplayQuality = ItemStatsSystem.DisplayQuality.Green,
+                Quality = 1, // 调整为品质1
+                DisplayQuality = ItemStatsSystem.DisplayQuality.White,
                 Localization = new LocalizationData
                 {
                     LanguageMappings = new Dictionary<string, Dictionary<string, string>>
@@ -105,13 +105,13 @@ namespace Backpack_QuickWheel
                 }
             },
             new AttachmentItemConfig(
-                "CanteenPocket_Item", "ITEM_CANTEEN_POCKET_NAME",
-                349101, 0.4f, 675, "SidePocket_Small",
+                "CanteenPocket_Item", "ITEM_CANTEEN_POCKET_NAME", "",
+                349101, 0.4f, 450, "SidePocket_Small",
                 new List<SlotConfig> { UnifiedSlotTypes["Food"], UnifiedSlotTypes["Small"] },
                 "Textures.CanteenPocket_Item.png"
             ){
-                Quality = 3,
-                DisplayQuality = ItemStatsSystem.DisplayQuality.Blue,
+                Quality = 2, // 调整为品质2
+                DisplayQuality = ItemStatsSystem.DisplayQuality.Green,
                 Localization = new LocalizationData
                 {
                     LanguageMappings = new Dictionary<string, Dictionary<string, string>>
@@ -136,13 +136,13 @@ namespace Backpack_QuickWheel
 
             // === 侧面大包 ===
             new AttachmentItemConfig(
-                "GagaStorage_Item", "ITEM_GAGA_STORAGE_NAME",
-                349120, 0.7f, 8200, "SidePocket_Large",
+                "GagaStorage_Item", "ITEM_GAGA_STORAGE_NAME", "",
+                349120, 0.7f, 6200, "SidePocket_Large",
                 new List<SlotConfig> { UnifiedSlotTypes["Small"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Large"] },
                 "Textures.GagaStorage_Item.png"
             ){
-                Quality = 6,
-                DisplayQuality = ItemStatsSystem.DisplayQuality.Red,
+                Quality = 4, // 调整为品质4
+                DisplayQuality = ItemStatsSystem.DisplayQuality.Purple,
                 Localization = new LocalizationData
                 {
                     LanguageMappings = new Dictionary<string, Dictionary<string, string>>
@@ -167,13 +167,13 @@ namespace Backpack_QuickWheel
 
             // === 战术小包 ===
             new AttachmentItemConfig(
-                "SmallKeyPouch_Item", "ITEM_SMALL_KEY_POUCH_NAME",
-                349130, 0.2f, 85, "TacticalPouch_Small",
+                "SmallKeyPouch_Item", "ITEM_SMALL_KEY_POUCH_NAME", "",
+                349130, 0.2f, 95, "TacticalPouch_Small",
                 new List<SlotConfig> { UnifiedSlotTypes["Key"], UnifiedSlotTypes["Key"] },
                 "Textures.SmallKeyPouch_Item.png"
             ){
-                Quality = 2,
-                DisplayQuality = ItemStatsSystem.DisplayQuality.Green,
+                Quality = 1, // 调整为品质1
+                DisplayQuality = ItemStatsSystem.DisplayQuality.White,
                 Localization = new LocalizationData
                 {
                     LanguageMappings = new Dictionary<string, Dictionary<string, string>>
@@ -196,12 +196,12 @@ namespace Backpack_QuickWheel
                 }
             },
             new AttachmentItemConfig(
-                "TacticalTransparent_Item", "ITEM_TACTICAL_TRANSPARENT_NAME",
-                349131, 0.5f, 785, "TacticalPouch_Small",
+                "TacticalTransparent_Item", "ITEM_TACTICAL_TRANSPARENT_NAME", "",
+                349131, 0.5f, 1500, "TacticalPouch_Small",
                 new List<SlotConfig> { UnifiedSlotTypes["Small"], UnifiedSlotTypes["Small"], UnifiedSlotTypes["Small"], UnifiedSlotTypes["Small"] },
                 "Textures.TacticalTransparent_Item.png"
             ){
-                Quality = 3,
+                Quality = 3, // 保持品质3
                 DisplayQuality = ItemStatsSystem.DisplayQuality.Blue,
                 Localization = new LocalizationData
                 {
@@ -227,13 +227,13 @@ namespace Backpack_QuickWheel
 
             // === 战术大包 ===
             new AttachmentItemConfig(
-                "ToolBox_Item", "ITEM_TOOL_BOX_NAME",
-                349140, 1.2f, 2050, "TacticalPouch_Large",
+                "ToolBox_Item", "ITEM_TOOL_BOX_NAME", "",
+                349140, 1.2f, 2200, "TacticalPouch_Large",
                 new List<SlotConfig> { UnifiedSlotTypes["Large"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Large"] },
                 "Textures.ToolBox_Item.png"
             ){
-                Quality = 4,
-                DisplayQuality = ItemStatsSystem.DisplayQuality.Purple,
+                Quality = 3, // 调整为品质3
+                DisplayQuality = ItemStatsSystem.DisplayQuality.Blue,
                 Localization = new LocalizationData
                 {
                     LanguageMappings = new Dictionary<string, Dictionary<string, string>>
@@ -256,13 +256,13 @@ namespace Backpack_QuickWheel
                 }
             },
             new AttachmentItemConfig(
-                "GagaTactical_Item", "ITEM_GAGA_TACTICAL_NAME",
-                349141, 1.0f, 9350, "TacticalPouch_Large",
+                "GagaTactical_Item", "ITEM_GAGA_TACTICAL_NAME", "",
+                349141, 1.0f, 8900, "TacticalPouch_Large",
                 new List<SlotConfig> { UnifiedSlotTypes["Explosive"], UnifiedSlotTypes["Explosive"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Explosive"], UnifiedSlotTypes["Explosive"] },
                 "Textures.GagaTactical_Item.png"
             ){
-                Quality = 6,
-                DisplayQuality = ItemStatsSystem.DisplayQuality.Red,
+                Quality = 5, // 调整为品质5
+                DisplayQuality = ItemStatsSystem.DisplayQuality.Orange,
                 Localization = new LocalizationData
                 {
                     LanguageMappings = new Dictionary<string, Dictionary<string, string>>
@@ -288,11 +288,11 @@ namespace Backpack_QuickWheel
             // === 锁扣 ===
             // 磁吸锁扣 - 保留以兼容旧存档，但不在背包中显示插槽
             new AttachmentItemConfig(
-                "MagneticLock_Item", "ITEM_MAGNETIC_LOCK_NAME",
+                "MagneticLock_Item", "ITEM_MAGNETIC_LOCK_NAME", "",
                 349150, 0.08f, 1450, "LockBuckle",
                 new List<SlotConfig>() // 无插槽 - 禁用显示
             ){
-                Quality = 4,
+                Quality = 1,
                 DisplayQuality = ItemStatsSystem.DisplayQuality.Purple,
                 Localization = new LocalizationData
                 {
@@ -316,13 +316,13 @@ namespace Backpack_QuickWheel
                 }
             },
             new AttachmentItemConfig(
-                "GagaTacticalBelt_Item", "ITEM_GAGA_TACTICAL_BELT_NAME",
-                349151, 0.35f, 4850, "LockBuckle",
+                "GagaTacticalBelt_Item", "ITEM_GAGA_TACTICAL_BELT_NAME", "",
+                349151, 0.35f, 4200, "LockBuckle",
                 new List<SlotConfig> { UnifiedSlotTypes["Hook"], UnifiedSlotTypes["Hook"] },
                 "Textures.GagaTacticalBelt_Item.png"
             ){
-                Quality = 5,
-                DisplayQuality = ItemStatsSystem.DisplayQuality.Orange,
+                Quality = 4, // 调整为品质4
+                DisplayQuality = ItemStatsSystem.DisplayQuality.Purple,
                 Localization = new LocalizationData
                 {
                     LanguageMappings = new Dictionary<string, Dictionary<string, string>>
@@ -346,13 +346,15 @@ namespace Backpack_QuickWheel
             },
 
             // === 肩带 ===
+            // 暂时注释掉零重力肩带
+            /*
             new AttachmentItemConfig(
-                "ZeroGravityStrap_Item", "ITEM_ZERO_GRAVITY_STRAP_NAME",
+                "ZeroGravityStrap_Item", "ITEM_ZERO_GRAVITY_STRAP_NAME", "",
                 349160, 0.4f, 5680, "ShoulderStrap",
                 new List<SlotConfig>(), // 无插槽
                 "Textures.ZeroGravityStrap_Item.png"
             ){
-                Quality = 5,
+                Quality = 5, // 恢复原始品质：Orange
                 DisplayQuality = ItemStatsSystem.DisplayQuality.Orange,
                 Localization = new LocalizationData
                 {
@@ -375,15 +377,18 @@ namespace Backpack_QuickWheel
                     }
                 }
             },
+            */
 
             // === 肩带包 ===
+            // 暂时注释掉手机袋
+            /*
             new AttachmentItemConfig(
-                "PhonePocket_Item", "ITEM_PHONE_POCKET_NAME",
+                "PhonePocket_Item", "ITEM_PHONE_POCKET_NAME", "",
                 349170, 0.18f, 4950, "ShoulderPouch",
                 new List<SlotConfig> { UnifiedSlotTypes["Small"] },
                 "Textures.PhonePocket_Item.png"
             ){
-                Quality = 5,
+                Quality = 5, // 恢复原始品质：Orange
                 DisplayQuality = ItemStatsSystem.DisplayQuality.Orange,
                 Localization = new LocalizationData
                 {
@@ -406,16 +411,17 @@ namespace Backpack_QuickWheel
                     }
                 }
             },
+            */
 
             // === 子弹袋 ===
             new AttachmentItemConfig(
-                "TacticalAmmoPouch_Item", "ITEM_TACTICAL_AMMO_POUCH_NAME",
-                349180, 0.6f, 7100, "AmmoPouch",
+                "TacticalAmmoPouch_Item", "ITEM_TACTICAL_AMMO_POUCH_NAME", "",
+                349180, 0.6f, 8500, "AmmoPouch",
                 new List<SlotConfig> { UnifiedSlotTypes["Magazine"], UnifiedSlotTypes["Magazine"], UnifiedSlotTypes["Magazine"] },
                 "Textures.TacticalAmmoPouch_Item.png"
             ){
-                Quality = 6,
-                DisplayQuality = ItemStatsSystem.DisplayQuality.Red,
+                Quality = 5, // 调整为品质5
+                DisplayQuality = ItemStatsSystem.DisplayQuality.Orange,
                 Localization = new LocalizationData
                 {
                     LanguageMappings = new Dictionary<string, Dictionary<string, string>>

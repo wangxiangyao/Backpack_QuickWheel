@@ -7,6 +7,7 @@ namespace Backpack_QuickWheel.AttachmentSystem
     {
         public string ItemName { get; set; }
         public string DisplayName { get; set; }  // 本地化键
+        public string Description { get; set; }  // 物品描述
         public int TypeID { get; set; }
         public float Weight { get; set; }
         public int Value { get; set; }
@@ -19,12 +20,13 @@ namespace Backpack_QuickWheel.AttachmentSystem
         // 新增：本地化数据引用
         public LocalizationData Localization { get; set; }
 
-        public AttachmentItemConfig(string itemName, string DisplayName,
+        public AttachmentItemConfig(string itemName, string DisplayName, string description,
                                    int typeID, float weight, int value, string requiredTag,
                                    List<SlotConfig> slotConfigs, string embeddedSpritePath = null)
         {
             ItemName = itemName;
             this.DisplayName = DisplayName;
+            Description = description;
             TypeID = typeID;
             Weight = weight;
             Value = value;
