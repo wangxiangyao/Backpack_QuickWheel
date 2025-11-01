@@ -106,7 +106,7 @@ namespace Backpack_QuickWheel.AttachmentUI.Patches
                 List<string> restrictTags = GetRestrictTags(slotType);
 
                 // 调试日志
-                Debug.Log($"[SlotIndicator] 自定义插槽 {slot.Key} 类型={slotType}, RestrictTags={string.Join(",", restrictTags ?? new List<string>())}");
+                // Debug.Log($"[SlotIndicator] 自定义插槽 {slot.Key} 类型={slotType}, RestrictTags={string.Join(",", restrictTags ?? new List<string>())}");
 
                 requireKey = "require_or: [" + string.Join("|", restrictTags ?? new List<string>()) + "]";
             }
@@ -136,7 +136,7 @@ namespace Backpack_QuickWheel.AttachmentUI.Patches
             // 调试日志
             if (slot.Key != null && slot.Key.StartsWith("wxy_"))
             {
-                Debug.Log($"[SlotIndicator] 生成规则: {ruleKey}");
+                // Debug.Log($"[SlotIndicator] 生成规则: {ruleKey}");
             }
 
             return ruleKey;
@@ -170,7 +170,7 @@ namespace Backpack_QuickWheel.AttachmentUI.Patches
                 if (BackpackModConfig.UnifiedSlotTypes.ContainsKey(slotType))
                 {
                     var tags = BackpackModConfig.UnifiedSlotTypes[slotType].RestrictTags;
-                    Debug.Log($"[GetRestrictTags] 找到插槽类型 {slotType}: {(tags != null ? string.Join(",", tags) : "null")}");
+                    // Debug.Log($"[GetRestrictTags] 找到插槽类型 {slotType}: {(tags != null ? string.Join(",", tags) : "null")}");
                     return tags;
                 }
                 else

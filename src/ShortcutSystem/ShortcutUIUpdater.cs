@@ -108,7 +108,26 @@ namespace Backpack_QuickWheel.ShortcutSystem
         public static void ClearShortcutUI(int index)
         {
             Debug.Log($"[ShortcutUIUpdater] 清空快捷键 {index}");
-            UpdateShortcutUI(index, null);
+
+            try
+            {
+                // 触发UI刷新事件，让游戏系统更新显示状态
+                bool eventSuccess = TriggerOnSetItemEvent(index);
+
+                if (eventSuccess)
+                {
+                    Debug.Log($"[ShortcutUIUpdater] ✓ 快捷键 {index} UI刷新事件已触发");
+                }
+                else
+                {
+                    Debug.Log($"[ShortcutUIUpdater] 快捷键 {index} 事件触发失败，UI将由游戏系统自动刷新");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[ShortcutUIUpdater] 清空快捷键 {index} 时出错: {ex.Message}");
+                // 不重新抛出异常，避免影响系统清理流程
+            }
         }
 
         /// <summary>

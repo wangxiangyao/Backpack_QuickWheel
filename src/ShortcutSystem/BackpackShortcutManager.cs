@@ -44,6 +44,12 @@ namespace Backpack_QuickWheel.ShortcutSystem
         // 🎯 当前订阅销毁事件的物品实例
         private Item _currentSubscribedItem = null;
 
+        // 🔧 配件slot订阅管理
+        private HashSet<Slot> _subscribedAttachmentSlots = new HashSet<Slot>();
+
+        // 🔧 物品拔出事件订阅管理
+        private HashSet<Item> _subscribedItems = new HashSet<Item>();
+
         public static bool IsShortcutSystemEnabled { get; private set; }
         public static event System.Action<bool> OnShortcutSystemStateChanged;
 
@@ -266,6 +272,98 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
             // 跳过旧的复杂逻辑，直接结束
             Debug.Log("[BackpackShortcutManager] 新架构：轮盘布局更新完成");
+        }
+
+        /// <summary>
+        /// 🔧 单类别精确更新 - 只更新指定的类别，避免全背包扫描
+        /// 用于配件内部槽位物品变化的精确处理
+        /// </summary>
+        private System.Collections.IEnumerator SingleCategoryUpdate(ItemCategory category)
+        {
+            Debug.Log($"[BackpackShortcutManager] 开始单类别精确更新: {category}");
+
+            yield return null; // 等待一帧，确保物品状态已更新
+
+            if (_currentBackpack == null) yield break;
+
+            // 🔧 只收集指定类别的物品，避免全背包扫描
+            var categoryItems = new List<Item>();
+            CollectCategoryItemsFromBackpack(_currentBackpack, category, categoryItems);
+
+            Debug.Log($"[BackpackShortcutManager] 单类别 {category} 收集到 {categoryItems.Count} 个物品");
+
+            // 🔧 只更新指定的类别
+            _wheelLayoutManager.UpdateFromCollectedItems(category, categoryItems);
+
+            Debug.Log($"[BackpackShortcutManager] 单类别 {category} 更新完成");
+        }
+
+        /// <summary>
+        /// 🔧 智能检测更新 - 用于物品取出时的智能检测
+        /// 通过轮盘管理器的智能检测来处理物品移除，只检测可能有变化的类别
+        /// </summary>
+        private System.Collections.IEnumerator SmartDetectionUpdate()
+        {
+            Debug.Log("[BackpackShortcutManager] 开始智能检测更新模式");
+
+            yield return null; // 等待一帧，确保物品状态已更新
+
+            if (_currentBackpack == null) yield break;
+
+            // 🔧 关键优化：只检测常见的可能受影响的类别，而不是全类别扫描
+            // 配件内部通常存储的是消耗品、医疗用品、食物等
+            var likelyAffectedCategories = new ItemCategory[]
+            {
+                ItemCategory.Food,
+                ItemCategory.Medical,
+                ItemCategory.Stim,
+                ItemCategory.Explosive
+            };
+
+            // 🔧 只检测可能有变化的类别，大幅减少不必要的扫描
+            foreach (var category in likelyAffectedCategories)
+            {
+                // 获取当前该类别的物品
+                var categoryItems = new List<Item>();
+                CollectCategoryItemsFromBackpack(_currentBackpack, category, categoryItems);
+
+                // 让轮盘管理器进行智能检测和更新
+                // 轮盘管理器会自动检测是否有变化并只更新必要的格子
+                _wheelLayoutManager.UpdateFromCollectedItems(category, categoryItems);
+
+                Debug.Log($"[BackpackShortcutManager] 智能检测类别 {category}: {categoryItems.Count} 个物品");
+            }
+
+            Debug.Log("[BackpackShortcutManager] 智能检测更新完成 - 仅检测可能受影响的类别");
+        }
+
+        /// <summary>
+        /// 🔧 只收集指定类别的物品，性能优化版本
+        /// 避免收集所有物品，只收集目标类别
+        /// </summary>
+        private void CollectCategoryItemsFromBackpack(Item backpack, ItemCategory targetCategory, List<Item> result)
+        {
+            if (backpack == null || backpack.Slots == null) return;
+
+            foreach (var slot in backpack.Slots)
+            {
+                if (slot != null && slot.Content != null)
+                {
+                    var item = slot.Content;
+
+                    // 🔧 只收集目标类别的物品
+                    if (ItemCategorizer.CategorizeItem(item) == targetCategory)
+                    {
+                        result.Add(item);
+                    }
+
+                    // 🔧 递归检查配件中的物品，但只收集目标类别
+                    if (item.Slots != null && item.Slots.Count > 0)
+                    {
+                        CollectCategoryItemsFromBackpack(item, targetCategory, result);
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -604,6 +702,9 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 // 订阅新背包的变化
                 if (_currentBackpack != null)
                 {
+                    // 🔧 注册背包类型到ItemTypeRegistry
+                    ItemTypeRegistry.RegisterBackpack(_currentBackpack.TypeID);
+
                     SubscribeToBackpackChanges(_currentBackpack);
                     SubscribeToAttachmentsChanges(_currentBackpack);
                     Debug.Log("[BackpackShortcutManager] 已订阅新背包变化事件");
@@ -773,6 +874,13 @@ namespace Backpack_QuickWheel.ShortcutSystem
                     _subscribedAttachments.Clear();
                     Debug.Log("[BackpackShortcutManager] ✅ 配件订阅清理完成");
                 }
+
+                // 🔧 清理配件slot订阅
+                if (_subscribedAttachmentSlots != null)
+                {
+                    _subscribedAttachmentSlots.Clear();
+                    Debug.Log("[BackpackShortcutManager] ✅ 配件slot订阅清理完成");
+                }
             }
             catch (System.Exception e)
             {
@@ -798,7 +906,18 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 Debug.LogError($"[BackpackShortcutManager] 协程清理失败: {e.Message}");
             }
 
-            // 7. 强制垃圾回收（可选，用于测试）
+            // 7. 清理类型注册缓存
+            try
+            {
+                ItemTypeRegistry.ClearAll();
+                Debug.Log("[BackpackShortcutManager] ✅ 类型注册缓存清理完成");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[BackpackShortcutManager] 类型注册缓存清理失败: {e.Message}");
+            }
+
+            // 8. 强制垃圾回收（可选，用于测试）
             // System.GC.Collect();
 
             Debug.Log("[BackpackShortcutManager] 🔧 系统重置清理完成！所有核心数据已回到初始状态。");
@@ -1024,15 +1143,40 @@ namespace Backpack_QuickWheel.ShortcutSystem
             {
                 _currentBackpack.onSlotContentChanged -= OnBackpackContentChanged;
 
-                // 取消所有配件的事件监听
+                // 🔧 注销背包类型
+                ItemTypeRegistry.UnregisterBackpack(_currentBackpack.TypeID);
+
+                // 取消所有配件的事件监听并注销类型
                 foreach (var attachment in _subscribedAttachments)
                 {
                     if (attachment != null)
                     {
                         attachment.onParentChanged -= OnAttachmentParentChanged;
+                        // 🔧 注销配件类型
+                        ItemTypeRegistry.UnregisterAttachment(attachment.TypeID);
                     }
                 }
                 _subscribedAttachments.Clear();
+
+                // 🔧 取消所有配件slot的事件监听
+                foreach (var attachmentSlot in _subscribedAttachmentSlots)
+                {
+                    if (attachmentSlot != null)
+                    {
+                        attachmentSlot.onSlotContentChanged -= OnAttachmentSlotContentChanged;
+                    }
+                }
+                _subscribedAttachmentSlots.Clear();
+
+                // 🔧 取消所有物品的拔出事件监听
+                foreach (var item in _subscribedItems)
+                {
+                    if (item != null)
+                    {
+                        item.onUnpluggedFromSlot -= OnItemUnpluggedFromSlot;
+                    }
+                }
+                _subscribedItems.Clear();
             }
 
             Debug.Log("[BackpackShortcutManager] 已取消背包变化事件订阅");
@@ -1048,6 +1192,23 @@ namespace Backpack_QuickWheel.ShortcutSystem
             // 订阅背包内容变化
             backpack.onSlotContentChanged += OnBackpackContentChanged;
             Debug.Log("[BackpackShortcutManager] 已订阅背包内容变化事件");
+
+            // 🔧 检查现有插槽内容，为已存在的配件注册类型
+            if (backpack.Slots != null)
+            {
+                var attachmentSlotIndices = GetAttachmentSlotIndices(backpack);
+                for (int i = 0; i < backpack.Slots.Count; i++)
+                {
+                    var slot = backpack.Slots[i];
+                    if (slot != null && slot.Content != null && attachmentSlotIndices.Contains(i))
+                    {
+                        var attachment = slot.Content;
+                        // 🔧 注册配件类型到ItemTypeRegistry
+                        ItemTypeRegistry.RegisterAttachment(attachment.TypeID);
+                        Debug.Log($"[BackpackShortcutManager] 注册已存在配件类型: {attachment.DisplayName} (TypeID: {attachment.TypeID})");
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -1069,8 +1230,29 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
                     Debug.Log($"[BackpackShortcutManager] 发现配件: {attachment.DisplayName} (在slot {i})");
 
-                    // 🔧 简化：只订阅配件移动事件
-            attachment.onParentChanged += OnAttachmentParentChanged;
+                    // 🔧 注册配件类型到ItemTypeRegistry
+                    ItemTypeRegistry.RegisterAttachment(attachment.TypeID);
+
+                    // 🔧 关键修复：订阅配件slot的内容变化事件，而不是配件的onParentChanged
+                    if (attachment.Slots != null)
+                    {
+                        foreach (var attachmentSlot in attachment.Slots)
+                        {
+                            if (attachmentSlot != null)
+                            {
+                                attachmentSlot.onSlotContentChanged += OnAttachmentSlotContentChanged;
+                                _subscribedAttachmentSlots.Add(attachmentSlot);
+
+                                // 🔧 新增：订阅slot内物品的onUnpluggedFromSlot事件，用于获取被拖出物品的引用
+                                if (attachmentSlot.Content != null)
+                                {
+                                    attachmentSlot.Content.onUnpluggedFromSlot += OnItemUnpluggedFromSlot;
+                                    _subscribedItems.Add(attachmentSlot.Content);
+                                    Debug.Log($"[BackpackShortcutManager] 订阅物品拔出事件: {attachmentSlot.Content.DisplayName}");
+                                }
+                            }
+                        }
+                    }
 
                     _subscribedAttachments.Add(attachment);
 
@@ -1086,7 +1268,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 }
             }
 
-            Debug.Log($"[BackpackShortcutManager] 已订阅 {_subscribedAttachments.Count} 个配件的变化事件");
+            Debug.Log($"[BackpackShortcutManager] 已订阅 {_subscribedAttachments.Count} 个配件和 {_subscribedAttachmentSlots.Count} 个配件slot的变化事件");
         }
 
         /// <summary>
@@ -1134,14 +1316,67 @@ namespace Backpack_QuickWheel.ShortcutSystem
         {
             if (!IsShortcutSystemEnabled || _isRefreshing) return;
 
-            Debug.Log($"[BackpackShortcutManager] 背包内容变化: {item?.DisplayName}");
+            Debug.Log($"[BackpackShortcutManager] 🔍 背包内容变化: item={item?.DisplayName ?? "null"}, slot={slot?.Key}, slot.Content={slot?.Content?.DisplayName ?? "null"}");
 
-            // 启动增量更新协程
-            if (_pendingAttachmentUpdateCoroutine != null)
+            bool needsUpdate = false;
+
+            // 🔧 处理配件类型的注册和注销 - 关键修复：检查slot.Content而不是item
+            if (slot != null && _currentBackpack != null && _currentBackpack.Slots.Contains(slot))
             {
-                StopCoroutine(_pendingAttachmentUpdateCoroutine);
+                var attachmentSlotIndices = GetAttachmentSlotIndices(_currentBackpack);
+                int slotIndex = -1;
+
+                // 通过遍历找到slot的索引
+                for (int i = 0; i < _currentBackpack.Slots.Count; i++)
+                {
+                    if (_currentBackpack.Slots[i] == slot)
+                    {
+                        slotIndex = i;
+                        break;
+                    }
+                }
+
+                if (slotIndex >= 0 && attachmentSlotIndices.Contains(slotIndex))
+                {
+                    // 🔧 关键修复：检查slot.Content来判断放入还是取出
+                    if (slot.Content != null)
+                    {
+                        // 配件进入背包插槽，注册类型
+                        ItemTypeRegistry.RegisterAttachment(slot.Content.TypeID);
+                        Debug.Log($"[BackpackShortcutManager] 配件进入系统: {slot.Content.DisplayName} (TypeID: {slot.Content.TypeID})");
+                        needsUpdate = true; // 只有配件进入时才需要更新
+                    }
+                    else
+                    {
+                        // 配件离开背包插槽
+                        Debug.Log($"[BackpackShortcutManager] 🔍 配件离开背包插槽: slot={slot?.Key}, slot.Content=null");
+
+                        // 🔧 关键修复：取出物品时，不触发全量更新
+                        // 因为取出物品只是减少了内容，不需要重新扫描所有配件
+                        // 轮盘系统会自动处理物品减少的情况
+                        needsUpdate = false;
+                    }
+                }
             }
-            _pendingAttachmentUpdateCoroutine = StartCoroutine(IncrementalUpdateCategorizedItems());
+            else
+            {
+                Debug.Log($"[BackpackShortcutManager] 🔍 其他情况: item={item?.DisplayName ?? "null"}, slot={slot?.Key}, slot in backpack={_currentBackpack?.Slots.Contains(slot) ?? false}");
+            }
+
+            // 🔧 只有在必要时才启动增量更新协程
+            if (needsUpdate)
+            {
+                Debug.Log("[BackpackShortcutManager] 检测到配件变化，启动增量更新");
+                if (_pendingAttachmentUpdateCoroutine != null)
+                {
+                    StopCoroutine(_pendingAttachmentUpdateCoroutine);
+                }
+                _pendingAttachmentUpdateCoroutine = StartCoroutine(IncrementalUpdateCategorizedItems());
+            }
+            else
+            {
+                Debug.Log("[BackpackShortcutManager] 配件取出，跳过全量更新");
+            }
         }
 
     
@@ -1340,6 +1575,9 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 {
                     Debug.Log($"[BackpackShortcutManager] 检测到配件已从背包移出: {item.DisplayName}");
 
+                    // 🔧 注销配件类型
+                    ItemTypeRegistry.UnregisterAttachment(item.TypeID);
+
                     // 移除配件订阅
                     _subscribedAttachments.Remove(item);
 
@@ -1353,7 +1591,104 @@ namespace Backpack_QuickWheel.ShortcutSystem
             }
         }
 
-      
+        /// <summary>
+        /// 🔧 配件slot内容变化处理 - 主要处理物品**放入**事件和重新订阅
+        /// 这个事件在slot内容变化时触发，但只能获取新内容，无法获取被移除的物品
+        /// </summary>
+        private void OnAttachmentSlotContentChanged(Slot slot)
+        {
+            if (!IsShortcutSystemEnabled || _isRefreshing) return;
+
+            Item item = slot?.Content;
+            Debug.Log($"[BackpackShortcutManager] 配件slot内容变化: {item?.DisplayName ?? "null"}, slot: {slot?.Key}");
+
+            // 🔧 当有新物品放入时，需要重新订阅拔出事件
+            if (item != null)
+            {
+                // 物品放入事件
+                HandleItemPutIntoSlot(item, slot);
+
+                // 🔧 重新订阅新物品的拔出事件（防止物品被替换）
+                if (!_subscribedItems.Contains(item))
+                {
+                    item.onUnpluggedFromSlot += OnItemUnpluggedFromSlot;
+                    _subscribedItems.Add(item);
+                    Debug.Log($"[BackpackShortcutManager] 重新订阅新物品的拔出事件: {item.DisplayName}");
+                }
+            }
+            // 注意：物品取出（item == null）不再在这里处理，交由OnItemUnpluggedFromSlot处理
+        }
+
+        /// <summary>
+        /// 🔧 物品拔出事件处理 - 专门处理物品**拖出**事件
+        /// 这个事件能获取被拖出物品的精确引用，用于精确的单类别更新
+        /// </summary>
+        private void OnItemUnpluggedFromSlot(Item unpluggedItem)
+        {
+            if (!IsShortcutSystemEnabled || _isRefreshing) return;
+
+            if (unpluggedItem == null) return;
+
+            Debug.Log($"[BackpackShortcutManager] 🔧 物品拔出事件: {unpluggedItem.DisplayName} (TypeID: {unpluggedItem.TypeID})");
+
+            // 确定被拔出物品的类别
+            ItemCategory affectedCategory = ItemCategorizer.CategorizeItem(unpluggedItem);
+            Debug.Log($"[BackpackShortcutManager] 物品拔出，影响类别: {affectedCategory} ({unpluggedItem.DisplayName})");
+
+            // 🔧 触发单类别精确更新
+            if (_pendingAttachmentUpdateCoroutine != null)
+            {
+                StopCoroutine(_pendingAttachmentUpdateCoroutine);
+            }
+
+            if (affectedCategory != ItemCategory.None)
+            {
+                // 单类别精确更新 - 我们知道被拔出的具体物品和类别
+                _pendingAttachmentUpdateCoroutine = StartCoroutine(SingleCategoryUpdate(affectedCategory));
+            }
+            else
+            {
+                Debug.Log($"[BackpackShortcutManager] 被拔出的物品 {unpluggedItem.DisplayName} 无有效类别，跳过更新");
+            }
+        }
+
+        /// <summary>
+        /// 🔧 处理物品放入slot的事件
+        /// </summary>
+        private void HandleItemPutIntoSlot(Item item, Slot slot)
+        {
+            Debug.Log($"[BackpackShortcutManager] 🔧 物品放入: {item.DisplayName} 到 slot: {slot?.Key}");
+
+            // 检查物品是否是配件类型（通过ItemTypeRegistry）
+            if (ItemTypeRegistry.IsAttachment(item))
+            {
+                Debug.Log($"[BackpackShortcutManager] 检测到配件放入配件slot: {item.DisplayName} (TypeID: {item.TypeID})");
+            }
+            else
+            {
+                Debug.Log($"[BackpackShortcutManager] 检测到普通物品放入配件slot: {item.DisplayName} (TypeID: {item.TypeID})");
+            }
+
+            // 确定物品类别并触发单类别更新
+            ItemCategory affectedCategory = ItemCategorizer.CategorizeItem(item);
+            Debug.Log($"[BackpackShortcutManager] 物品放入，影响类别: {affectedCategory} ({item.DisplayName})");
+
+            if (_pendingAttachmentUpdateCoroutine != null)
+            {
+                StopCoroutine(_pendingAttachmentUpdateCoroutine);
+            }
+
+            if (affectedCategory != ItemCategory.None)
+            {
+                // 单类别精确更新
+                _pendingAttachmentUpdateCoroutine = StartCoroutine(SingleCategoryUpdate(affectedCategory));
+            }
+            else
+            {
+                Debug.Log($"[BackpackShortcutManager] 放入的物品 {item.DisplayName} 无有效类别，跳过更新");
+            }
+        }
+
         /// <summary>
         /// 🎯 检查配件是否仍在背包中
         /// </summary>

@@ -130,6 +130,7 @@ namespace Backpack_QuickWheel.AttachmentSystem
 
                     // 🎉 重要：配件已经成功注册到动态系统！
                     // GetPrefab无法找到是正常的，因为它只查找静态entries
+                    // 配件类型将在实际装备到背包时动态注册到ItemTypeRegistry
                 }
                 else
                 {

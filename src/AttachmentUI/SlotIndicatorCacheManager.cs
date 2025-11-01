@@ -102,7 +102,7 @@ namespace Backpack_QuickWheel.AttachmentUI
                 if (!_indicatorsByRule.ContainsKey(ruleKey))
                 {
                     _indicatorsByRule[ruleKey] = new List<SlotIndicator>();
-                    Debug.Log($"[RegisterIndicator] 创建新规则: {ruleKey}");
+                    // Debug.Log($"[RegisterIndicator] 创建新规则: {ruleKey}");
                 }
                 _indicatorsByRule[ruleKey].Add(indicator);
 
