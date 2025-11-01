@@ -40,14 +40,22 @@ namespace Backpack_QuickWheel.AttachmentSystem
 
         public void CreateAllAttachmentItems()
         {
-            Debug.Log("开始创建配件物品...");
+            Debug.Log("🔄 开始创建配件物品...");
+
+            // 先检查是否已有物品存在
+            Debug.Log($"当前已有 {attachmentItems.Count} 个配件物品");
+            if (attachmentItems.Count > 0)
+            {
+                Debug.LogWarning("⚠️ 检测到已有配件物品，将重新创建。这可能是因为配置更新或重启。");
+                attachmentItems.Clear(); // 清空缓存
+            }
 
             foreach (var config in BackpackModConfig.AttachmentItemConfigs)
             {
                 CreateAttachmentItemFromConfig(config);
             }
 
-            Debug.Log($"共创建了{attachmentItems.Count}个配件物品");
+            Debug.Log($"✅ 共创建了{attachmentItems.Count}个配件物品");
         }
 
         private void CreateAttachmentItemFromConfig(AttachmentItemConfig config)
@@ -79,10 +87,10 @@ namespace Backpack_QuickWheel.AttachmentSystem
                 SetItemProperties(newItem, config);
 
                 // 设置本地化
-                //SetItemLocalization(config);
+                SetItemLocalization(config);
 
                 // 设置标签
-                SetAttachmentTag(newItem, config.RequiredTag);
+                SetAttachmentTag(newItem, config.RequiredTag, config.Quality);
 
                 // 配置插槽（如果有）
                 if (config.SlotConfigs.Count > 0)
@@ -96,15 +104,59 @@ namespace Backpack_QuickWheel.AttachmentSystem
                 SetItemIcon(newItem, config);
 
                 // 7. 注册到游戏
-                ItemStatsSystem.ItemAssetsCollection.AddDynamicEntry(newItem);
+                try
+                {
+                    ItemStatsSystem.ItemAssetsCollection.AddDynamicEntry(newItem);
+                    Debug.Log($"✅ 成功注册到ItemAssetsCollection: {config.DisplayName} (TypeID: {config.TypeID})");
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"❌ 注册到ItemAssetsCollection失败: {config.DisplayName} - {e.Message}");
+                    return;
+                }
 
-                attachmentItems[config.ItemName] = newItem;
-                Debug.Log($"成功创建配件: {config.DisplayName} (TypeID: {config.TypeID})");
+                // 验证注册是否成功 - 使用正确的方法验证动态物品
+                // 🎯 关键修复：GetPrefab只查找静态物品，需要验证动态物品注册
+                // 通过GetAllTypeIds来验证动态物品是否成功注册
+                var allTypeIds = ItemAssetsCollection.GetAllTypeIds(new ItemFilter());
+                bool dynamicExists = Array.Exists(allTypeIds, id => id == config.TypeID);
+                Debug.Log($"   - 动态物品注册验证: TypeID {config.TypeID} 在所有物品中: {(dynamicExists ? "✅ 存在" : "❌ 不存在")}");
+
+                if (dynamicExists)
+                {
+                    Debug.Log($"✅ 动态物品注册成功: {config.DisplayName} (TypeID: {config.TypeID})");
+                    attachmentItems[config.ItemName] = newItem;
+                    Debug.Log($"✅ 成功创建配件: {config.DisplayName} (TypeID: {config.TypeID})");
+
+                    // 🎉 重要：配件已经成功注册到动态系统！
+                    // GetPrefab无法找到是正常的，因为它只查找静态entries
+                }
+                else
+                {
+                    Debug.LogError($"❌ 动态物品注册失败: TypeID {config.TypeID}");
+                }
             }
             catch (System.Exception e)
             {
                 Debug.LogError($"创建配件物品 {config.DisplayName} 时出错: {e.Message}");
             }
+        }
+
+        private void SetDisplayQualityByQuality(Item item, int quality)
+        {
+            // 根据Quality值设置对应的DisplayQuality (游戏最低品质可能是1)
+            ItemStatsSystem.DisplayQuality displayQuality = quality switch
+            {
+                1 => ItemStatsSystem.DisplayQuality.White,   // 白色 (最低品质)
+                2 => ItemStatsSystem.DisplayQuality.Green,   // 绿色
+                3 => ItemStatsSystem.DisplayQuality.Blue,    // 蓝色
+                4 => ItemStatsSystem.DisplayQuality.Purple,  // 紫色
+                5 => ItemStatsSystem.DisplayQuality.Orange,  // 橙色
+                6 => ItemStatsSystem.DisplayQuality.Red,     // 红色
+                _ => ItemStatsSystem.DisplayQuality.White    // 默认白色
+            };
+
+            item.DisplayQuality = displayQuality;
         }
 
         private void SetItemProperties(Item item, AttachmentItemConfig config)
@@ -116,11 +168,46 @@ namespace Backpack_QuickWheel.AttachmentSystem
             item.SetPrivateField("typeID", config.TypeID);
             item.SetPrivateField("weight", config.Weight);
             item.SetPrivateField("value", config.Value);
+
+            // 🎯 查找并设置Quality字段 - 尝试多种可能的字段名
+            string[] qualityFieldNames = { "quality", "Quality", "_quality", "_Quality", "m_quality", "m_Quality" };
+            bool qualitySet = false;
+
+            foreach (string fieldName in qualityFieldNames)
+            {
+                try
+                {
+                    var field = item.GetType().GetField(fieldName,
+                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic |
+                        System.Reflection.BindingFlags.Instance);
+
+                    if (field != null)
+                    {
+                        field.SetValue(item, config.Quality);
+                        Debug.Log($"✅ 成功设置Quality字段 '{fieldName}': {config.Quality}");
+                        qualitySet = true;
+                        break;
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    // 继续尝试下一个字段名
+                }
+            }
+
+            if (!qualitySet)
+            {
+                Debug.LogWarning($"⚠️ 无法找到Quality字段，跳过Quality设置 (配置值: {config.Quality})");
+            }
+
+            // 设置displayName为本地化键名
             item.SetPrivateField("displayName", config.DisplayName);
 
             // 设置其他属性
             item.MaxStackCount = 1;
-            item.DisplayQuality = DisplayQuality.None; // 或者根据需要设置品质
+
+            // 根据Quality自动设置DisplayQuality
+            SetDisplayQualityByQuality(item, config.Quality);
         }
 
         /// <summary>
@@ -232,32 +319,65 @@ namespace Backpack_QuickWheel.AttachmentSystem
             }
         }
 
-        //private void SetItemLocalization(AttachmentItemConfig config)
-        //{
-        //    try
-        //    {
-        //        // 使用Item类期望的键格式
-        //        // 显示名称键就是 DisplayName 本身
-        //        string nameKey = config.DisplayName;
-        //        SodaCraft.Localizations.LocalizationManager.SetOverrideText(nameKey, config.DisplayName);
-
-        //        // 描述键是 DisplayName + "_Desc"
-        //        string descKey = config.DisplayName + "_Desc";
-        //        SodaCraft.Localizations.LocalizationManager.SetOverrideText(descKey, config.Description);
-
-        //        Debug.Log($"设置物品本地化 - 名称键: {nameKey}, 描述键: {descKey}");
-        //    }
-        //    catch (System.Exception e)
-        //    {
-        //        Debug.LogError($"设置物品本地化时出错: {e.Message}");
-        //    }
-        //}
-
-        private void SetAttachmentTag(Item item, string requiredTag)
+        private void SetItemLocalization(AttachmentItemConfig config)
         {
+            try
+            {
+                // 使用配置中的本地化数据
+                if (config.Localization?.LanguageMappings != null)
+                {
+                    foreach (var languageMapping in config.Localization.LanguageMappings)
+                    {
+                        string language = languageMapping.Key;
+                        foreach (var textMapping in languageMapping.Value)
+                        {
+                            string key = textMapping.Key;
+                            string value = textMapping.Value;
+                            SodaCraft.Localizations.LocalizationManager.SetOverrideText(key, value);
+                            Debug.Log($"设置物品本地化 - 语言: {language}, 键: {key}, 值: {value}");
+                        }
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"物品 {config.ItemName} 没有本地化数据，跳过本地化设置");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"设置物品本地化时出错: {e.Message}");
+            }
+        }
+
+        private void SetAttachmentTag(Item item, string requiredTag, int quality)
+        {
+            // 添加自定义的配件类型标签（用于背包插槽识别）
             if (createdTags.TryGetValue(requiredTag, out Tag attachmentTag))
             {
                 item.Tags.Add(attachmentTag);
+            }
+
+            // 根据品质添加基础掉落标签
+            string[] basicTags;
+
+            if (quality <= 2)
+            {
+                // 1-2品质：添加Daily + Accessory，提升前中期获取率
+                basicTags = new string[] { "Daily", "Accessory" };
+            }
+            else
+            {
+                // 3-5品质：仅添加Accessory，保持原获取难度
+                basicTags = new string[] { "Accessory" };
+            }
+
+            foreach (string tagName in basicTags)
+            {
+                Tag systemTag = FindSystemTag(tagName);
+                if (systemTag != null && !item.Tags.Contains(systemTag))
+                {
+                    item.Tags.Add(systemTag);
+                }
             }
         }
 
