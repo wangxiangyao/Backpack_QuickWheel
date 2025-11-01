@@ -176,7 +176,7 @@ namespace Backpack_QuickWheel.VoiceWheelSystem
 
         /// <summary>
         /// 执行短按操作
-        /// 直接播放当前选中的语音
+        /// 直接播放当前选中的语音，但"嘎"语音使用官方逻辑
         /// </summary>
         private void ExecuteShortPress()
         {
@@ -196,10 +196,21 @@ namespace Backpack_QuickWheel.VoiceWheelSystem
                     Debug.LogError($"[VoiceInputInterceptor] 音频路径: {currentVoice.audioPath}");
                     Debug.LogError($"[VoiceInputInterceptor] IsAvailable: {currentVoice.IsAvailable()}");
 
-                    // 直接播放语音
-                    Debug.LogError($"[VoiceInputInterceptor] 调用VoiceWheelManager.PlayVoice");
-                    VoiceWheelManager.Instance.PlayVoice(currentVoice);
-                    Debug.LogError($"[VoiceInputInterceptor] ✓ PlayVoice调用完成");
+                    // 🔧 优化：检查是否是"嘎"语音
+                    if (IsGaVoice(currentVoice))
+                    {
+                        Debug.LogError("[VoiceInputInterceptor] 🔧 检测到'嘎'语音，不播放自定义音频，让官方逻辑处理");
+                        // 不调用PlayVoice，让官方逻辑播放官方的"嘎"语音
+                        // 但仍然显示我们的气泡效果
+                        ShowVoiceBubble(currentVoice);
+                    }
+                    else
+                    {
+                        // 直接播放语音
+                        Debug.LogError($"[VoiceInputInterceptor] 调用VoiceWheelManager.PlayVoice");
+                        VoiceWheelManager.Instance.PlayVoice(currentVoice);
+                        Debug.LogError($"[VoiceInputInterceptor] ✓ PlayVoice调用完成");
+                    }
                 }
                 else
                 {
@@ -220,6 +231,44 @@ namespace Backpack_QuickWheel.VoiceWheelSystem
             }
 
             Debug.LogError("[VoiceInputInterceptor] === 执行短按操作完成 ===");
+        }
+
+        /// <summary>
+        /// 🔧 检查是否是"嘎"语音
+        /// 通过名称或气泡文本来识别
+        /// </summary>
+        private bool IsGaVoice(VoiceItem voice)
+        {
+            if (voice == null) return false;
+
+            // 检查显示名称
+            if (voice.displayName == "嘎") return true;
+
+            // 检查气泡文本
+            if (voice.bubbleText == "嘎") return true;
+
+            return false;
+        }
+
+        /// <summary>
+        /// 🔧 显示语音气泡（用于"嘎"语音的特殊处理）
+        /// </summary>
+        private void ShowVoiceBubble(VoiceItem voice)
+        {
+            if (voice == null) return;
+
+            Debug.LogError($"[VoiceInputInterceptor] 🔧 显示'嘎'语音气泡: {voice.bubbleText}");
+
+            if (VoiceWheelManager.Instance != null)
+            {
+                // 只显示气泡，不播放音频
+                VoiceWheelManager.Instance.ShowVoiceBubbleOnly(voice.bubbleText);
+                Debug.LogError($"[VoiceInputInterceptor] ✓ '嘎'语音气泡已显示");
+            }
+            else
+            {
+                Debug.LogError("[VoiceInputInterceptor] ✗ VoiceWheelManager实例不存在，无法显示气泡");
+            }
         }
         #endregion
 

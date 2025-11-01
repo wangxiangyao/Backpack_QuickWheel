@@ -258,7 +258,7 @@ namespace Backpack_QuickWheel
             new AttachmentItemConfig(
                 "GagaTactical_Item", "ITEM_GAGA_TACTICAL_NAME", "",
                 349141, 1.0f, 8900, "TacticalPouch_Large",
-                new List<SlotConfig> { UnifiedSlotTypes["Explosive"], UnifiedSlotTypes["Explosive"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Explosive"], UnifiedSlotTypes["Explosive"] },
+                new List<SlotConfig> { UnifiedSlotTypes["Explosive"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Large"], UnifiedSlotTypes["Explosive"] },
                 "Textures.GagaTactical_Item.png"
             ){
                 Quality = 5, // 调整为品质5

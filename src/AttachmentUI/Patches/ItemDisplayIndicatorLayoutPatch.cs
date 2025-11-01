@@ -16,12 +16,12 @@ namespace Backpack_QuickWheel.AttachmentUI.Patches
     ///
     /// 解决方案：
     /// - 8个及以下：保持官方原样的单行布局
-    /// - 9个及以上：改用GridLayoutGroup，每行最多8个，自动换行
+    /// - 9个及以上：改用GridLayoutGroup，每行最多7个，自动换行
     ///
     /// 布局效果：
-    /// - 10个插槽 → 第1行8个 + 第2行2个
-    /// - 16个插槽 → 第1行8个 + 第2行8个
-    /// - 17个插槽 → 第1行8个 + 第2行8个 + 第3行1个
+    /// - 10个插槽 → 第1行7个 + 第2行3个
+    /// - 14个插槽 → 第1行7个 + 第2行7个
+    /// - 17个插槽 → 第1行7个 + 第2行7个 + 第3行3个
     /// </summary>
     [HarmonyPatch(typeof(ItemDisplay), "Setup")]
     public class ItemDisplayIndicatorLayoutPatch
@@ -43,7 +43,9 @@ namespace Backpack_QuickWheel.AttachmentUI.Patches
                 if (target?.Slots == null) return;
 
                 int slotCount = target.Slots.Count;
-                if (slotCount <= 8) return; // 8个及以下保持原样
+                // 🔧 优化：嘎嘎战术包等配件也需要使用网格布局
+                // 当插槽数等于5时（嘎嘎战术包）也启用网格布局来测试7个每行效果
+                if (slotCount < 5) return; // 少于5个保持原样，5个及以上使用网格布局
 
                 // 通过反射获取slotIndicatorContainer
                 if (_slotIndicatorContainerField == null) return;
@@ -68,9 +70,9 @@ namespace Backpack_QuickWheel.AttachmentUI.Patches
                 // 防守性检查
                 if (gridLayout == null) return;
 
-                // 关键配置：每行最多6个indicator
+                // 关键配置：每行最多7个indicator
                 gridLayout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-                gridLayout.constraintCount = 6;
+                gridLayout.constraintCount = 7;
 
                 // 布局参数
                 gridLayout.cellSize = new Vector2(12, 12); // 圆孔大小

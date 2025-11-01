@@ -55,34 +55,37 @@ namespace Backpack_QuickWheel.ShortcutSystem
         private const float CELL_SIZE = 40f;                        // 格子大小（宽高）
         private const float GRID_OFFSET = CELL_SIZE + 5f;           // 格子间距（包括间距）
 
-        // 九宫格位置（相对于中心的偏移）
-        // 索引映射：0-7 对应 8 个位置（中心跳过）
-        // [0] [1] [2]
-        // [3] [ ] [4]
-        // [5] [6] [7]
+        // 🔧 新布局：优化的轮盘位置分布
+        // 索引映射：1-8 对应 8 个位置（索引0预留，中心跳过）
+        // 1-左中，2-右中，3-上中，4-下中，5-左下，6-右下，7-右上，8-左上
+        // [8] [7] [3]
+        // [1] [ ] [2]
+        // [5] [6] [4]
         private static readonly Vector2Int[] GRID_POSITIONS = new Vector2Int[]
         {
-            new Vector2Int(-1, -1),  // 0: 左上
-            new Vector2Int( 0, -1),  // 1: 上
-            new Vector2Int( 1, -1),  // 2: 右上
-            new Vector2Int(-1,  0),  // 3: 左
-            new Vector2Int( 1,  0),  // 4: 右
+            new Vector2Int( 0,  0),  // 0: 预留（不使用）
+            new Vector2Int(-1,  0),  // 1: 左中
+            new Vector2Int( 1,  0),  // 2: 右中
+            new Vector2Int( 0, -1),  // 3: 上中
+            new Vector2Int( 0,  1),  // 4: 下中
             new Vector2Int(-1,  1),  // 5: 左下
-            new Vector2Int( 0,  1),  // 6: 下
-            new Vector2Int( 1,  1),  // 7: 右下
+            new Vector2Int( 1,  1),  // 6: 右下
+            new Vector2Int( 1, -1),  // 7: 右上
+            new Vector2Int(-1, -1),  // 8: 左上
         };
 
-        // 角度映射（对应8个方向）
+        // 🔧 新角度映射：对应新的8个位置
         private static readonly float[] DIRECTION_ANGLES = new float[]
         {
-            225f,  // 0: 左上
-            270f,  // 1: 上
-            315f,  // 2: 右上
-            180f,  // 3: 左
-            0f,    // 4: 右
+            0f,    // 0: 预留（不使用）
+            180f,  // 1: 左中
+            0f,    // 2: 右中
+            270f,  // 3: 上中
+            90f,   // 4: 下中
             135f,  // 5: 左下
-            90f,   // 6: 下
-            45f,   // 7: 右下
+            45f,   // 6: 右下
+            315f,  // 7: 右上
+            225f,  // 8: 左上
         };
 
         private void Awake()
@@ -306,21 +309,22 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
             Debug.Log($"[ItemWheelSelector] 当前物品数: {_currentItems.Count}");
 
-            // 创建所有8个格子
+            // 🔧 创建所有8个格子（使用新的1-8索引映射）
             for (int i = 0; i < 8; i++)
             {
                 Item itemToDisplay = (i < _currentItems.Count) ? _currentItems[i] : null;
+                int gridIndex = i + 1; // 新布局使用1-8索引
 
                 if (itemToDisplay != null)
                 {
-                    Debug.Log($"[ItemWheelSelector] 格子 {i} (位置 {GRID_POSITIONS[i]}): 创建 '{itemToDisplay.DisplayName}'");
+                    Debug.Log($"[ItemWheelSelector] 格子 {i+1} (位置 {GRID_POSITIONS[gridIndex]}): 创建 '{itemToDisplay.DisplayName}'");
                 }
                 else
                 {
-                    Debug.Log($"[ItemWheelSelector] 格子 {i} (位置 {GRID_POSITIONS[i]}): 空格子");
+                    Debug.Log($"[ItemWheelSelector] 格子 {i+1} (位置 {GRID_POSITIONS[gridIndex]}): 空格子");
                 }
 
-                var displayClone = CreateWheelItemDisplay(i, GRID_POSITIONS[i], itemToDisplay);
+                var displayClone = CreateWheelItemDisplay(i, GRID_POSITIONS[gridIndex], itemToDisplay);
                 if (displayClone != null)
                 {
                     _itemDisplayClones.Add(displayClone);
@@ -431,9 +435,10 @@ namespace Backpack_QuickWheel.ShortcutSystem
             int closestIndex = 0;
             float closestAngleDiff = 360f;
 
-            for (int i = 0; i < _itemDisplayClones.Count && i < DIRECTION_ANGLES.Length; i++)
+            // 🔧 使用新的1-8索引映射进行角度计算
+            for (int i = 0; i < _itemDisplayClones.Count && i < DIRECTION_ANGLES.Length - 1; i++)
             {
-                float cellAngle = DIRECTION_ANGLES[i];
+                float cellAngle = DIRECTION_ANGLES[i + 1]; // 新布局使用1-8索引
                 float angleDiff = Mathf.Abs(vectorAngle - cellAngle);
 
                 // 处理跨越0度的情况

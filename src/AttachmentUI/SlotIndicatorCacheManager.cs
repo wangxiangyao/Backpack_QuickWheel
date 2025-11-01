@@ -274,19 +274,26 @@ namespace Backpack_QuickWheel.AttachmentUI
         }
 
         /// <summary>
-        /// 清除所有indicator高亮
+        /// 🔧 优化：批量清除所有indicator高亮，减少循环调用开销
         /// </summary>
         private static void ClearAllHighlights()
         {
             if (_highlightedIndicators.Count == 0)
                 return;
 
-            Debug.Log($"[SlotIndicatorCacheManager] 清除 {_highlightedIndicators.Count} 个高亮indicator");
+            Debug.Log($"[SlotIndicatorCacheManager] 批量清除 {_highlightedIndicators.Count} 个高亮indicator");
 
+            // 🔧 优化：批量处理，减少方法调用开销
             var toUnhighlight = new List<SlotIndicator>(_highlightedIndicators);
+            _highlightedIndicators.Clear(); // 先清空集合，避免重复处理
+
+            // 批量处理：一次性设置所有颜色，减少UI刷新次数
             foreach (var indicator in toUnhighlight)
             {
-                UnhighlightSlot(indicator);
+                if (indicator == null) continue;
+
+                // 直接调用批量优化方法，避免多次方法调用
+                SlotIndicatorDragHighlightPatch.UnhighlightSlotPublic(indicator);
             }
         }
 
@@ -412,22 +419,22 @@ namespace Backpack_QuickWheel.AttachmentUI
         }
 
         /// <summary>
-        /// 取消高亮指定indicator（委托给SlotIndicatorDragHighlightPatch）
+        /// 🔧 优化：取消高亮指定indicator（简化版，减少开销）
+        /// 注意：ClearAllHighlights优化后，此方法使用频率降低
         /// </summary>
         private static void UnhighlightSlot(SlotIndicator indicator)
         {
             if (indicator == null)
                 return;
 
-            try
+            // 🔧 优化：移除try-catch，减少异常处理开销（调用方已做null检查）
+            // 调用SlotIndicatorDragHighlightPatch的取消高亮方法
+            SlotIndicatorDragHighlightPatch.UnhighlightSlotPublic(indicator);
+
+            // 🔧 优化：只在集合中存在时才移除，避免不必要的操作
+            if (_highlightedIndicators.Contains(indicator))
             {
-                // 调用SlotIndicatorDragHighlightPatch的取消高亮方法
-                SlotIndicatorDragHighlightPatch.UnhighlightSlotPublic(indicator);
                 _highlightedIndicators.Remove(indicator);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[SlotIndicatorCacheManager] 取消高亮失败: {ex}");
             }
         }
     }

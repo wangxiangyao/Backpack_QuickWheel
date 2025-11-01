@@ -33,7 +33,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
         // 配件内容变化的去抖：当短时间内多个物品被放入/移除时，只执行一次更新
         private Coroutine _pendingAttachmentUpdateCoroutine = null;
-        private const float ATTACHMENT_UPDATE_DEBOUNCE_TIME = 0.1f;
+        private const float ATTACHMENT_UPDATE_DEBOUNCE_TIME = 0.02f; // 🔧 优化：减少去抖延迟从0.1s到0.02s
 
         // 用于监听技能释放事件
         private HashSet<SkillBase> _monitoredSkills = new HashSet<SkillBase>();
@@ -332,27 +332,52 @@ namespace Backpack_QuickWheel.ShortcutSystem
             Debug.Log($"[BackpackShortcutManager] 去抖完成，执行延迟更新（分帧处理）");
 
             // 增量更新分类数据（_categorizedItems）- 使用分帧处理
-            // 对于已存在的类别，不更新UI（ShortcutUIUpdater已单独处理）
-            // 对于新类别，需要手动触发UI更新
             _tempNewCategories = null;  // 清空临时变量
             var incrementalCoroutine = IncrementalUpdateCategorizedItemsFrameDistributed();
             yield return StartCoroutine(incrementalCoroutine);
 
             Debug.Log($"[BackpackShortcutManager] 配件内物品变化，_categorizedItems 已更新");
 
-            // 为新类别触发UI更新（新类别之前没有快捷键显示，需要主动刷新）- 分帧处理
-            if (_tempNewCategories != null && _tempNewCategories.Count > 0)
-            {
-                Debug.Log($"[BackpackShortcutManager] 检测到 {_tempNewCategories.Count} 个新类别，分帧触发UI更新");
-                foreach (var category in _tempNewCategories)
-                {
-                    UpdateShortcutUI(category);
-                    yield return null; // 每个UI更新后等待一帧，避免连续UI更新造成卡顿
-                }
-            }
+            // 🔧 优化：异步化UI更新，减少卡顿
+            yield return StartCoroutine(UpdateShortcutUIAsync(changedItem));
 
             // 清除待处理协程的引用
             _pendingAttachmentUpdateCoroutine = null;
+        }
+
+        /// <summary>
+        /// 🔧 优化：异步UI更新，减少拖拽drop时的卡顿
+        /// 将UI更新分帧执行，避免主线程阻塞
+        /// </summary>
+        private System.Collections.IEnumerator UpdateShortcutUIAsync(Item changedItem)
+        {
+            if (changedItem != null)
+            {
+                var changedCategory = ItemCategorizer.CategorizeItem(changedItem);
+                Debug.Log($"[BackpackShortcutManager] 异步更新受影响的类别: {changedCategory}");
+
+                // 分帧更新：先更新变化物品的类别
+                UpdateShortcutUI(changedCategory);
+                yield return null; // 等待一帧，让UI有机会渲染
+
+                // 然后更新新增类别（如果有的话）
+                if (_tempNewCategories != null && _tempNewCategories.Count > 0)
+                {
+                    Debug.Log($"[BackpackShortcutManager] 异步更新 {_tempNewCategories.Count} 个新类别");
+                    foreach (var category in _tempNewCategories)
+                    {
+                        UpdateShortcutUI(category);
+                        yield return null; // 每个类别更新后等待一帧
+                    }
+                }
+            }
+            else
+            {
+                // 如果无法确定具体物品，则全量更新（兜底方案）
+                Debug.Log("[BackpackShortcutManager] 异步全量UI更新");
+                UpdateShortcutUI();
+                yield return null; // 等待一帧
+            }
         }
 
         /// <summary>

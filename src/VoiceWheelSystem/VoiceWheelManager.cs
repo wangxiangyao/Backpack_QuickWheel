@@ -321,6 +321,24 @@ namespace Backpack_QuickWheel.VoiceWheelSystem
 
         #region 公共方法
         /// <summary>
+        /// 🔧 只显示语音气泡，不播放音频（用于"嘎"语音的特殊处理）
+        /// </summary>
+        public void ShowVoiceBubbleOnly(string bubbleText)
+        {
+            Debug.LogError($"[VoiceWheelManager] 🔧 只显示气泡: '{bubbleText}'");
+
+            if (_bubbleManager != null)
+            {
+                _bubbleManager.ShowBubble(bubbleText);
+                Debug.LogError($"[VoiceWheelManager] ✓ 气泡已显示（无音频播放）");
+            }
+            else
+            {
+                Debug.LogError("[VoiceWheelManager] ✗ 气泡管理器为null，无法显示气泡");
+            }
+        }
+
+        /// <summary>
         /// 刷新语音数据（用于配置更新后）
         /// </summary>
         public void RefreshVoiceData()

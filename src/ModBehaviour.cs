@@ -4,8 +4,7 @@ using Backpack_QuickWheel.AttachmentUI;
 using Backpack_QuickWheel.BackpackSystem;
 using Backpack_QuickWheel.ShortcutSystem;
 using Backpack_QuickWheel.VoiceWheelSystem;
-using Backpack_QuickWheel.LootDebugSystem;
-using LootDebugSystem;
+// LootDebugSystem 已移除 - 使用官方掉落系统
 using HarmonyLib;
 using UnityEngine;
 
@@ -60,18 +59,9 @@ namespace Backpack_QuickWheel
             // 初始化圆孔拖拽高亮缓存管理器
             Backpack_QuickWheel.AttachmentUI.SlotIndicatorCacheManager.Initialize();
 
-            // 初始化LootDebug系统（用于调试和数据分析）
-            Debug.Log("[ModBehaviour] 初始化LootDebug系统...");
-            var lootDebugObj = new GameObject("LootDebugManager");
-            lootDebugObj.transform.SetParent(transform); // 设置为ModBehaviour的子对象
-            DontDestroyOnLoad(lootDebugObj);
-            var lootDebugManager = lootDebugObj.AddComponent<LootDebugManager>();
-            Debug.Log("[ModBehaviour] LootDebugManager已创建，使用快捷键8触发");
+            // LootDebug系统已移除 - 配件现在直接使用官方掉落系统
 
-            // 初始化ItemFilter拦截器
-            Debug.Log("[ModBehaviour] 初始化ItemFilter拦截器...");
-            ItemFilterInterceptorPatch.Initialize();
-            Debug.Log("[ModBehaviour] ItemFilter拦截器已初始化");
+            // ItemFilter拦截器已移除 - 不再需要
 
             // 订阅关卡初始化事件
             LevelManager.OnLevelInitialized += OnLevelInitialized;
