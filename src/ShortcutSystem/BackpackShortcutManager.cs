@@ -70,6 +70,9 @@ namespace Backpack_QuickWheel.ShortcutSystem
             // 初始化新的轮盘布局管理器
             _wheelLayoutManager = new WheelLayoutManager();
 
+            // 🔧 绑定布局变更事件到UI更新
+            _wheelLayoutManager.OnLayoutChanged += OnWheelLayoutChanged;
+
             // 初始化选择索引
             foreach (ItemCategory category in System.Enum.GetValues(typeof(ItemCategory)))
             {
@@ -789,6 +792,51 @@ namespace Backpack_QuickWheel.ShortcutSystem
         }
 
         /// <summary>
+        /// 🔧 轮盘布局变更事件处理 - 当布局发生变化时更新对应的快捷键UI
+        /// </summary>
+        /// <param name="category">发生变化的类别</param>
+        private void OnWheelLayoutChanged(ItemCategory category)
+        {
+            if (!IsShortcutSystemEnabled || _isRefreshing) return;
+
+            Debug.Log($"[BackpackShortcutManager] 轮盘布局变更事件: {category}");
+
+            // 立即更新该类别的快捷键UI
+            StartCoroutine(UpdateCategoryUIAsync(category));
+        }
+
+        /// <summary>
+        /// 🔧 异步更新指定类别的UI
+        /// </summary>
+        /// <param name="category">要更新的类别</param>
+        private System.Collections.IEnumerator UpdateCategoryUIAsync(ItemCategory category)
+        {
+            yield return null; // 等待一帧，确保布局已更新
+
+            // 获取该类别的当前选中物品
+            var currentItem = _wheelLayoutManager.GetCurrentSelection(category);
+            var shortcutIndex = CategoryToIndex(category);
+
+            if (shortcutIndex >= 0)
+            {
+                if (currentItem != null)
+                {
+                    Debug.Log($"[BackpackShortcutManager] 更新类别 {category} 的UI: {currentItem.DisplayName}");
+                    bool success = ShortcutUIUpdater.TryUpdateShortcutUI(shortcutIndex, currentItem);
+                    if (!success)
+                    {
+                        Debug.LogWarning($"[BackpackShortcutManager] 类别 {category} UI更新失败: {currentItem.DisplayName}");
+                    }
+                }
+                else
+                {
+                    Debug.Log($"[BackpackShortcutManager] 清空类别 {category} 的UI");
+                    ShortcutUIUpdater.UpdateShortcutUI(shortcutIndex, null);
+                }
+            }
+        }
+
+        /// <summary>
         /// 设置快捷键系统启用状态
         /// </summary>
         private void SetShortcutSystemEnabled(bool enabled)
@@ -906,7 +954,21 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 Debug.LogError($"[BackpackShortcutManager] 协程清理失败: {e.Message}");
             }
 
-            // 7. 清理类型注册缓存
+            // 7. 🔧 清理事件绑定
+            try
+            {
+                if (_wheelLayoutManager != null)
+                {
+                    _wheelLayoutManager.OnLayoutChanged -= OnWheelLayoutChanged;
+                    Debug.Log("[BackpackShortcutManager] ✅ 事件绑定清理完成");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[BackpackShortcutManager] 事件绑定清理失败: {e.Message}");
+            }
+
+            // 8. 清理类型注册缓存
             try
             {
                 ItemTypeRegistry.ClearAll();
