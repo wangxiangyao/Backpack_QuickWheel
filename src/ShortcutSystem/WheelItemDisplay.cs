@@ -41,6 +41,11 @@ namespace Backpack_QuickWheel.ShortcutSystem
         private ItemWheelSelector _wheelSelector;  // 轮盘选择器引用，用于交换物品
         private const float DRAG_ALPHA = 0.7f;  // 拖动时的透明度
 
+        // 🔧 优化：拖拽虚影和声音
+        private GameObject _dragGhost;  // 拖拽时的虚影对象
+        private Canvas _dragCanvas;    // 拖拽虚影的Canvas
+        private Transform _originalParent;  // 原始父对象
+
         /// <summary>
         /// 初始化格子（可以有物品，也可以没有物品）
         /// </summary>
@@ -187,6 +192,13 @@ namespace Backpack_QuickWheel.ShortcutSystem
             _isDragging = true;
             Debug.Log($"[WheelItemDisplay] 开始拖动物品 '{_item.DisplayName}' (索引 {_cellIndex})");
 
+            // 🔧 优化：使用拖拽虚影管理器
+            var dragManager = DragGhostManager.Instance;
+            if (dragManager != null)
+            {
+                dragManager.StartDrag(_item, eventData);
+            }
+
             // 拖动时降低透明度，显示被拖起的效果
             if (_bgImage != null)
             {
@@ -206,8 +218,12 @@ namespace Backpack_QuickWheel.ShortcutSystem
         {
             if (!_isDragging) return;
 
-            // 可以在这里添加视觉反馈，比如跟随鼠标的拖动物品图标
-            // 暂时不做额外处理
+            // 🔧 优化：更新拖拽虚影位置
+            var dragManager = DragGhostManager.Instance;
+            if (dragManager != null)
+            {
+                dragManager.UpdateDrag(eventData);
+            }
 
             // 消费事件
             eventData.Use();
@@ -228,6 +244,10 @@ namespace Backpack_QuickWheel.ShortcutSystem
             {
                 _bgImage.color = NORMAL_COLOR;
             }
+
+            // 🔧 优化：清理拖拽虚影并播放声音
+            var dragManager = DragGhostManager.Instance;
+            bool dragSuccess = false;
 
             // 找到释放时鼠标指向的格子
             if (_wheelSelector != null)
@@ -251,8 +271,9 @@ namespace Backpack_QuickWheel.ShortcutSystem
                     {
                         Debug.Log($"[WheelItemDisplay] ✓ 拖动完成: 从索引 {_cellIndex} 拖到索引 {targetDisplay._cellIndex}");
                         _wheelSelector.SwapItems(_cellIndex, targetDisplay._cellIndex);
+                        dragSuccess = true;
                         eventData.Use();
-                        return;
+                        break;
                     }
 
                     // 方法2: 检查父物体是否是 WheelItemDisplay
@@ -261,12 +282,22 @@ namespace Backpack_QuickWheel.ShortcutSystem
                     {
                         Debug.Log($"[WheelItemDisplay] ✓ 拖动完成（通过父级）: 从索引 {_cellIndex} 拖到索引 {parentDisplay._cellIndex}");
                         _wheelSelector.SwapItems(_cellIndex, parentDisplay._cellIndex);
+                        dragSuccess = true;
                         eventData.Use();
-                        return;
+                        break;
                     }
                 }
 
-                Debug.Log($"[WheelItemDisplay] ✗ 未找到有效的目标格子，拖动取消");
+                if (!dragSuccess)
+                {
+                    Debug.Log($"[WheelItemDisplay] ✗ 未找到有效的目标格子，拖动取消");
+                }
+            }
+
+            // 结束拖拽，播放声音和清理虚影
+            if (dragManager != null)
+            {
+                dragManager.EndDrag(dragSuccess);
             }
 
             // 消费事件

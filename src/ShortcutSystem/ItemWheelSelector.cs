@@ -43,7 +43,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
         // 矢量选择逻辑
         private Vector2 _pressDownMousePos = Vector2.zero;       // 按下时的鼠标位置
         private Vector2 _wheelShowMousePos = Vector2.zero;       // 轮盘显示时的鼠标位置
-        private const float FIRST_VECTOR_THRESHOLD = 20f;        // 第一矢量的激活阈值（死区）
+        private const float FIRST_VECTOR_THRESHOLD = 40f;        // 第一矢量的激活阈值（死区），增大到40px防止误触
 
         // 当前显示的物品所属类别（用于保存布局时）
         private ItemCategory _currentCategory = ItemCategory.Medical;
@@ -124,7 +124,15 @@ namespace Backpack_QuickWheel.ShortcutSystem
             _wheelCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
             _wheelCanvas.sortingOrder = 100;
 
-            canvasObj.AddComponent<GraphicRaycaster>();
+            var graphicRaycaster = canvasObj.AddComponent<GraphicRaycaster>();
+
+            // 🔧 优化：确保鼠标指针不被遮挡
+            // 1. 降低Canvas排序，避免遮挡系统鼠标
+            // 2. 使用合适的输入拦截策略
+            // 注意：inputBlockerImage 稍后创建，这里先预留注释
+
+            // 在轮盘显示时隐藏系统鼠标，在隐藏时恢复
+            // 这将在ShowWheel/HideWheel中处理
 
             var canvasScaler = canvasObj.AddComponent<CanvasScaler>();
             canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -166,6 +174,13 @@ namespace Backpack_QuickWheel.ShortcutSystem
             wheelRectTransform.sizeDelta = new Vector2(GRID_OFFSET * 3, GRID_OFFSET * 3);
             _wheelContainer = wheelRectTransform;
 
+            // 验证关键组件
+            if (_wheelContainer == null)
+            {
+                Debug.LogError("[ItemWheelSelector] 轮盘容器创建失败");
+                return;
+            }
+
             // 查找ItemDisplay模板
             FindItemDisplayTemplate();
 
@@ -194,6 +209,9 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 Debug.LogWarning("[ItemWheelSelector] 找不到ItemDisplay模板，轮盘可能显示不正常");
             }
         }
+
+        // 鼠标可见性状态
+        private bool _originalCursorVisible;
 
         /// <summary>
         /// 显示轮盘选择器
@@ -256,12 +274,26 @@ namespace Backpack_QuickWheel.ShortcutSystem
             // 轮盘中心使用按下时的鼠标位置（而不是显示时的位置）
             _wheelCenterScreenPos = pressDownPos;
 
+            // 🔧 优化：鼠标指针管理
+            // 保存原始鼠标可见性状态
+            _originalCursorVisible = Cursor.visible;
+            // 显示系统鼠标指针，确保用户能看见
+            Cursor.visible = true;
+
             // 激活轮盘
             _wheelCanvas.gameObject.SetActive(true);
             _wheelActive = true;
 
             // 设置轮盘中心位置（必须在激活后才能正确转换屏幕坐标）
-            _wheelContainer.position = _wheelCenterScreenPos;
+            if (_wheelContainer != null)
+            {
+                _wheelContainer.position = _wheelCenterScreenPos;
+            }
+            else
+            {
+                Debug.LogError("[ItemWheelSelector] _wheelContainer 为null，无法设置位置");
+                return;
+            }
 
             Debug.Log($"[ItemWheelSelector] 轮盘中心位置已设置: {_wheelCenterScreenPos}");
             Debug.Log($"[ItemWheelSelector] 正在创建物品显示...");
@@ -286,6 +318,16 @@ namespace Backpack_QuickWheel.ShortcutSystem
         /// </summary>
         public void HideWheel()
         {
+            // 🔧 优化：恢复原始鼠标可见性状态
+            Cursor.visible = _originalCursorVisible;
+
+            // 🔧 优化：清理任何正在进行的拖拽
+            var dragManager = DragGhostManager.Instance;
+            if (dragManager != null)
+            {
+                dragManager.ForceCleanup();
+            }
+
             _wheelCanvas.gameObject.SetActive(false);
             _wheelActive = false;
             ClearItemDisplays();
@@ -402,11 +444,17 @@ namespace Backpack_QuickWheel.ShortcutSystem
         {
             Vector2 currentMousePos = Input.mousePosition;
             Vector2 currentVector = currentMousePos - _wheelCenterScreenPos;
+            float vectorMagnitude = currentVector.magnitude;
 
             // 检查矢量长度是否超过阈值
-            if (currentVector.magnitude < FIRST_VECTOR_THRESHOLD)
+            if (vectorMagnitude < FIRST_VECTOR_THRESHOLD)
             {
-                // 矢量长度不足，不做选择
+                // 在死区内，清除选择（如果之前有选择的话）
+                if (_selectedItemIndex >= 0)
+                {
+                    ClearSelection();
+                    Debug.Log($"[ItemWheelSelector] 进入死区（{vectorMagnitude:F1}px < {FIRST_VECTOR_THRESHOLD}px），清除选择");
+                }
                 return;
             }
 
@@ -482,6 +530,19 @@ namespace Backpack_QuickWheel.ShortcutSystem
                     // 只有被选中的格子才显示聚焦效果
                     display.SetSelected(i == _selectedItemIndex);
                 }
+            }
+        }
+
+        /// <summary>
+        /// 清除选择（回到死区时调用）
+        /// </summary>
+        private void ClearSelection()
+        {
+            if (_selectedItemIndex >= 0)
+            {
+                Debug.Log($"[ItemWheelSelector] 清除选择：之前选中索引 {_selectedItemIndex}");
+                _selectedItemIndex = -1;
+                UpdateSelection(); // 更新所有格子的视觉状态
             }
         }
 
