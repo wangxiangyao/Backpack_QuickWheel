@@ -695,9 +695,113 @@ namespace Backpack_QuickWheel.ShortcutSystem
             if (IsShortcutSystemEnabled != enabled)
             {
                 IsShortcutSystemEnabled = enabled;
+
+                if (!enabled)
+                {
+                    // 🚨 系统关闭时执行完整的数据清理
+                    Debug.Log("[BackpackShortcutManager] 开始系统关闭数据清理...");
+                    PerformSystemResetCleanup();
+                }
+
                 OnShortcutSystemStateChanged?.Invoke(enabled);
                 Debug.Log($"[BackpackShortcutManager] 快捷键系统已{(enabled ? "启用" : "禁用")}");
             }
+        }
+
+        /// <summary>
+        /// 🚨 执行系统重置时的完整数据清理
+        /// 确保所有核心数据回到初始状态，避免脏数据干扰
+        /// </summary>
+        private void PerformSystemResetCleanup()
+        {
+            Debug.Log("[BackpackShortcutManager] 🔧 开始执行系统重置清理...");
+
+            // 1. 清理UI显示 - 清空所有快捷键UI
+            try
+            {
+                for (int i = 0; i < 6; i++) // 0-5 对应游戏中的3-8快捷键
+                {
+                    ShortcutUIUpdater.ClearShortcutUI(i);
+                }
+                Debug.Log("[BackpackShortcutManager] ✅ UI清理完成");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[BackpackShortcutManager] UI清理失败: {e.Message}");
+            }
+
+            // 2. 清理轮盘布局管理器数据
+            try
+            {
+                if (_wheelLayoutManager != null)
+                {
+                    // 清空所有类别的轮盘布局
+                    foreach (ItemCategory category in System.Enum.GetValues(typeof(ItemCategory)))
+                    {
+                        if (category != ItemCategory.None)
+                        {
+                            _wheelLayoutManager.ClearCategory(category);
+                        }
+                    }
+                    Debug.Log("[BackpackShortcutManager] ✅ 轮盘布局清理完成");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[BackpackShortcutManager] 轮盘布局清理失败: {e.Message}");
+            }
+
+            // 3. 清理选中物品数据
+            try
+            {
+                if (_currentSelection != null)
+                {
+                    _currentSelection.Clear();
+                    Debug.Log("[BackpackShortcutManager] ✅ 当前选择清理完成");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[BackpackShortcutManager] 选中物品清理失败: {e.Message}");
+            }
+
+            // 4. 清理配件订阅数据
+            try
+            {
+                if (_subscribedAttachments != null)
+                {
+                    _subscribedAttachments.Clear();
+                    Debug.Log("[BackpackShortcutManager] ✅ 配件订阅清理完成");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[BackpackShortcutManager] 配件订阅清理失败: {e.Message}");
+            }
+
+            // 5. 清理状态标志
+            _isRefreshing = false;
+            Debug.Log("[BackpackShortcutManager] ✅ 状态标志重置完成");
+
+            // 6. 停止所有协程
+            try
+            {
+                if (_pendingAttachmentUpdateCoroutine != null)
+                {
+                    StopCoroutine(_pendingAttachmentUpdateCoroutine);
+                    _pendingAttachmentUpdateCoroutine = null;
+                    Debug.Log("[BackpackShortcutManager] ✅ 协程清理完成");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[BackpackShortcutManager] 协程清理失败: {e.Message}");
+            }
+
+            // 7. 强制垃圾回收（可选，用于测试）
+            // System.GC.Collect();
+
+            Debug.Log("[BackpackShortcutManager] 🔧 系统重置清理完成！所有核心数据已回到初始状态。");
         }
 
         /// <summary>
