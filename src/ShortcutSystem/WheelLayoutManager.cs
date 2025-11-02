@@ -64,6 +64,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
         /// <summary>
         /// 根据物品收集更新轮盘布局
         /// 这是核心方法，统一管理物品和布局的关系
+        /// 🔧 修复：收集所有实际物品实例，显示正确的物品数量
         /// </summary>
         public void UpdateFromCollectedItems(ItemCategory category, List<Item> collectedItems)
         {
@@ -80,22 +81,37 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
             // 第一步：标记现有格子的物品状态
             var usedItems = new HashSet<Item>();
+            // 🔧 使用引用比较确保每个物品实例都被正确识别
+            var itemReferences = new HashSet<int>(collectedItems.Select(item => item.GetHashCode()));
+
             foreach (var slot in currentSlots)
             {
                 if (slot.HasValidItem())
                 {
-                    if (collectedItems.Contains(slot.Item))
+                    int slotItemHash = slot.Item.GetHashCode();
+                    if (itemReferences.Contains(slotItemHash))
                     {
-                        // 物品仍然存在，保留格子
-                        newSlots.Add(slot);
-                        usedItems.Add(slot.Item);
-                        Debug.Log($"[WheelLayoutManager] 保留现有格子: {slot.Item.DisplayName}");
+                        // 🔧 通过引用哈希找到对应的新物品实例
+                        var matchingItem = collectedItems.FirstOrDefault(item => item.GetHashCode() == slotItemHash);
+                        if (matchingItem != null)
+                        {
+                            // 物品仍然存在，保留格子
+                            newSlots.Add(slot);
+                            usedItems.Add(matchingItem);
+                            Debug.Log($"[WheelLayoutManager] 保留现有格子: {slot.Item.DisplayName} (引用: {slotItemHash})");
+                        }
+                        else
+                        {
+                            // 物品不存在了，标记为已移除
+                            newSlots.Add(slot.SetRemoved());
+                            Debug.Log($"[WheelLayoutManager] 物品已移除: {slot.Item.DisplayName} (引用: {slotItemHash})");
+                        }
                     }
                     else
                     {
                         // 物品不存在了，标记为已移除
                         newSlots.Add(slot.SetRemoved());
-                        Debug.Log($"[WheelLayoutManager] 物品已移除: {slot.Item.DisplayName}");
+                        Debug.Log($"[WheelLayoutManager] 物品已移除: {slot.Item.DisplayName} (引用: {slotItemHash})");
                     }
                 }
                 else
@@ -124,7 +140,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
                     var newSlot = WheelSlot.CreateOccupied(item, insertIndex);
                     newSlots.Insert(insertIndex, newSlot);
                     usedItems.Add(item);
-                    Debug.Log($"[WheelLayoutManager] 新增物品格子: {item.DisplayName} 在位置 {insertIndex}");
+                    Debug.Log($"[WheelLayoutManager] 新增物品格子: {item.DisplayName} (引用: {item.GetHashCode()}) 在位置 {insertIndex}");
                 }
             }
 
@@ -135,7 +151,9 @@ namespace Backpack_QuickWheel.ShortcutSystem
             _wheelSlots[category] = newSlots;
 
             // 触发布局变更事件
+            Debug.Log($"[WheelLayoutManager] 触发OnLayoutChanged事件: {category}");
             OnLayoutChanged?.Invoke(category);
+            Debug.Log($"[WheelLayoutManager] OnLayoutChanged事件触发完成，监听器数量: {OnLayoutChanged?.GetInvocationList()?.Length ?? 0}");
 
             Debug.Log($"[WheelLayoutManager] 更新完成，最终格子数量: {newSlots.Count}");
         }
@@ -145,7 +163,9 @@ namespace Backpack_QuickWheel.ShortcutSystem
         /// </summary>
         public void UpdateSlotAfterItemUsage(Item usedItem)
         {
-            Debug.Log($"[WheelLayoutManager] 更新物品使用后状态: {usedItem.DisplayName}");
+            Debug.Log($"[WheelLayoutManager] 更新物品使用后状态: {usedItem.DisplayName} (引用: {usedItem.GetHashCode()})");
+
+            int usedItemHash = usedItem.GetHashCode();
 
             foreach (var kvp in _wheelSlots)
             {
@@ -155,20 +175,108 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 for (int i = 0; i < slots.Count; i++)
                 {
                     var slot = slots[i];
-                    if (slot.HasValidItem() && slot.Item == usedItem)
+                    if (slot.HasValidItem())
                     {
-                        // 检查物品是否还有剩余（这里简化处理，假设物品被使用完）
-                        // 在实际实现中，可以检查物品的StackCount等属性
-                        slots[i] = slot.SetRemoved();
+                        int slotItemHash = slot.Item.GetHashCode();
+                        if (slotItemHash == usedItemHash)
+                        {
+                            // 🔧 通过引用哈希精确匹配，确保只更新正确的物品实例
+                            // 检查物品是否还有剩余（这里简化处理，假设物品被使用完）
+                            // 在实际实现中，可以检查物品的StackCount等属性
+                            slots[i] = slot.SetRemoved();
 
-                        Debug.Log($"[WheelLayoutManager] 物品使用完，更新格子状态: {usedItem.DisplayName}");
+                            Debug.Log($"[WheelLayoutManager] 物品使用完，更新格子状态: {usedItem.DisplayName} (引用匹配: {slotItemHash})");
 
-                        // 触发布局变更事件
-                        OnLayoutChanged?.Invoke(category);
-                        break;
+                            // 触发布局变更事件
+                            OnLayoutChanged?.Invoke(category);
+                            break;
+                        }
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// 🆕 增量添加物品到指定类别 - 避免全量扫描，提升性能
+        /// 当单个物品被添加到配件中时使用此方法
+        /// </summary>
+        public void AddItemToCategory(ItemCategory category, Item newItem)
+        {
+            if (newItem == null)
+            {
+                Debug.LogError("[WheelLayoutManager] AddItemToCategory: 物品为空");
+                return;
+            }
+
+            Debug.Log($"[WheelLayoutManager] 增量添加物品到类别 {category}: {newItem.DisplayName} (引用: {newItem.GetHashCode()})");
+
+            // 获取当前类别的所有格子
+            var currentSlots = GetSlots(category);
+
+            // 检查物品是否已经存在（防止重复添加）
+            int newItemHash = newItem.GetHashCode();
+            foreach (var slot in currentSlots)
+            {
+                if (slot.HasValidItem() && slot.Item.GetHashCode() == newItemHash)
+                {
+                    Debug.Log($"[WheelLayoutManager] 物品已存在于类别 {category} 中: {newItem.DisplayName}，跳过添加");
+                    return;
+                }
+            }
+
+            // 寻找合适的插入位置
+            int insertIndex = FindBestInsertPosition(currentSlots, newItem);
+
+            // 创建新格子
+            var newSlot = WheelSlot.CreateOccupied(newItem, insertIndex);
+
+            // 插入到轮盘布局中
+            if (!_wheelSlots.ContainsKey(category))
+            {
+                _wheelSlots[category] = new List<WheelSlot>();
+            }
+
+            if (insertIndex >= _wheelSlots[category].Count)
+            {
+                _wheelSlots[category].Add(newSlot);
+            }
+            else
+            {
+                _wheelSlots[category].Insert(insertIndex, newSlot);
+            }
+
+            Debug.Log($"[WheelLayoutManager] 成功添加物品 {newItem.DisplayName} 到类别 {category} 的位置 {insertIndex}");
+
+            // 触发布局变更事件，只更新这一个物品的UI
+            OnLayoutChanged?.Invoke(category);
+        }
+
+        /// <summary>
+        /// 🆕 为新物品寻找最佳插入位置
+        /// 优先使用空格子，其次是已移除的格子位置
+        /// </summary>
+        private int FindBestInsertPosition(List<WheelSlot> currentSlots, Item newItem)
+        {
+            // 1. 优先寻找空格子（Empty状态）
+            for (int i = 0; i < currentSlots.Count; i++)
+            {
+                if (!currentSlots[i].HasValidItem() && currentSlots[i].State == WheelSlot.SlotState.Empty)
+                {
+                    return i;
+                }
+            }
+
+            // 2. 其次寻找已移除的格子（Removed状态），可以复用
+            for (int i = 0; i < currentSlots.Count; i++)
+            {
+                if (!currentSlots[i].HasValidItem() && currentSlots[i].State == WheelSlot.SlotState.Removed)
+                {
+                    return i;
+                }
+            }
+
+            // 3. 最后追加到末尾
+            return currentSlots.Count;
         }
 
         /// <summary>
@@ -205,6 +313,111 @@ namespace Backpack_QuickWheel.ShortcutSystem
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// 🔧 依照布局获得下一个物品
+        /// 根据当前物品在布局中的位置，查找下一个合适的物品
+        /// </summary>
+        /// <param name="category">物品类别</param>
+        /// <param name="currentItem">当前物品</param>
+        /// <returns>下一个物品，如果找不到则返回null</returns>
+        public Item GetNextItemByLayout(ItemCategory category, Item currentItem)
+        {
+            if (currentItem == null) return null;
+
+            var slots = GetSlots(category);
+            int currentIndex = -1;
+
+            // 找到当前物品在布局中的位置
+            for (int i = 0; i < slots.Count; i++)
+            {
+                if (slots[i].HasValidItem() && slots[i].Item == currentItem)
+                {
+                    currentIndex = i;
+                    break;
+                }
+            }
+
+            if (currentIndex == -1)
+            {
+                Debug.LogWarning($"[WheelLayoutManager] 物品 {currentItem.DisplayName} 不在布局中");
+                return null;
+            }
+
+            Debug.Log($"[WheelLayoutManager] 物品 {currentItem.DisplayName} 在布局中的位置: {currentIndex}");
+
+            // 按照优先级查找下一个物品：
+            // 1. 下一个位置 (currentIndex + 1)
+            // 2. 上一个位置 (currentIndex - 1)
+            // 3. 从头开始查找第一个有效物品
+            // 4. 找遍了都没有，返回null
+
+            Item nextItem = null;
+
+            // 1. 尝试下一个位置
+            nextItem = GetItemAtPosition(category, currentIndex + 1);
+            if (nextItem != null)
+            {
+                Debug.Log($"[WheelLayoutManager] 找到下一个位置物品: {nextItem.DisplayName}");
+                return nextItem;
+            }
+
+            // 2. 尝试上一个位置
+            nextItem = GetItemAtPosition(category, currentIndex - 1);
+            if (nextItem != null)
+            {
+                Debug.Log($"[WheelLayoutManager] 找到上一个位置物品: {nextItem.DisplayName}");
+                return nextItem;
+            }
+
+            // 3. 从头开始查找第一个有效物品
+            nextItem = GetFirstValidItem(category);
+            if (nextItem != null && nextItem != currentItem)
+            {
+                Debug.Log($"[WheelLayoutManager] 找到第一个有效物品: {nextItem.DisplayName}");
+                return nextItem;
+            }
+
+            // 4. 找遍了都没有合适的物品
+            Debug.Log($"[WheelLayoutManager] 布局中没有找到其他物品");
+            return null;
+        }
+
+        /// <summary>
+        /// 获取指定位置的物品
+        /// </summary>
+        private Item GetItemAtPosition(ItemCategory category, int position)
+        {
+            var slots = GetSlots(category);
+
+            if (position >= 0 && position < slots.Count)
+            {
+                if (slots[position].HasValidItem())
+                {
+                    return slots[position].Item;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// 获取第一个有效物品
+        /// </summary>
+        private Item GetFirstValidItem(ItemCategory category)
+        {
+            var slots = GetSlots(category);
+
+            foreach (var slot in slots)
+            {
+                if (slot.HasValidItem())
+                {
+                    return slot.Item;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -271,12 +484,13 @@ namespace Backpack_QuickWheel.ShortcutSystem
         {
             if (item == null) return;
 
+            int itemHash = item.GetHashCode();
             var slots = GetSlots(category);
             for (int i = 0; i < slots.Count; i++)
             {
-                if (slots[i].Item == item)
+                if (slots[i].HasValidItem() && slots[i].Item.GetHashCode() == itemHash)
                 {
-                    Debug.Log($"[WheelLayoutManager] 从类别 {category} 移除物品: {item.DisplayName}");
+                    Debug.Log($"[WheelLayoutManager] 从类别 {category} 移除物品: {item.DisplayName} (引用: {itemHash})");
                     slots[i] = slots[i].SetRemoved();
                     OnLayoutChanged?.Invoke(category);
                     return;
@@ -293,7 +507,18 @@ namespace Backpack_QuickWheel.ShortcutSystem
             {
                 _wheelSlots[category].Clear();
                 Debug.Log($"[WheelLayoutManager] 已清空类别 {category} 的布局");
+
+                // 🔧 修复：确保事件触发，添加详细日志
+                Debug.Log($"[WheelLayoutManager] 准备触发OnLayoutChanged事件: {category}");
+                Debug.Log($"[WheelLayoutManager] OnLayoutChanged订阅者数量: {OnLayoutChanged?.GetInvocationList()?.Length ?? 0}");
+
                 OnLayoutChanged?.Invoke(category);
+
+                Debug.Log($"[WheelLayoutManager] OnLayoutChanged事件已触发: {category}");
+            }
+            else
+            {
+                Debug.LogWarning($"[WheelLayoutManager] 尝试清空不存在的类别: {category}");
             }
         }
 

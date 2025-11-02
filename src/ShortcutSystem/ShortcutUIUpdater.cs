@@ -13,6 +13,11 @@ namespace Backpack_QuickWheel.ShortcutSystem
     public static class ShortcutUIUpdater
     {
         /// <summary>
+        /// 委托：获取指定类别的当前选中物品
+        /// 由BackpackShortcutManager设置，用于UI自我管理
+        /// </summary>
+        public static Func<ItemCategory, Item> GetCurrentSelectionDelegate { get; set; }
+        /// <summary>
         /// 尝试更新快捷键 UI
         /// </summary>
         /// <param name="index">快捷键索引 (0-3)</param>
@@ -111,7 +116,19 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
             try
             {
-                // 触发UI刷新事件，让游戏系统更新显示状态
+                // 🔧 修复：先尝试使用官方API清空快捷键
+                bool success = Duckov.ItemShortcut.Set(index, null);
+
+                if (success)
+                {
+                    Debug.Log($"[ShortcutUIUpdater] ✓ 快捷键 {index} 已通过官方API清空");
+                }
+                else
+                {
+                    Debug.Log($"[ShortcutUIUpdater] 官方API清空失败，使用事件触发方式");
+                }
+
+                // 🔧 修复：无论官方API是否成功，都触发UI刷新事件确保UI更新
                 bool eventSuccess = TriggerOnSetItemEvent(index);
 
                 if (eventSuccess)
@@ -205,5 +222,102 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
             return false; // 默认失败（理论上不会执行到这里）
         }
+
+        #region 🏗️ 自我管理方法 - 支持类别和物品级别的操作
+
+        /// <summary>
+        /// 🏗️ 获取类别对应的快捷键按键索引
+        /// 将物品类别映射到游戏对应的快捷键（0=4键医疗，1=5键兴奋剂，2=Q键食物，3=G键爆炸物）
+        /// </summary>
+        private static int GetShortcutKeyIndex(ItemCategory category)
+        {
+            switch (category)
+            {
+                case ItemCategory.Medical: return 0;  // 4键 - 医疗物品
+                case ItemCategory.Stim: return 1;     // 5键 - 兴奋剂
+                case ItemCategory.Food: return 2;     // Q键 - 食物
+                case ItemCategory.Explosive: return 3; // G键 - 爆炸物
+                default: return -1;                 // 不支持的类别
+            }
+        }
+
+        /// <summary>
+        /// 🏗️ 更新指定类别的UI（自我管理方法）
+        /// 根据当前选中物品自动判断是更新还是清空UI
+        /// </summary>
+        /// <param name="category">要更新的类别</param>
+        public static void UpdateCategoryUI(ItemCategory category)
+        {
+            Debug.Log($"[ShortcutUIUpdater] 🏗️ 自我管理：更新类别 {category} 的UI");
+
+            var index = GetShortcutKeyIndex(category);
+            if (index < 0)
+            {
+                Debug.LogWarning($"[ShortcutUIUpdater] 类别 {category} 无对应快捷键");
+                return;
+            }
+
+            // 通过委托获取当前选中物品
+            var currentItem = GetCurrentSelectionDelegate?.Invoke(category);
+
+            if (currentItem != null && !currentItem.IsBeingDestroyed)
+            {
+                Debug.Log($"[ShortcutUIUpdater] 🏗️ 类别 {category} 有选中物品: {currentItem.DisplayName}");
+                TryUpdateShortcutUI(index, currentItem);
+            }
+            else
+            {
+                Debug.Log($"[ShortcutUIUpdater] 🏗️ 类别 {category} 无选中物品，清空UI");
+                ClearShortcutUI(index);
+            }
+        }
+
+        /// <summary>
+        /// 🏗️ 处理物品移除的UI更新（自我管理方法）
+        /// 当指定物品被移除时，更新对应类别的UI
+        /// </summary>
+        /// <param name="category">物品类别</param>
+        /// <param name="removedItem">被移除的物品</param>
+        public static void HandleItemRemoved(ItemCategory category, Item removedItem)
+        {
+            Debug.Log($"[ShortcutUIUpdater] 🏗️ 自我管理：处理物品移除 - {removedItem.DisplayName} (类别: {category})");
+
+            // 直接更新类别的UI，系统会自动选择下一个物品或清空
+            UpdateCategoryUI(category);
+        }
+
+        /// <summary>
+        /// 🏗️ 处理物品添加的UI更新（自我管理方法）
+        /// 当指定物品被添加时，更新对应类别的UI
+        /// </summary>
+        /// <param name="category">物品类别</param>
+        /// <param name="addedItem">被添加的物品</param>
+        public static void HandleItemAdded(ItemCategory category, Item addedItem)
+        {
+            Debug.Log($"[ShortcutUIUpdater] 🏗️ 自我管理：处理物品添加 - {addedItem.DisplayName} (类别: {category})");
+
+            // 🔧 修复：检查选中状态是否发生了变化
+            // 获取添加前的当前选中物品
+            var currentSelection = GetCurrentSelectionDelegate?.Invoke(category);
+
+            Debug.Log($"[ShortcutUIUpdater] 🏗️ 添加前选中物品: {currentSelection?.DisplayName ?? "null"}");
+
+            // 根据选中逻辑规则判断：
+            // 1. 如果之前没有选中物品，新物品应该成为选中 → 需要更新UI
+            // 2. 如果之前有选中物品，保持当前选中 → 不需要更新UI
+            bool shouldUpdateUI = (currentSelection == null || currentSelection.IsBeingDestroyed);
+
+            if (shouldUpdateUI)
+            {
+                Debug.Log($"[ShortcutUIUpdater] 🏗️ 选中状态发生变化，更新UI");
+                UpdateCategoryUI(category);
+            }
+            else
+            {
+                Debug.Log($"[ShortcutUIUpdater] 🏗️ 选中状态未变化，跳过UI更新");
+            }
+        }
+
+        #endregion
     }
 }
