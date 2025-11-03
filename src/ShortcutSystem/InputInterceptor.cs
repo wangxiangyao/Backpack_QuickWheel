@@ -135,26 +135,29 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
             Debug.Log($"[InputInterceptor] ✓ 快捷键 {index} 释放，按压时长: {_pressDuration:F2}s");
 
-            if (_wheelShown)
+            // 检查轮盘当前是否还显示着（防止点击关闭后重复触发）
+            bool isWheelCurrentlyActive = _wheelShown && (_wheelSelector?.IsWheelActive() ?? false);
+
+            if (isWheelCurrentlyActive)
             {
+                Debug.Log($"[InputInterceptor] 轮盘仍然显示，处理释放事件");
+
                 // 长按后释放：轮盘已显示
                 // 检查轮盘是否发生了拖拽
                 if (_wheelSelector.HasBeenDragged())
                 {
                     Debug.Log($"[InputInterceptor] 轮盘已发生拖拽，跳过物品使用，仅关闭轮盘");
+                    _wheelSelector.HideWheel();
                 }
                 else
                 {
-                    // 轮盘未拖拽，执行选中物品
-                    Debug.Log($"[InputInterceptor] 轮盘未拖拽，执行选中物品");
-                    HandleWheelItemSelection(index);
+                    // 轮盘未拖拽，使用hover的物品（如果有），不改变选中状态
+                    Debug.Log($"[InputInterceptor] 轮盘未拖拽，使用hover物品");
+                    _wheelSelector.HideWheel(WheelCloseMode.UseHoveredItem);
                 }
 
                 // 【轮盘布局持久化】轮盘关闭前保存当前布局
                 BackpackShortcutManager.Instance?.PersistWheelLayouts();
-
-                // 隐藏轮盘
-                _wheelSelector.HideWheel();
             }
             else if (_pressDuration < LONG_PRESS_THRESHOLD)
             {

@@ -13,7 +13,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
     /// 使用嵌入式格子图片作为背景，支持有物品和无物品两种状态
     /// 支持拖动调整物品在轮盘上的位置
     /// </summary>
-    public class WheelItemDisplay : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
+    public class WheelItemDisplay : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler
     {
         private Item _item;
         private Image _bgImage;
@@ -128,6 +128,14 @@ namespace Backpack_QuickWheel.ShortcutSystem
             endDragEntry.eventID = EventTriggerType.EndDrag;
             endDragEntry.callback.AddListener((data) => OnEndDrag((PointerEventData)data));
             dragHandler.triggers.Add(endDragEntry);
+
+            // 添加点击事件的EventTrigger
+            var clickEntry = new EventTrigger.Entry();
+            clickEntry.eventID = EventTriggerType.PointerClick;
+            clickEntry.callback.AddListener((data) => OnPointerClick((PointerEventData)data));
+            dragHandler.triggers.Add(clickEntry);
+
+            Debug.Log($"[WheelItemDisplay] 已添加点击EventTrigger到格子 {_cellIndex}");
 
             // 如果有物品，添加图标
             if (_item != null)
@@ -369,6 +377,48 @@ namespace Backpack_QuickWheel.ShortcutSystem
             {
                 Debug.Log($"[WheelItemDisplay] 格子 {_cellIndex} 的物品已清空");
             }
+        }
+
+        /// <summary>
+        /// 处理左键点击事件 - 选中物品并关闭轮盘
+        /// </summary>
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            Debug.Log($"[WheelItemDisplay] OnPointerClick 开始处理");
+
+            // 只处理左键点击，且必须有物品
+            if (eventData.button != PointerEventData.InputButton.Left)
+            {
+                Debug.Log($"[WheelItemDisplay] 非左键点击，忽略: {eventData.button}");
+                return;
+            }
+
+            if (_item == null)
+            {
+                Debug.Log($"[WheelItemDisplay] 格子中没有物品，忽略点击");
+                return;
+            }
+
+            Debug.Log($"[WheelItemDisplay] 左键点击物品: {_item.DisplayName} (索引 {_cellIndex})");
+            Debug.Log($"[WheelItemDisplay] _wheelSelector是否为null: {_wheelSelector == null}");
+
+            // 通知轮盘选择器执行选中并关闭逻辑
+            if (_wheelSelector != null)
+            {
+                Debug.Log($"[WheelItemDisplay] 轮盘选择器引用有效，调用HideWheel(ChangeSelection)");
+
+                // 以ChangeSelection模式关闭轮盘（会同步当前hover状态）
+                _wheelSelector.HideWheel(WheelCloseMode.ChangeSelection);
+                Debug.Log($"[WheelItemDisplay] HideWheel已调用完成");
+            }
+            else
+            {
+                Debug.LogWarning("[WheelItemDisplay] 轮盘选择器引用为null，无法处理点击");
+            }
+
+            // 消费事件，防止传递给游戏
+            eventData.Use();
+            Debug.Log($"[WheelItemDisplay] 事件已消费，OnPointerClick处理完成");
         }
 
         /// <summary>

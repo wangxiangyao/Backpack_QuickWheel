@@ -8,6 +8,15 @@ using Duckov.UI;
 namespace Backpack_QuickWheel.ShortcutSystem
 {
     /// <summary>
+    /// 轮盘关闭模式枚举
+    /// </summary>
+    public enum WheelCloseMode
+    {
+        UseHoveredItem,      // 使用hover的物品，不改变选中状态（松开快捷键时）
+        ChangeSelection      // 改变选中物品，不使用物品（左键点击时）
+    }
+
+    /// <summary>
     /// 物品轮盘选择器UI组件 - 九宫格布局版本
     ///
     /// 克隆游戏官方的 ItemDisplay 格子，排列成九宫格（中心空）
@@ -338,7 +347,50 @@ namespace Backpack_QuickWheel.ShortcutSystem
         /// </summary>
         public void HideWheel()
         {
-            // 🔧 优化：恢复原始鼠标可见性状态
+            HideWheel(WheelCloseMode.UseHoveredItem);
+        }
+
+        /// <summary>
+        /// 隐藏轮盘选择器（带模式参数）- 用于不同的关闭模式
+        /// </summary>
+        /// <param name="mode">关闭模式</param>
+        public void HideWheel(WheelCloseMode mode)
+        {
+            Debug.Log($"[ItemWheelSelector] HideWheel 开始: mode={mode}");
+            Debug.Log($"[ItemWheelSelector] 当前hover索引: {_hoverIndex}");
+            Debug.Log($"[ItemWheelSelector] 当前物品数量: {_currentItems.Count}");
+
+            // 根据模式决定是否同步选中状态
+            bool shouldSyncSelection = (mode == WheelCloseMode.ChangeSelection);
+
+            if (shouldSyncSelection)
+            {
+                Debug.Log($"[ItemWheelSelector] ChangeSelection模式：准备同步hover状态");
+                // 左键点击模式：同步hover状态到WheelLayoutManager作为真实选中状态
+                SyncHoverToSelection();
+                Debug.Log($"[ItemWheelSelector] ChangeSelection模式：同步选中状态完成");
+            }
+            else
+            {
+                // UseHoveredItem模式：不改变选中状态，只使用hover的物品
+                Debug.Log($"[ItemWheelSelector] UseHoveredItem模式：不改变选中状态");
+
+                // 检查是否有有效的hover状态，只有hover到物品时才使用
+                if (_hoverIndex >= 0 && _hoverIndex < _currentItems.Count && _currentItems[_hoverIndex] != null)
+                {
+                    var hoveredItem = _currentItems[_hoverIndex];
+                    Debug.Log($"[ItemWheelSelector] 有hover状态，使用物品: {hoveredItem.DisplayName}");
+
+                    // 调用物品使用逻辑
+                    ItemUsageHandler.UseItem(hoveredItem, _currentCategory);
+                }
+                else
+                {
+                    Debug.Log($"[ItemWheelSelector] 没有hover状态，不使用任何物品");
+                }
+            }
+
+            // 执行隐藏轮盘的标准流程（不包含SyncHoverToSelection）
             Cursor.visible = _originalCursorVisible;
 
             // 🔧 优化：清理任何正在进行的拖拽
@@ -348,14 +400,27 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 dragManager.ForceCleanup();
             }
 
-            // 🆕 同步hover状态到WheelLayoutManager作为真实选中状态
-            SyncHoverToSelection();
-
             _wheelCanvas.gameObject.SetActive(false);
             _wheelActive = false;
             ClearItemDisplays();
 
-            Debug.Log("[ItemWheelSelector] 隐藏轮盘");
+            Debug.Log($"[ItemWheelSelector] 隐藏轮盘完成 (模式: {mode})");
+        }
+
+        /// <summary>
+        /// 获取当前hover索引 - 用于调试
+        /// </summary>
+        public int GetHoverIndex()
+        {
+            return _hoverIndex;
+        }
+
+        /// <summary>
+        /// 检查轮盘是否当前活跃显示
+        /// </summary>
+        public bool IsWheelActive()
+        {
+            return _wheelActive;
         }
 
         /// <summary>
@@ -639,19 +704,37 @@ namespace Backpack_QuickWheel.ShortcutSystem
         /// </summary>
         private void SyncHoverToSelection()
         {
+            Debug.Log($"[ItemWheelSelector] SyncHoverToSelection 开始");
+            Debug.Log($"[ItemWheelSelector] _hoverIndex: {_hoverIndex}");
+            Debug.Log($"[ItemWheelSelector] _currentItems.Count: {_currentItems.Count}");
+            Debug.Log($"[ItemWheelSelector] _wheelLayoutManager是否为null: {_wheelLayoutManager == null}");
+
             if (_hoverIndex >= 0 && _hoverIndex < _currentItems.Count && _currentItems[_hoverIndex] != null)
             {
                 // 有hover状态，同步到WheelLayoutManager
                 if (_wheelLayoutManager != null)
                 {
+                    var itemToSelect = _currentItems[_hoverIndex];
+                    Debug.Log($"[ItemWheelSelector] 准备同步: 类别{_currentCategory}, 索引{_hoverIndex}, 物品{itemToSelect.DisplayName}");
+
                     _wheelLayoutManager.SetSelectedSlot(_currentCategory, _hoverIndex);
-                    Debug.Log($"[ItemWheelSelector] 同步hover到选中: 类别{_currentCategory}, 索引{_hoverIndex}, 物品{_currentItems[_hoverIndex].DisplayName}");
+                    Debug.Log($"[ItemWheelSelector] 同步hover到选中完成: 类别{_currentCategory}, 索引{_hoverIndex}, 物品{itemToSelect.DisplayName}");
+                }
+                else
+                {
+                    Debug.LogError("[ItemWheelSelector] WheelLayoutManager为null，无法同步选中状态");
                 }
             }
             else
             {
                 // 没有hover状态，不同步
-                Debug.Log($"[ItemWheelSelector] 没有hover状态，不同步到选中");
+                Debug.Log($"[ItemWheelSelector] 没有有效的hover状态，不同步到选中");
+                if (_hoverIndex < 0)
+                    Debug.Log($"[ItemWheelSelector] 原因: _hoverIndex < 0 ({_hoverIndex})");
+                else if (_hoverIndex >= _currentItems.Count)
+                    Debug.Log($"[ItemWheelSelector] 原因: _hoverIndex >= _currentItems.Count ({_hoverIndex} >= {_currentItems.Count})");
+                else if (_currentItems[_hoverIndex] == null)
+                    Debug.Log($"[ItemWheelSelector] 原因: _currentItems[_hoverIndex] 为null");
             }
         }
 
