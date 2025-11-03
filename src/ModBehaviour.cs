@@ -71,6 +71,7 @@ namespace Backpack_QuickWheel
             // 初始化圆孔拖拽高亮缓存管理器
             Backpack_QuickWheel.AttachmentUI.SlotIndicatorCacheManager.Initialize();
 
+    
             // LootDebug系统已移除 - 配件现在直接使用官方掉落系统
 
             // ItemFilter拦截器已移除 - 不再需要
@@ -409,6 +410,7 @@ namespace Backpack_QuickWheel
 #endif
         }
 
+    
         // 调试方法：在物品创建后强制重新注册本地化
         System.Collections.IEnumerator DebugLocalizationAfterItemsCreated()
         {

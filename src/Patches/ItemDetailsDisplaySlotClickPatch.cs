@@ -1,6 +1,5 @@
 using HarmonyLib;
 using ItemStatsSystem;
-using Duckov.UI;
 using System.Reflection;
 using UnityEngine;
 
@@ -17,6 +16,9 @@ namespace Backpack_QuickWheel.Patches
     /// 解决方案：
     /// 在Awake()执行后，额外订阅onElementClicked事件
     /// 当用户单击插槽中的物品时，改变Selection来显示该物品的详情
+    ///
+    /// 注意：此功能存在已知问题，第二排配件详情可能会自动关闭
+    /// 详见 KNOWN_ISSUES.md
     /// </summary>
     [HarmonyPatch(typeof(ItemDetailsDisplay), "Awake")]
     public class ItemDetailsDisplaySlotClickPatch
@@ -67,9 +69,12 @@ namespace Backpack_QuickWheel.Patches
                     itemDisplay = itemDisplayField.GetValue(slotDisplay) as ItemDisplay;
                 }
 
-                // 通过Select更新全局Selection（配合ItemDisplayOnDisablePatch保持状态）
+                // 使用Select更新全局Selection
                 if (itemDisplay != null && itemDisplay.Target == item)
                 {
+                    Debug.Log($"[ItemDetailsDisplaySlotClickPatch] 点击了配件: {item.DisplayName}");
+
+                    // 简单的Select调用，不添加复杂的保护逻辑
                     ItemUIUtilities.Select(itemDisplay);
                 }
             };
