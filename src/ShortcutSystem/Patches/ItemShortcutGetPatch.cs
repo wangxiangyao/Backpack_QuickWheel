@@ -41,7 +41,8 @@ namespace Backpack_QuickWheel.ShortcutSystem.Patches
                 {
                     // 获取我们的物品
                     var category = BackpackShortcutManager.IndexToCategory(index);
-                    Item ourItem = BackpackShortcutManager.Instance?.GetCurrentItem(category);
+                    // 🏗️ 架构优化：直接从WheelLayoutManager单例获取选中物品
+                    Item ourItem = WheelLayoutManager.Instance?.GetSelectedItem(category);
 
                     if (ourItem != null)
                     {

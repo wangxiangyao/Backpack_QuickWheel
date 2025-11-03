@@ -45,7 +45,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
                 foreach (var slot in slots)
                 {
-                    if (slot.HasValidItem())
+                    if (slot.HasValidItem) // Fixed: property access instead of method call
                     {
                         // 创建物品位置记录
                         var itemLocation = new ItemLocation
@@ -53,7 +53,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
                             ItemID = slot.Item.GetInstanceID(), // 使用GetInstanceID替代UniqueID
                             TypeID = slot.Item.TypeID,
                             CustomName = slot.Item.DisplayName,
-                            Position = slot.OriginalIndex,
+                            Position = slot.Index, // Fixed: use Index instead of OriginalIndex
                             IsEmpty = false,
                             Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
                         };
@@ -67,11 +67,10 @@ namespace Backpack_QuickWheel.ShortcutSystem
                             ItemID = -1,
                             TypeID = -1,
                             CustomName = "",
-                            Position = slot.OriginalIndex,
+                            Position = slot.Index, // Fixed: use Index instead of OriginalIndex
                             IsEmpty = true,
-                            State = slot.State.ToString(),
-                            Timestamp = slot.CreatedTimestamp,
-                            IsUserCleared = slot.IsUserCleared
+                            // State = slot.State.ToString(), // Removed: State doesn't exist in SimpleWheelSlot
+                            // Timestamp = slot.CreatedTimestamp // Removed: CreatedTimestamp doesn't exist in SimpleWheelSlot
                         };
                         itemLocationsList.Add(emptyLocation);
                     }
@@ -370,6 +369,65 @@ namespace Backpack_QuickWheel.ShortcutSystem
             }
 
             return item;
+        }
+
+        /// <summary>
+        /// 🔧 从文件加载轮盘布局（新架构）
+        /// </summary>
+        public static WheelLayoutData LoadWheelSlots()
+        {
+            try
+            {
+                string path = GetSavePath();
+
+                Debug.Log("[WheelLayoutPersistence] ════════════════════════════════════════");
+                Debug.Log("[WheelLayoutPersistence] 准备加载轮盘布局...");
+                Debug.Log($"[WheelLayoutPersistence] 文件路径: {path}");
+
+                if (!File.Exists(path))
+                {
+                    Debug.Log("[WheelLayoutPersistence] ✗ 轮盘布局文件不存在");
+                    Debug.Log("[WheelLayoutPersistence] ════════════════════════════════════════");
+                    return null;
+                }
+
+                string json = File.ReadAllText(path);
+                Debug.Log($"[WheelLayoutPersistence] 文件内容长度: {json.Length} 字符");
+
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    Debug.LogWarning("[WheelLayoutPersistence] 轮盘布局文件为空");
+                    Debug.Log("[WheelLayoutPersistence] ════════════════════════════════════════");
+                    return null;
+                }
+
+                // 使用JsonUtility解析JSON
+                var data = JsonUtility.FromJson<WheelLayoutData>(json);
+                if (data == null)
+                {
+                    Debug.LogWarning("[WheelLayoutPersistence] JsonUtility解析失败，尝试手工解析");
+                    data = ParseJson(json);
+                }
+
+                if (data != null)
+                {
+                    Debug.Log($"[WheelLayoutPersistence] ✅ 成功加载轮盘布局，版本: {data.Version}");
+                    Debug.Log($"[WheelLayoutPersistence] 类别数量: {data.categories?.Length ?? 0}");
+                    Debug.Log("[WheelLayoutPersistence] ════════════════════════════════════════");
+                    return data;
+                }
+                else
+                {
+                    Debug.LogWarning("[WheelLayoutPersistence] 解析轮盘布局数据失败");
+                    Debug.Log("[WheelLayoutPersistence] ════════════════════════════════════════");
+                    return null;
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[WheelLayoutPersistence] ✗ 加载轮盘布局失败: {e.Message}\n{e.StackTrace}");
+                return null;
+            }
         }
 
         /// <summary>

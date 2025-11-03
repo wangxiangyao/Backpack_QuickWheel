@@ -40,6 +40,13 @@ namespace Backpack_QuickWheel
             harmony.PatchAll(); // 自动补丁所有带有[HarmonyPatch]的类
             Debug.Log("Harmony补丁已应用");
 
+            // 🆕 提前创建BackpackShortcutManager实例，解决依赖注入顺序问题
+            Debug.Log("[ModBehaviour] 创建BackpackShortcutManager实例");
+            var backpackManagerObj = new GameObject("BackpackShortcutManager");
+            DontDestroyOnLoad(backpackManagerObj);
+            var backpackManager = backpackManagerObj.AddComponent<BackpackShortcutManager>();
+            Debug.Log("[ModBehaviour] BackpackShortcutManager实例已创建");
+
             // 🚀 优先初始化快捷键系统 - 在程序入口点尽早初始化，确保不会错过任何背包装备事件
             Debug.Log("[ModBehaviour] 开始在程序入口点初始化快捷键系统");
             InitializeShortcutSystemAtEntryPoint();
@@ -115,8 +122,7 @@ namespace Backpack_QuickWheel
 
             try
             {
-                // 设置初始化中状态，防止自动初始化
-                BackpackShortcutManager.SetInitializing(true);
+                // 系统会自己管理初始化状态，无需外部干预
 
                 // 创建InputInterceptor
                 var interceptorObj = new GameObject("InputInterceptor");
@@ -175,8 +181,6 @@ namespace Backpack_QuickWheel
                     {
                         Debug.Log("[ModBehaviour] 快捷键系统已初始化，设置EquipmentController");
                         BackpackShortcutManager.Initialize(equipmentController);
-                        // 设置初始化完成状态
-                        BackpackShortcutManager.SetInitializing(false);
                         Debug.Log("[ModBehaviour] EquipmentController设置完成");
 
                         // 🔧 混合方案：主动检查当前背包状态
@@ -188,7 +192,6 @@ namespace Backpack_QuickWheel
                         // 备用初始化路径（如果程序入口点初始化失败）
                         Debug.LogWarning("[ModBehaviour] 程序入口点初始化失败，使用备用初始化路径");
                         BackpackShortcutManager.Initialize(equipmentController);
-                        BackpackShortcutManager.SetInitializing(false);
                         _isShortcutSystemInitialized = true;
 
                         // 初始化输入拦截器和轮盘选择器

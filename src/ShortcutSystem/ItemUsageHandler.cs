@@ -40,7 +40,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
                     Debug.Log($"[ItemUsageHandler] 物品类型: 可直接使用 ({category})");
                     // 直接使用
                     TryUseItemDirectly(item, mainCharacter);
-                    // ✅ 移除手动UI更新，让OnItemUsedStatic事件自动处理
+                    // ✅ 移除手动UI更新，让物品销毁事件自动处理
                     break;
 
                 case ItemCategory.Explosive:
@@ -48,7 +48,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
                     Debug.Log($"[ItemUsageHandler] 物品类型: 需要装备到手上 ({category})");
                     // 拿到手上
                     EquipItemToHand(item, mainCharacter);
-                    // ✅ 移除手动UI更新，让OnItemUsedStatic事件自动处理
+                    // ✅ 移除手动UI更新，让物品销毁事件自动处理
                     break;
 
                 default:

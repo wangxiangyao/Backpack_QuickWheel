@@ -49,7 +49,7 @@ namespace Backpack_QuickWheel.ShortcutSystem.Data
         public bool IsEmpty;
 
         /// <summary>
-        /// 格子状态（Empty, Occupied, Cleared, Removed）
+        /// 格子状态（Empty, Occupied）
         /// </summary>
         public string State;
 
@@ -57,11 +57,6 @@ namespace Backpack_QuickWheel.ShortcutSystem.Data
         /// 创建时间戳
         /// </summary>
         public long Timestamp;
-
-        /// <summary>
-        /// 是否被用户手动清空
-        /// </summary>
-        public bool IsUserCleared;
 
         // 兼容性构造函数
         public ItemLocation() { }

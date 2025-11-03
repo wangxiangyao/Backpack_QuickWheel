@@ -51,7 +51,7 @@ namespace Backpack_QuickWheel.Localization
                 if (!string.IsNullOrEmpty(nameText))
                 {
                     _currentLanguageData[itemConfig.DisplayName] = nameText;
-                    Debug.Log($"收集名称本地化: {itemConfig.DisplayName} -> {nameText}");
+                    // Debug.Log($"收集名称本地化: {itemConfig.DisplayName} -> {nameText}");
                 }
                 else
                 {
@@ -64,7 +64,7 @@ namespace Backpack_QuickWheel.Localization
                 if (!string.IsNullOrEmpty(descText))
                 {
                     _currentLanguageData[descKey] = descText;
-                    Debug.Log($"收集描述本地化: {descKey} -> {descText}");
+                    // Debug.Log($"收集描述本地化: {descKey} -> {descText}");
                 }
                 else
                 {

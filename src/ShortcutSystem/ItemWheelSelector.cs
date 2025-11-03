@@ -27,11 +27,16 @@ namespace Backpack_QuickWheel.ShortcutSystem
         private RectTransform _wheelContainer;
         private List<GameObject> _itemDisplayClones = new List<GameObject>();
         private List<ItemDisplay> _itemDisplayComponents = new List<ItemDisplay>();
-        private int _selectedItemIndex = -1;
+        // 鼠标悬停状态索引（用于视觉放大效果）
+        private int _hoverIndex = -1;
         private List<Item> _currentItems = new List<Item>();
 
         // 轮盘位置
         private Vector2 _wheelCenterScreenPos;
+
+        // 🆕 持有管理器引用，方便获取和调整选中状态
+        private BackpackShortcutManager _backpackManager;
+        private WheelLayoutManager _wheelLayoutManager;
         private bool _wheelActive = false;
 
         // 全屏拦截面板（防止鼠标输入传给游戏）
@@ -101,6 +106,28 @@ namespace Backpack_QuickWheel.ShortcutSystem
         private void InitializeWheel()
         {
             Debug.Log("[ItemWheelSelector] 初始化九宫格轮盘（中心为空）...");
+
+            // 🆕 获取管理器引用
+            _backpackManager = BackpackShortcutManager.Instance;
+            if (_backpackManager != null)
+            {
+                // 使用反射获取WheelLayoutManager
+                var wheelLayoutManagerField = typeof(BackpackShortcutManager).GetField("_wheelLayoutManager",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (wheelLayoutManagerField != null)
+                {
+                    _wheelLayoutManager = wheelLayoutManagerField.GetValue(_backpackManager) as WheelLayoutManager;
+                    Debug.Log("[ItemWheelSelector] ✓ 成功获取WheelLayoutManager引用");
+                }
+                else
+                {
+                    Debug.LogError("[ItemWheelSelector] ✗ 无法获取WheelLayoutManager字段");
+                }
+            }
+            else
+            {
+                Debug.LogError("[ItemWheelSelector] ✗ 无法获取BackpackShortcutManager实例");
+            }
 
             // 创建Canvas
             var canvasObj = new GameObject("ItemWheelCanvas");
@@ -261,7 +288,8 @@ namespace Backpack_QuickWheel.ShortcutSystem
             _pressDownMousePos = pressDownPos;           // 按下时的鼠标位置
             _wheelShowMousePos = wheelShowPos;           // 轮盘显示时的鼠标位置
 
-            _selectedItemIndex = -1;
+            // 重置hover状态
+            _hoverIndex = -1;
 
             // 轮盘中心使用按下时的鼠标位置（而不是显示时的位置）
             _wheelCenterScreenPos = pressDownPos;
@@ -319,6 +347,9 @@ namespace Backpack_QuickWheel.ShortcutSystem
             {
                 dragManager.ForceCleanup();
             }
+
+            // 🆕 同步hover状态到WheelLayoutManager作为真实选中状态
+            SyncHoverToSelection();
 
             _wheelCanvas.gameObject.SetActive(false);
             _wheelActive = false;
@@ -441,11 +472,11 @@ namespace Backpack_QuickWheel.ShortcutSystem
             // 检查矢量长度是否超过阈值
             if (vectorMagnitude < FIRST_VECTOR_THRESHOLD)
             {
-                // 在死区内，清除选择（如果之前有选择的话）
-                if (_selectedItemIndex >= 0)
+                // 在死区内，清除悬停（如果之前有悬停的话）
+                if (_hoverIndex >= 0)
                 {
-                    ClearSelection();
-                    Debug.Log($"[ItemWheelSelector] 进入死区（{vectorMagnitude:F1}px < {FIRST_VECTOR_THRESHOLD}px），清除选择");
+                    ClearHover();
+                    Debug.Log($"[ItemWheelSelector] 进入死区（{vectorMagnitude:F1}px < {FIRST_VECTOR_THRESHOLD}px），清除悬停");
                 }
                 return;
             }
@@ -475,8 +506,10 @@ namespace Backpack_QuickWheel.ShortcutSystem
             int closestIndex = 0;
             float closestAngleDiff = 360f;
 
-            // 🔧 使用新的1-8索引映射进行角度计算
-            for (int i = 0; i < _itemDisplayClones.Count && i < DIRECTION_ANGLES.Length - 1; i++)
+            // 🛡️ 修复：始终检查所有8个位置，即使某些位置是空的
+            // 这样可以确保轮盘360度都有响应，不会有"死角"
+            int maxSlots = Mathf.Min(8, _itemDisplayClones.Count, DIRECTION_ANGLES.Length - 1);
+            for (int i = 0; i < maxSlots; i++)
             {
                 float cellAngle = DIRECTION_ANGLES[i + 1]; // 新布局使用1-8索引
                 float angleDiff = Mathf.Abs(vectorAngle - cellAngle);
@@ -494,33 +527,36 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 }
             }
 
-            // 🔧 修复：如果选中的位置是null，则不进行选择
+            // 🔧 修复：如果选中的位置是null，则清除悬停
             if (closestIndex < _currentItems.Count && _currentItems[closestIndex] == null)
             {
-                Debug.Log($"[ItemWheelSelector] {vectorName}指向位置{closestIndex}，但该位置为null，保持之前的选择");
+                if (_hoverIndex >= 0)
+                {
+                    Debug.Log($"[ItemWheelSelector] {vectorName}指向空位置{closestIndex}，清除悬停");
+                    ClearHover();
+                }
                 return;
             }
 
-            // 更新选择
-            if (closestIndex != _selectedItemIndex)
+            // 更新悬停
+            if (closestIndex != _hoverIndex)
             {
-                _selectedItemIndex = closestIndex;
-                UpdateSelection();
+                _hoverIndex = closestIndex;
+                UpdateHover();
 
                 if (closestIndex < _currentItems.Count && _currentItems[closestIndex] != null)
                 {
-                    Debug.Log($"[ItemWheelSelector] {vectorName}选择 - 索引{closestIndex}：{_currentItems[closestIndex].DisplayName}，矢量长度{vector.magnitude:F1}");
+                    Debug.Log($"[ItemWheelSelector] {vectorName}悬停 - 索引{closestIndex}：{_currentItems[closestIndex].DisplayName}，矢量长度{vector.magnitude:F1}");
                 }
             }
         }
 
         /// <summary>
         /// 创建稳定的轮盘布局，使用null占位符保持布局不变
+        /// 🔧 修复：统一使用WheelLayoutManager的布局系统
         /// </summary>
         private List<Item> CreateStableLayout(List<Item> currentItems)
         {
-            var stableLayout = new List<Item>();
-
             // 最多支持8个物品
             if (currentItems.Count > 8)
             {
@@ -528,112 +564,100 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 currentItems = currentItems.GetRange(0, 8);
             }
 
-            // 获取BackpackShortcutManager中保存的轮盘布局
-            var savedLayout = BackpackShortcutManager.Instance?.GetItemsForCategory(_currentCategory);
-
-            if (savedLayout != null && savedLayout.Count > 0)
+            // 🔧 修复：通过BackpackShortcutManager访问WheelLayoutManager
+            // 移除ItemWheelSelector的独立布局逻辑，统一使用WheelLayoutManager
+            var backpackManager = BackpackShortcutManager.Instance;
+            if (backpackManager != null)
             {
-                Debug.Log($"[ItemWheelSelector] 找到保存的轮盘布局，包含{savedLayout.Count}个位置");
-
-                // 使用保存的布局结构，但更新物品引用
-                for (int i = 0; i < savedLayout.Count && i < 8; i++)
+                // 使用反射获取私有字段_wheelLayoutManager
+                var wheelLayoutManagerField = typeof(BackpackShortcutManager).GetField("_wheelLayoutManager",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (wheelLayoutManagerField != null)
                 {
-                    var savedItem = savedLayout[i];
-
-                    if (savedItem == null)
+                    var wheelLayoutManager = wheelLayoutManagerField.GetValue(backpackManager) as WheelLayoutManager;
+                    if (wheelLayoutManager != null)
                     {
-                        // 保存的位置是null，保持null
-                        stableLayout.Add(null);
-                    }
-                    else
-                    {
-                        // 保存的位置有物品，检查该物品是否还存在
-                        var existingItem = currentItems.FirstOrDefault(item =>
-                            item != null && item.TypeID == savedItem.TypeID);
+                        var layoutForUI = wheelLayoutManager.GetLayoutForUI(_currentCategory);
+                        if (layoutForUI != null && layoutForUI.Count > 0)
+                        {
+                            Debug.Log($"[ItemWheelSelector] 使用WheelLayoutManager提供的UI布局，包含{layoutForUI.Count}个位置");
 
-                        if (existingItem != null)
-                        {
-                            // 物品还存在，使用新的引用
-                            stableLayout.Add(existingItem);
-                        }
-                        else
-                        {
-                            // 物品已被使用，用null占位符保持布局稳定
-                            stableLayout.Add(null);
-                            Debug.Log($"[ItemWheelSelector] 位置{i}的物品{savedItem.DisplayName}已被使用，使用null占位符");
+                            // 确保布局长度不超过8个
+                            var result = new List<Item>(layoutForUI);
+                            while (result.Count > 8)
+                            {
+                                result.RemoveAt(8);
+                            }
+
+                            return result;
                         }
                     }
                 }
-
-                // 如果当前物品比保存的多，添加新物品到空位
-                var usedSlots = stableLayout.Count;
-                for (int i = 0; i < currentItems.Count && stableLayout.Count < 8; i++)
-                {
-                    var item = currentItems[i];
-                    if (item != null && !stableLayout.Contains(item))
-                    {
-                        stableLayout.Add(item);
-                        Debug.Log($"[ItemWheelSelector] 添加新物品{item.DisplayName}到位置{stableLayout.Count - 1}");
-                    }
-                }
-            }
-            else
-            {
-                // 没有保存的布局，直接使用当前物品
-                stableLayout = new List<Item>(currentItems);
-                Debug.Log($"[ItemWheelSelector] 没有保存的布局，使用当前物品列表");
             }
 
-            // 确保列表长度在1-8之间
-            while (stableLayout.Count < 1 && stableLayout.Count > 0)
-            {
-                stableLayout.Insert(0, null);
-            }
-
-            Debug.Log($"[ItemWheelSelector] 最终稳定布局包含{stableLayout.Count}个位置");
-            for (int i = 0; i < stableLayout.Count; i++)
-            {
-                var item = stableLayout[i];
-                Debug.Log($"[ItemWheelSelector] 位置{i}: {(item != null ? item.DisplayName : "null")}");
-            }
-
-            return stableLayout;
+            // 回退方案：直接使用当前物品
+            Debug.Log($"[ItemWheelSelector] WheelLayoutManager未提供布局，使用当前物品列表");
+            return new List<Item>(currentItems);
         }
 
         /// <summary>
-        /// 更新选中显示（聚焦效果）
-        /// 根据矢量选择的结果，更新对应格子的选中状态
+        /// 更新悬停显示（放大效果）
         /// </summary>
-        private void UpdateSelection()
+        private void UpdateHover()
         {
-            // 清除所有格子的选中状态，然后设置当前选中格子
+            // 🛡️ 边界检查：确保_hoverIndex在有效范围内
+            bool isValidHoverIndex = _hoverIndex >= 0 && _hoverIndex < _itemDisplayClones.Count;
+
+            // 清除所有格子的悬停状态，然后设置当前悬停格子
             for (int i = 0; i < _itemDisplayClones.Count; i++)
             {
                 var display = _itemDisplayClones[i].GetComponent<WheelItemDisplay>();
                 if (display != null)
                 {
-                    // 只有被选中的格子才显示聚焦效果
-                    display.SetSelected(i == _selectedItemIndex);
+                    // 只有被悬停的格子才显示放大效果，加上边界检查
+                    display.SetSelected(isValidHoverIndex && i == _hoverIndex);
                 }
             }
         }
 
         /// <summary>
-        /// 清除选择（回到死区时调用）
+        /// 清除悬停（回到死区时调用）
         /// </summary>
-        private void ClearSelection()
+        private void ClearHover()
         {
-            if (_selectedItemIndex >= 0)
+            if (_hoverIndex >= 0)
             {
-                Debug.Log($"[ItemWheelSelector] 清除选择：之前选中索引 {_selectedItemIndex}");
-                _selectedItemIndex = -1;
-                UpdateSelection(); // 更新所有格子的视觉状态
+                Debug.Log($"[ItemWheelSelector] 清除悬停：之前悬停索引 {_hoverIndex}");
+                _hoverIndex = -1;
+                UpdateHover(); // 更新所有格子的视觉状态
+            }
+        }
+
+        /// <summary>
+        /// 同步hover状态到WheelLayoutManager作为真实选中状态
+        /// 在轮盘关闭时调用
+        /// </summary>
+        private void SyncHoverToSelection()
+        {
+            if (_hoverIndex >= 0 && _hoverIndex < _currentItems.Count && _currentItems[_hoverIndex] != null)
+            {
+                // 有hover状态，同步到WheelLayoutManager
+                if (_wheelLayoutManager != null)
+                {
+                    _wheelLayoutManager.SetSelectedSlot(_currentCategory, _hoverIndex);
+                    Debug.Log($"[ItemWheelSelector] 同步hover到选中: 类别{_currentCategory}, 索引{_hoverIndex}, 物品{_currentItems[_hoverIndex].DisplayName}");
+                }
+            }
+            else
+            {
+                // 没有hover状态，不同步
+                Debug.Log($"[ItemWheelSelector] 没有hover状态，不同步到选中");
             }
         }
 
         /// <summary>
         /// 交换两个格子中的物品（用于拖动调整）
-        /// 可以处理空格子（null）的交换
+        /// 🆕 适配新架构：直接更新WheelLayoutManager的SimpleWheelSlot数组
         /// </summary>
         public void SwapItems(int fromIndex, int toIndex)
         {
@@ -670,39 +694,20 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
                 Debug.Log($"[ItemWheelSelector] 物品交换完成: 索引 {fromIndex} <-> {toIndex}");
 
-                // 立即保存轮盘布局（不等到隐藏时）
-                // 这样即使轮盘突然关闭，也能保存当前的调整
-                if (BackpackShortcutManager.Instance != null)
+                // 🆕 新架构：直接通知WheelLayoutManager进行槽位交换
+                if (_wheelLayoutManager != null)
                 {
-                    BackpackShortcutManager.Instance.SaveWheelLayout(_currentCategory, _currentItems);
-                    Debug.Log($"[ItemWheelSelector] SwapItems 已保存布局");
-                }
-            }
-        }
-
-        /// <summary>
-        /// 获取当前选中的物品
-        /// 🔧 修复：确保不会返回null物品
-        /// </summary>
-        public Item GetSelectedItem()
-        {
-            if (_selectedItemIndex >= 0 && _selectedItemIndex < _currentItems.Count)
-            {
-                var selectedItem = _currentItems[_selectedItemIndex];
-                // 🔧 修复：如果选中的是null，返回null表示没有有效选择
-                if (selectedItem != null)
-                {
-                    return selectedItem;
+                    _wheelLayoutManager.SwapSlots(_currentCategory, fromIndex, toIndex);
+                    Debug.Log($"[ItemWheelSelector] 槽位交换已通知WheelLayoutManager: 类别{_currentCategory}, 索引{fromIndex}<->{toIndex}");
                 }
                 else
                 {
-                    Debug.Log($"[ItemWheelSelector] 选中索引{_selectedItemIndex}为null，返回null表示无有效选择");
-                    return null;
+                    Debug.LogWarning($"[ItemWheelSelector] WheelLayoutManager为null，无法交换槽位");
                 }
             }
-            return null;
         }
 
+      
         /// <summary>
         /// 检查轮盘显示期间是否发生过拖拽
         /// </summary>

@@ -228,7 +228,16 @@ namespace Backpack_QuickWheel.ShortcutSystem
         {
             if (_wheelSelector == null) return;
 
-            var selectedItem = _wheelSelector.GetSelectedItem();
+            var category = BackpackShortcutManager.IndexToCategory(index);
+            var wheelLayoutManager = BackpackShortcutManager.Instance?.WheelLayoutManager;
+
+            if (wheelLayoutManager == null)
+            {
+                Debug.LogWarning("[InputInterceptor] WheelLayoutManager为null，无法获取选中物品");
+                return;
+            }
+
+            var selectedItem = wheelLayoutManager.GetSelectedItem(category);
             if (selectedItem == null)
             {
                 Debug.LogWarning("[InputInterceptor] 轮盘中没有选中的物品");
@@ -237,10 +246,9 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
             Debug.Log($"[InputInterceptor] 从轮盘选中物品: {selectedItem.DisplayName}");
 
-            var category = BackpackShortcutManager.IndexToCategory(index);
-
-            // 更新 BackpackShortcutManager 的当前选择
-            BackpackShortcutManager.Instance?.SetCurrentSelection(category, selectedItem);
+            // 🆕 架构修复：直接使用物品，无需通知BackpackShortcutManager
+            // 物品进入系统时已经订阅了所有必要事件
+            // SetCurrentSelection已删除，因为造成重复订阅
 
             // 使用该物品
             ItemUsageHandler.UseItem(selectedItem, category);

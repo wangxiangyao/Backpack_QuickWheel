@@ -26,41 +26,26 @@ namespace Backpack_QuickWheel.ShortcutSystem
         /// </summary>
         public int OriginalIndex { get; private set; }
 
-        /// <summary>
-        /// 格子是否被用户手动清空
-        /// 用于区分系统清空和用户操作
-        /// </summary>
-        public bool IsUserCleared { get; private set; }
-
+        
         /// <summary>
         /// 格子创建时间戳（用于排序和持久化）
         /// </summary>
         public long CreatedTimestamp { get; private set; }
 
         /// <summary>
-        /// 格子状态枚举
+        /// 格子状态枚举（简化版）
         /// </summary>
         public enum SlotState
         {
             /// <summary>
-            /// 空格子 - 可用但无物品
+            /// 空格子 - 无物品
             /// </summary>
             Empty,
 
             /// <summary>
             /// 已占用 - 有物品
             /// </summary>
-            Occupied,
-
-            /// <summary>
-            /// 已清空 - 用户手动清空
-            /// </summary>
-            Cleared,
-
-            /// <summary>
-            /// 已移除 - 物品被使用完或移除
-            /// </summary>
-            Removed
+            Occupied
         }
 
         #region 构造函数
@@ -76,7 +61,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 State = SlotState.Empty,
                 Item = null,
                 OriginalIndex = originalIndex,
-                IsUserCleared = false,
                 CreatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
             };
         }
@@ -93,46 +77,16 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 State = SlotState.Occupied,
                 Item = item,
                 OriginalIndex = originalIndex,
-                IsUserCleared = false,
                 CreatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
             };
         }
 
-        /// <summary>
-        /// 创建已清空格子（用户手动清空）
-        /// </summary>
-        /// <param name="originalIndex">原始位置索引</param>
-        public static WheelSlot CreateCleared(int originalIndex)
-        {
-            return new WheelSlot
-            {
-                State = SlotState.Cleared,
-                Item = null,
-                OriginalIndex = originalIndex,
-                IsUserCleared = true,
-                CreatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
-            };
-        }
-
+        
         #endregion
 
         #region 状态操作方法
 
-        /// <summary>
-        /// 设置格子为已移除（物品被使用完）
-        /// </summary>
-        public WheelSlot SetRemoved()
-        {
-            return new WheelSlot
-            {
-                State = SlotState.Removed,
-                Item = null,
-                OriginalIndex = this.OriginalIndex,
-                IsUserCleared = this.IsUserCleared,
-                CreatedTimestamp = this.CreatedTimestamp
-            };
-        }
-
+        
         /// <summary>
         /// 设置新物品
         /// </summary>
@@ -144,22 +98,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 State = item != null ? SlotState.Occupied : SlotState.Empty,
                 Item = item,
                 OriginalIndex = this.OriginalIndex,
-                IsUserCleared = false, // 设置新物品时重置清空标记
-                CreatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
-            };
-        }
-
-        /// <summary>
-        /// 用户清空格子
-        /// </summary>
-        public WheelSlot ClearByUser()
-        {
-            return new WheelSlot
-            {
-                State = SlotState.Cleared,
-                Item = null,
-                OriginalIndex = this.OriginalIndex,
-                IsUserCleared = true,
                 CreatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
             };
         }
@@ -174,7 +112,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 State = SlotState.Empty,
                 Item = null,
                 OriginalIndex = this.OriginalIndex,
-                IsUserCleared = false,
                 CreatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
             };
         }
@@ -192,11 +129,11 @@ namespace Backpack_QuickWheel.ShortcutSystem
         }
 
         /// <summary>
-        /// 检查格子是否为空（Empty或Cleared）
+        /// 检查格子是否为空
         /// </summary>
         public bool IsEmpty()
         {
-            return State == SlotState.Empty || State == SlotState.Cleared;
+            return State == SlotState.Empty;
         }
 
         /// <summary>
@@ -214,7 +151,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
         /// </summary>
         public override string ToString()
         {
-            return $"WheelSlot[State={State}, Item={GetDisplayName()}, Index={OriginalIndex}, UserCleared={IsUserCleared}]";
+            return $"WheelSlot[State={State}, Item={GetDisplayName()}, Index={OriginalIndex}]";
         }
     }
 }

@@ -12,11 +12,8 @@ namespace Backpack_QuickWheel.ShortcutSystem
     /// </summary>
     public static class ShortcutUIUpdater
     {
-        /// <summary>
-        /// 委托：获取指定类别的当前选中物品
-        /// 由BackpackShortcutManager设置，用于UI自我管理
-        /// </summary>
-        public static Func<ItemCategory, Item> GetCurrentSelectionDelegate { get; set; }
+        // 🗑️ 已删除：委托机制
+        // 🏗️ 架构优化：UI直接调用WheelLayoutManager.Instance.GetSelectedItem，无需委托
         /// <summary>
         /// 尝试更新快捷键 UI
         /// </summary>
@@ -31,22 +28,12 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 return false;
             }
 
-            // 尝试使用游戏原版的 ItemShortcut.Set
-            // 如果物品在主背包中，这会成功
-            bool success = Duckov.ItemShortcut.Set(index, item);
-
-            if (success)
+            // 🔧 修复：检查我们的快捷键系统是否启用
+            if (BackpackShortcutManager.IsShortcutSystemEnabled && index < 4)
             {
-                Debug.Log($"✓ 快捷键 {index} UI 已更新: {item.DisplayName}");
-                return true;
-            }
-            else
-            {
-                // 如果失败，说明物品不在主背包中（在背包配件里）
-                // 我们需要手动触发 OnSetItem 事件来刷新 UI
-                Debug.Log($"○ 物品不在主背包中，手动触发 UI 刷新: {item.DisplayName}");
+                // 我们的快捷键系统启用时，直接使用事件刷新，避免被补丁拦截
+                Debug.Log($"○ 快捷键系统启用，直接触发 UI 刷新: {item.DisplayName}");
 
-                // 🔧 新增：检查事件触发是否成功
                 bool eventSuccess = TriggerOnSetItemEvent(index);
 
                 if (eventSuccess)
@@ -58,6 +45,35 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 {
                     Debug.LogWarning($"⚠️ 快捷键 {index} UI 刷新失败，可能游戏系统未完全初始化");
                     return false;
+                }
+            }
+            else
+            {
+                // 快捷键系统未启用或是后两个快捷键，使用官方API
+                bool success = Duckov.ItemShortcut.Set(index, item);
+
+                if (success)
+                {
+                    Debug.Log($"✓ 快捷键 {index} UI 已通过官方API更新: {item.DisplayName}");
+                    return true;
+                }
+                else
+                {
+                    // 官方API失败，使用事件刷新作为后备
+                    Debug.Log($"○ 官方API失败，手动触发 UI 刷新: {item.DisplayName}");
+
+                    bool eventSuccess = TriggerOnSetItemEvent(index);
+
+                    if (eventSuccess)
+                    {
+                        Debug.Log($"✓ 快捷键 {index} UI 已通过事件刷新");
+                        return true;
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"⚠️ 快捷键 {index} UI 刷新失败，可能游戏系统未完全初始化");
+                        return false;
+                    }
                 }
             }
         }
@@ -257,8 +273,8 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 return;
             }
 
-            // 通过委托获取当前选中物品
-            var currentItem = GetCurrentSelectionDelegate?.Invoke(category);
+            // 🏗️ 架构优化：直接调用WheelLayoutManager单例获取选中物品
+            var currentItem = WheelLayoutManager.Instance?.GetSelectedItem(category);
 
             if (currentItem != null && !currentItem.IsBeingDestroyed)
             {
@@ -288,36 +304,19 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
         /// <summary>
         /// 🏗️ 处理物品添加的UI更新（自我管理方法）
-        /// 当指定物品被添加时，更新对应类别的UI
+        /// 当指定类别新增物品时，刷新对应类别以展示最新选中项
         /// </summary>
         /// <param name="category">物品类别</param>
-        /// <param name="addedItem">被添加的物品</param>
+        /// <param name="addedItem">新增的物品</param>
         public static void HandleItemAdded(ItemCategory category, Item addedItem)
         {
-            Debug.Log($"[ShortcutUIUpdater] 🏗️ 自我管理：处理物品添加 - {addedItem.DisplayName} (类别: {category})");
+            Debug.Log($"[ShortcutUIUpdater] 🏗️ 自我管理：处理物品新增 - {addedItem.DisplayName} (类别: {category})");
 
-            // 🔧 修复：检查选中状态是否发生了变化
-            // 获取添加前的当前选中物品
-            var currentSelection = GetCurrentSelectionDelegate?.Invoke(category);
-
-            Debug.Log($"[ShortcutUIUpdater] 🏗️ 添加前选中物品: {currentSelection?.DisplayName ?? "null"}");
-
-            // 根据选中逻辑规则判断：
-            // 1. 如果之前没有选中物品，新物品应该成为选中 → 需要更新UI
-            // 2. 如果之前有选中物品，保持当前选中 → 不需要更新UI
-            bool shouldUpdateUI = (currentSelection == null || currentSelection.IsBeingDestroyed);
-
-            if (shouldUpdateUI)
-            {
-                Debug.Log($"[ShortcutUIUpdater] 🏗️ 选中状态发生变化，更新UI");
-                UpdateCategoryUI(category);
-            }
-            else
-            {
-                Debug.Log($"[ShortcutUIUpdater] 🏗️ 选中状态未变化，跳过UI更新");
-            }
+            // 与移除保持一致，直接刷新该类别的UI
+            UpdateCategoryUI(category);
         }
 
+    
         #endregion
     }
 }
