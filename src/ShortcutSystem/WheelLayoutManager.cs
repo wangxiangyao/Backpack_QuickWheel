@@ -36,6 +36,11 @@ namespace Backpack_QuickWheel.ShortcutSystem
         /// </summary>
         private const int FIXED_SLOT_COUNT = 8;
 
+        /// <summary>
+        /// 槽位交换事件
+        /// </summary>
+        public static event Action<ItemCategory, int, int> OnSlotsSwapped;
+
         private WheelLayoutManager()
         {
             _wheelSlots = new Dictionary<ItemCategory, SimpleWheelSlot[]>();
@@ -544,6 +549,10 @@ namespace Backpack_QuickWheel.ShortcutSystem
             // 如果选中位置不是fromIndex或toIndex，保持不变
 
             Debug.Log($"[WheelLayoutManager] 槽位交换完成: {slots[fromIndex].DisplayName} <-> {slots[toIndex].DisplayName}");
+
+            // 🆕 触发槽位交换事件，通知管理器同步数据
+            OnSlotsSwapped?.Invoke(category, fromIndex, toIndex);
+            Debug.Log($"[WheelLayoutManager] 已触发槽位交换事件: 类别{category}, 索引{fromIndex}<->{toIndex}");
 
             // 🆕 新架构：直接调用UI更新
             // 🗑️ 已删除：重复的UI更新调用 - SetSelectedSlot已内置UI更新

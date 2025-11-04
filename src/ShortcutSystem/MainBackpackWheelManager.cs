@@ -71,6 +71,10 @@ namespace Backpack_QuickWheel.ShortcutSystem
             // 订阅主背包事件
             SubscribeToBackpackEvents();
 
+            // 🆕 订阅轮盘槽位交换事件
+            WheelLayoutManager.OnSlotsSwapped += OnWheelSlotsSwapped;
+            Debug.Log("MainBackpackWheelManager: 已订阅轮盘槽位交换事件");
+
             // 建立初始映射关系
             InitializeWheelMapping();
 
@@ -83,6 +87,10 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
             // 取消事件订阅
             UnsubscribeFromBackpackEvents();
+
+            // 🆕 取消订阅轮盘槽位交换事件
+            WheelLayoutManager.OnSlotsSwapped -= OnWheelSlotsSwapped;
+            Debug.Log("MainBackpackWheelManager: 已取消订阅轮盘槽位交换事件");
 
             // 清空轮盘显示
             _wheelLayoutManager.ClearAllCategories();
@@ -397,6 +405,29 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
         #endregion
 
+        #region 轮盘事件处理
+
+        /// <summary>
+        /// 🆕 处理轮盘槽位交换事件
+        /// 当轮盘UI中的物品位置交换时，同步更新背包中的物品位置
+        /// </summary>
+        private void OnWheelSlotsSwapped(ItemCategory category, int fromWheelPos, int toWheelPos)
+        {
+            Debug.Log($"MainBackpackWheelManager: 收到轮盘槽位交换事件 - 类别: {category}, 索引: {fromWheelPos}<->{toWheelPos}");
+
+            // 只有在主背包模式下才同步背包位置
+            if (BackpackShortcutManager.Instance?.IsAttachmentMode == true)
+            {
+                Debug.Log("MainBackpackWheelManager: 当前为配件模式，跳过背包位置同步");
+                return;
+            }
+
+            // 调用现有的位置调整方法
+            AdjustWheelPosition(fromWheelPos, toWheelPos);
+        }
+
+        #endregion
+
         #region 位置同步功能
 
         /// <summary>
@@ -431,15 +462,25 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
             try
             {
-                // 交换背包中的物品位置
+                // 🆕 先Detach物品，让它们脱离父物体并从Inventory中移除
+                Item targetItem = null;
                 if (toBackpackPos != -1)
                 {
-                    // 目标位置有物品，交换
-                    var targetItem = _mainBackpackInventory.GetItemAt(toBackpackPos);
+                    targetItem = _mainBackpackInventory.GetItemAt(toBackpackPos);
                     if (targetItem != null)
                     {
-                        _mainBackpackInventory.AddAt(targetItem, fromBackpackPos);
+                        Debug.Log($"MainBackpackWheelManager: Detach目标物品 {targetItem.DisplayName}");
+                        targetItem.Detach();
                     }
+                }
+
+                Debug.Log($"MainBackpackWheelManager: Detach源物品 {item.DisplayName}");
+                item.Detach();
+
+                // 🆕 重新放入到新位置
+                if (targetItem != null)
+                {
+                    _mainBackpackInventory.AddAt(targetItem, fromBackpackPos);
                 }
 
                 _mainBackpackInventory.AddAt(item, toBackpackPos);
