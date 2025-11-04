@@ -132,19 +132,19 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
             try
             {
-                // 🔧 修复：先尝试使用官方API清空快捷键
-                bool success = Duckov.ItemShortcut.Set(index, null);
+                // 🔧 修复：官方API的Set方法对null会验证失败，需要直接操作内部数据
+                bool success = ForceClearShortcut(index);
 
                 if (success)
                 {
-                    Debug.Log($"[ShortcutUIUpdater] ✓ 快捷键 {index} 已通过官方API清空");
+                    Debug.Log($"[ShortcutUIUpdater] ✓ 快捷键 {index} 已通过强制方式清空");
                 }
                 else
                 {
-                    Debug.Log($"[ShortcutUIUpdater] 官方API清空失败，使用事件触发方式");
+                    Debug.Log($"[ShortcutUIUpdater] 强制清空失败，尝试事件触发方式");
                 }
 
-                // 🔧 修复：无论官方API是否成功，都触发UI刷新事件确保UI更新
+                // 🔧 修复：触发UI刷新事件确保UI更新
                 bool eventSuccess = TriggerOnSetItemEvent(index);
 
                 if (eventSuccess)
@@ -160,6 +160,78 @@ namespace Backpack_QuickWheel.ShortcutSystem
             {
                 Debug.LogError($"[ShortcutUIUpdater] 清空快捷键 {index} 时出错: {ex.Message}");
                 // 不重新抛出异常，避免影响系统清理流程
+            }
+        }
+
+        /// <summary>
+        /// 强制清空快捷键，绕过官方API的null验证
+        /// </summary>
+        /// <param name="index">快捷键索引</param>
+        /// <returns>是否成功清空</returns>
+        private static bool ForceClearShortcut(int index)
+        {
+            try
+            {
+                // 获取ItemShortcut实例
+                var instanceField = typeof(Duckov.ItemShortcut).GetField("Instance",
+                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+
+                if (instanceField == null)
+                {
+                    Debug.LogError("[ShortcutUIUpdater] 无法找到ItemShortcut.Instance字段");
+                    return false;
+                }
+
+                var instance = instanceField.GetValue(null) as Duckov.ItemShortcut;
+                if (instance == null)
+                {
+                    Debug.LogError("[ShortcutUIUpdater] ItemShortcut.Instance为null");
+                    return false;
+                }
+
+                // 通过反射访问私有字段items和itemTypes
+                var itemsField = typeof(Duckov.ItemShortcut).GetField("items",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+
+                var itemTypesField = typeof(Duckov.ItemShortcut).GetField("itemTypes",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+
+                if (itemsField == null || itemTypesField == null)
+                {
+                    Debug.LogError("[ShortcutUIUpdater] 无法找到items或itemTypes字段");
+                    return false;
+                }
+
+                var items = itemsField.GetValue(instance) as System.Collections.Generic.List<Item>;
+                var itemTypes = itemTypesField.GetValue(instance) as System.Collections.Generic.List<int>;
+
+                if (items == null || itemTypes == null)
+                {
+                    Debug.LogError("[ShortcutUIUpdater] items或itemTypes列表为null");
+                    return false;
+                }
+
+                // 确保索引在范围内
+                while (items.Count <= index)
+                {
+                    items.Add(null);
+                }
+                while (itemTypes.Count <= index)
+                {
+                    itemTypes.Add(-1);
+                }
+
+                // 清空指定索引的快捷键
+                items[index] = null;
+                itemTypes[index] = -1;
+
+                Debug.Log($"[ShortcutUIUpdater] ✓ 已强制清空快捷键 {index} 的内部数据");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[ShortcutUIUpdater] 强制清空快捷键 {index} 时出错: {ex.Message}");
+                return false;
             }
         }
 

@@ -628,7 +628,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
                     var slot = slots[selectedSlot];  // 直接访问数组
                     if (slot.HasItem)
                     {
-                        Debug.Log($"[WheelLayoutManager] 获取 {category} 选中物品: {slot.Item.DisplayName} (槽位: {selectedSlot})");
                         return slot.Item;
                     }
                 }

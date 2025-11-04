@@ -667,57 +667,133 @@ namespace Backpack_QuickWheel.ShortcutSystem
         }
 
         /// <summary>
-        /// 背包变化处理
+        /// 背包变化处理 - 智能激活机制拦截
         /// </summary>
         public void OnBackpackChanged(Slot backpackSlot)
         {
             Debug.Log($"[BackpackShortcutManager] OnBackpackChanged 被调用，背包: {backpackSlot?.Content?.DisplayName ?? "null"}");
             Debug.Log($"[BackpackShortcutManager] 当前系统启用状态: {IsShortcutSystemEnabled}");
 
-            // 🔧 暂时移除系统启用检查，允许处理背包事件
-            // if (!IsShortcutSystemEnabled) return;
-
-            Debug.Log("[BackpackShortcutManager] 背包发生变化，开始更新物品列表");
-
             var newBackpack = backpackSlot?.Content;
             Debug.Log($"[BackpackShortcutManager] 新背包: {newBackpack?.DisplayName ?? "null"}, 当前背包: {_currentBackpack?.DisplayName ?? "null"}");
 
-            if (newBackpack != _currentBackpack)
+            // 🔧 无论什么情况，先清理当前状态
+            UnsubscribeFromBackpackChanges();
+            Debug.Log("[BackpackShortcutManager] ✅ 已清理当前背包状态");
+
+            // 🆕 智能激活机制：检查新背包是否支持配件系统
+            bool isSupportedBackpack = IsBackpackSupported(newBackpack);
+            Debug.Log($"[BackpackShortcutManager] 🎯 智能激活检查: {newBackpack?.DisplayName ?? "null"} 支持配件系统: {isSupportedBackpack}");
+
+            if (isSupportedBackpack)
             {
-                // 取消旧背包的监听
-                UnsubscribeFromBackpackChanges();
+                Debug.Log("[BackpackShortcutManager] ✅ 背包支持配件系统，启动完整功能");
+                HandleSupportedBackpack(newBackpack);
+            }
+            else
+            {
+                Debug.Log($"[BackpackShortcutManager] ❌ 背包 {newBackpack?.DisplayName ?? "null"} 不支持配件系统，使用基础模式");
+                HandleUnsupportedBackpack(newBackpack);
+            }
+        }
 
-                // 更新当前背包
-                _currentBackpack = newBackpack;
-                Debug.Log($"[BackpackShortcutManager] 更新当前背包为: {_currentBackpack?.DisplayName ?? "null"}");
+        /// <summary>
+        /// 🆕 检查背包是否支持配件系统
+        /// </summary>
+        private bool IsBackpackSupported(Item backpack)
+        {
+            if (backpack == null)
+            {
+                Debug.Log("[BackpackShortcutManager] 🎯 背包为null，不支持配件系统");
+                return false;
+            }
 
-                // 订阅新背包的变化
-                if (_currentBackpack != null)
+            // 检查背包TypeID是否在支持列表中
+            bool isSupported = BackpackModConfig.BackpackTypeIDs.Contains(backpack.TypeID);
+            Debug.Log($"[BackpackShortcutManager] 🎯 背包 {backpack.DisplayName} (TypeID: {backpack.TypeID}) 支持状态: {isSupported}");
+
+            if (isSupported)
+            {
+                Debug.Log($"[BackpackShortcutManager] ✅ 背包 {backpack.DisplayName} 支持配件系统 - TypeID {backpack.TypeID} 在支持列表中");
+            }
+            else
+            {
+                Debug.Log($"[BackpackShortcutManager] ❌ 背包 {backpack.DisplayName} 不支持配件系统 - TypeID {backpack.TypeID} 不在支持列表 [{string.Join(", ", BackpackModConfig.BackpackTypeIDs)}] 中");
+            }
+
+            return isSupported;
+        }
+
+        /// <summary>
+        /// 🆕 处理支持配件系统的背包
+        /// </summary>
+        private void HandleSupportedBackpack(Item backpack)
+        {
+            // 更新当前背包
+            _currentBackpack = backpack;
+            Debug.Log($"[BackpackShortcutManager] 更新当前背包为: {_currentBackpack?.DisplayName ?? "null"}");
+
+            if (_currentBackpack != null)
+            {
+                // 🧹 装备支持背包前，先清理官方快捷键UI显示
+                // 避免与玩家之前设置的官方快捷键冲突
+                Debug.Log("[BackpackShortcutManager] 🧹 装备支持背包前，清理官方快捷键UI显示");
+                for (int i = 0; i < 4; i++)
                 {
-                    // 🔧 注册背包类型到ItemTypeRegistry
-                    ItemTypeRegistry.RegisterBackpack(_currentBackpack.TypeID);
-
-                    SubscribeToBackpackChanges(_currentBackpack);
-                    Debug.Log("[BackpackShortcutManager] 已订阅新背包变化事件");
+                    ShortcutUIUpdater.ClearShortcutUI(i);
                 }
+                Debug.Log("[BackpackShortcutManager] ✓ 已清空官方快捷键UI显示，准备启动配件系统");
 
-                // 启用系统（如果有背包）
-                bool shouldEnable = _currentBackpack != null;
-                Debug.Log($"[BackpackShortcutManager] 应该启用系统: {shouldEnable}, 当前启用状态: {IsShortcutSystemEnabled}");
+                // 🔧 注册背包类型到ItemTypeRegistry
+                ItemTypeRegistry.RegisterBackpack(_currentBackpack.TypeID);
 
-                if (shouldEnable != IsShortcutSystemEnabled)
+                SubscribeToBackpackChanges(_currentBackpack);
+                Debug.Log("[BackpackShortcutManager] 已订阅新背包变化事件");
+
+                // 启用完整的配件系统
+                if (!IsShortcutSystemEnabled)
                 {
-                    Debug.Log("[BackpackShortcutManager] 调用 SetShortcutSystemEnabled");
-                    SetShortcutSystemEnabled(shouldEnable);
+                    SetShortcutSystemEnabled(true);
+                    Debug.Log("[BackpackShortcutManager] ✅ 已启用完整配件系统");
                 }
 
                 // 🆕 使用新架构刷新物品
                 Debug.Log("[BackpackShortcutManager] 开始刷新物品...");
                 RefreshItemsWithNewArchitecture();
             }
+        }
+
+        /// <summary>
+        /// 🆕 处理不支持配件系统的背包
+        /// </summary>
+        private void HandleUnsupportedBackpack(Item backpack)
+        {
+            Debug.Log($"[BackpackShortcutManager] 🔧 处理不支持的背包: {backpack?.DisplayName ?? "null"}");
+
+            // 更新当前背包（但不启用配件功能）
+            _currentBackpack = backpack;
+
+            if (backpack != null)
+            {
+                // 注册背包类型但不订阅配件事件
+                ItemTypeRegistry.RegisterBackpack(backpack.TypeID);
+
+                // 🚨 临时处理：暂时禁用系统
+                // 后续会添加基础轮盘功能
+                if (IsShortcutSystemEnabled)
+                {
+                    SetShortcutSystemEnabled(false);
+                    Debug.Log("[BackpackShortcutManager] ❌ 已禁用配件系统（不支持的背包）");
+                }
+            }
             else
             {
-                Debug.Log("[BackpackShortcutManager] 背包未变化，跳过处理");
+                // 没有背包时禁用系统
+                if (IsShortcutSystemEnabled)
+                {
+                    SetShortcutSystemEnabled(false);
+                    Debug.Log("[BackpackShortcutManager] ❌ 无背包，禁用系统");
+                }
             }
         }
 

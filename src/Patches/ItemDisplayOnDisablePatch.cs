@@ -52,33 +52,20 @@ namespace Backpack_QuickWheel.Patches
             bool isCurrentlySelected = __instance.Selected;
             Item targetItem = __instance.Target;
 
-            // 🔍 增强调试：记录所有销毁的ItemDisplay，不仅仅是选中的
-            Debug.Log($"[ItemDisplayOnDisablePatch] ItemDisplay正在销毁，物品: {targetItem?.DisplayName}, Selected: {isCurrentlySelected}, HashCode: {__instance.GetHashCode()}, TargetIsNull: {targetItem == null}");
-
             if (isCurrentlySelected && targetItem != null)
             {
-                // 🚨 关键修复：当当前选中的ItemDisplay被销毁时，保护全局Selection不被清空
-                Debug.Log($"[ItemDisplayOnDisablePatch] 🛡️ 当前选中的ItemDisplay '{targetItem.DisplayName}' 正在销毁，开始保护全局Selection");
-
-                // 🔍 核心：检查当前ItemUIUtilities.selectedItemDisplay状态
+                // 关键修复：当当前选中的ItemDisplay被销毁时，保护全局Selection不被清空
                 var selectedItemDisplayField = typeof(ItemUIUtilities).GetField("selectedItemDisplay",
                     BindingFlags.NonPublic | BindingFlags.Static);
-
-                Debug.Log($"[ItemDisplayOnDisablePatch] selectedItemDisplay字段查找结果: {selectedItemDisplayField != null}");
 
                 if (selectedItemDisplayField != null)
                 {
                     var currentSelection = selectedItemDisplayField.GetValue(null) as ItemDisplay;
-                    Debug.Log($"[ItemDisplayOnDisablePatch] 当前全局Selection: {currentSelection?.GetHashCode()}, 是否为当前实例: {currentSelection == __instance}");
 
                     if (currentSelection == __instance)
                     {
-                        // 🚨 关键：当前选中的ItemDisplay正在被销毁，保护全局Selection
-                        Debug.Log($"[ItemDisplayOnDisablePatch] 🛡️ 保护selectedItemDisplay字段，阻止被清空");
-
-                        // 不允许清空selectedItemDisplay字段 - 即使在OnDisable中也要保持
+                        // 当前选中的ItemDisplay正在被销毁，保护全局Selection
                         selectedItemDisplayField.SetValue(null, __instance);
-                        Debug.Log($"[ItemDisplayOnDisablePatch] ✅ 已保护selectedItemDisplay字段: {__instance.GetHashCode()}");
 
                         // 确保ItemDisplay的Target也不被清空
                         var targetProperty = typeof(ItemDisplay).GetProperty("Target",
@@ -87,21 +74,8 @@ namespace Backpack_QuickWheel.Patches
                         if (targetProperty != null)
                         {
                             targetProperty.SetValue(__instance, targetItem);
-                            Debug.Log($"[ItemDisplayOnDisablePatch] ✅ 已保护ItemDisplay.Target: {targetItem.DisplayName}");
-                        }
-                        else
-                        {
-                            Debug.LogError("[ItemDisplayOnDisablePatch] ❌ 无法找到Target属性！");
                         }
                     }
-                    else
-                    {
-                        Debug.Log($"[ItemDisplayOnDisablePatch] 当前Selection不是这个ItemDisplay，无需保护");
-                    }
-                }
-                else
-                {
-                    Debug.LogError("[ItemDisplayOnDisablePatch] ❌ 无法找到selectedItemDisplay字段！");
                 }
 
                 // 寻找替代ItemDisplay
@@ -109,39 +83,12 @@ namespace Backpack_QuickWheel.Patches
 
                 if (replacementItemDisplay != null)
                 {
-                    Debug.Log($"[ItemDisplayOnDisablePatch] 找到替代ItemDisplay: {replacementItemDisplay.GetHashCode()}，物品: {replacementItemDisplay.Target?.DisplayName}");
-
                     // 将Selection转移到替代的ItemDisplay
                     if (selectedItemDisplayField != null)
                     {
                         selectedItemDisplayField.SetValue(null, replacementItemDisplay);
-                        Debug.Log($"[ItemDisplayOnDisablePatch] 已成功将Selection转移到替代ItemDisplay");
-                    }
-                    else
-                    {
-                        Debug.LogError("[ItemDisplayOnDisablePatch] 无法找到selectedItemDisplay字段");
                     }
                 }
-                else
-                {
-                    Debug.LogWarning($"[ItemDisplayOnDisablePatch] 无法找到替代ItemDisplay，将保持当前ItemDisplay的Target");
-
-                    // 确保 selectedItemDisplay 字段指向当前实例
-                    if (selectedItemDisplayField != null)
-                    {
-                        var currentSelection = selectedItemDisplayField.GetValue(null) as ItemDisplay;
-                        if (currentSelection != __instance)
-                        {
-                            selectedItemDisplayField.SetValue(null, __instance);
-                            Debug.Log($"[ItemDisplayOnDisablePatch] 强制设置selectedItemDisplay字段指向当前ItemDisplay");
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // 📝 记录非选中状态的ItemDisplay销毁情况
-                Debug.Log($"[ItemDisplayOnDisablePatch] 非选中ItemDisplay销毁：{targetItem?.DisplayName}, HashCode: {__instance.GetHashCode()}");
             }
 
             // 调用UnregisterEvents
@@ -184,7 +131,6 @@ namespace Backpack_QuickWheel.Patches
                                 itemDisplay.gameObject != null &&
                                 itemDisplay.gameObject.activeInHierarchy)
                             {
-                                Debug.Log($"[ItemDisplayOnDisablePatch] 通过事件系统找到替代ItemDisplay: {itemDisplay.GetHashCode()}");
                                 return itemDisplay;
                             }
                         }
@@ -200,17 +146,14 @@ namespace Backpack_QuickWheel.Patches
                         itemDisplay.gameObject != null &&
                         itemDisplay.gameObject.activeInHierarchy)
                     {
-                        Debug.Log($"[ItemDisplayOnDisablePatch] 通过全局搜索找到替代ItemDisplay: {itemDisplay.GetHashCode()}");
                         return itemDisplay;
                     }
                 }
 
-                Debug.Log($"[ItemDisplayOnDisablePatch] 无法为物品 '{targetItem.DisplayName}' 找到替代ItemDisplay");
                 return null;
             }
-            catch (System.Exception e)
+            catch (System.Exception)
             {
-                Debug.LogError($"[ItemDisplayOnDisablePatch] 寻找替代ItemDisplay时出错: {e.Message}");
                 return null;
             }
         }
