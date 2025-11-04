@@ -13,14 +13,14 @@ namespace Backpack_QuickWheel
         // 🔧 配置开关：是否启用背包配件系统影响快捷键
         // true: 背包配件会影响快捷键（完整功能）
         // false: 仅使用轮盘功能，背包配件不影响快捷键
-        public static bool EnableAttachmentSystem = true;
+        public static bool EnableAttachmentSystem = false;
 
         /// <summary>
         /// 加载配置设置
         /// </summary>
         public static void LoadConfig()
         {
-            EnableAttachmentSystem = PlayerPrefs.GetInt("Backpack_EnableAttachmentSystem", 1) == 1;
+            EnableAttachmentSystem = PlayerPrefs.GetInt("Backpack_EnableAttachmentSystem", 0) == 1;
             Debug.Log($"[BackpackModConfig] 加载配置：配件系统 = {EnableAttachmentSystem}");
         }
 

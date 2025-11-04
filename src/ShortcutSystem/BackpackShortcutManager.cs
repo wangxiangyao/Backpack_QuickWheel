@@ -39,7 +39,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
         #region 模式切换管理
 
         // 模式切换相关字段
-        private bool _isAttachmentMode = true;
         private AttachmentWheelManager _attachmentManager;
         private MainBackpackWheelManager _mainBackpackManager;
         private IWheelDataManager _activeManager;
@@ -47,7 +46,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
         /// <summary>
         /// 当前是否为配件系统模式
         /// </summary>
-        public bool IsAttachmentMode => _isAttachmentMode;
+        public bool IsAttachmentMode => BackpackModConfig.EnableAttachmentSystem;
 
         /// <summary>
         /// 当前活跃的轮盘数据管理器
@@ -119,11 +118,10 @@ namespace Backpack_QuickWheel.ShortcutSystem
         /// </summary>
         private void LoadModeFromConfig()
         {
-            _isAttachmentMode = BackpackModConfig.EnableAttachmentSystem;
-            Debug.Log($"[BackpackShortcutManager] 从配置加载模式: {(_isAttachmentMode ? "配件系统模式" : "主背包模式")}");
+            Debug.Log($"[BackpackShortcutManager] 从配置加载模式: {(BackpackModConfig.EnableAttachmentSystem ? "配件系统模式" : "主背包模式")}");
 
             // 设置初始活跃管理器
-            _activeManager = _isAttachmentMode ? (IWheelDataManager)_attachmentManager : (IWheelDataManager)_mainBackpackManager;
+            _activeManager = BackpackModConfig.EnableAttachmentSystem ? (IWheelDataManager)_attachmentManager : (IWheelDataManager)_mainBackpackManager;
         }
 
         /// <summary>
@@ -132,16 +130,15 @@ namespace Backpack_QuickWheel.ShortcutSystem
         public void ToggleSystemMode()
         {
             // 1. 切换配置
-            _isAttachmentMode = !_isAttachmentMode;
-            BackpackModConfig.EnableAttachmentSystem = _isAttachmentMode;
+            BackpackModConfig.EnableAttachmentSystem = !BackpackModConfig.EnableAttachmentSystem;
             BackpackModConfig.SaveConfig();
 
             // 2. 使用统一的切换逻辑
-            IWheelDataManager targetManager = _isAttachmentMode ? (IWheelDataManager)_attachmentManager : (IWheelDataManager)_mainBackpackManager;
+            IWheelDataManager targetManager = BackpackModConfig.EnableAttachmentSystem ? (IWheelDataManager)_attachmentManager : (IWheelDataManager)_mainBackpackManager;
             SwitchToManager(targetManager);
 
             // 3. 显示切换提示
-            string modeName = _isAttachmentMode ? "配件系统模式" : "主背包模式";
+            string modeName = BackpackModConfig.EnableAttachmentSystem ? "配件系统模式" : "主背包模式";
             NotificationText.Push($"已切换到: {modeName} (F9切换)");
 
             Debug.Log($"[BackpackShortcutManager] 模式切换完成: {modeName}");
@@ -152,9 +149,8 @@ namespace Backpack_QuickWheel.ShortcutSystem
         /// </summary>
         public void SwitchToAttachmentMode()
         {
-            if (_isAttachmentMode) return; // 已经是配件系统模式
+            if (BackpackModConfig.EnableAttachmentSystem) return; // 已经是配件系统模式
 
-            _isAttachmentMode = true;
             BackpackModConfig.EnableAttachmentSystem = true;
             BackpackModConfig.SaveConfig();
 
@@ -166,9 +162,8 @@ namespace Backpack_QuickWheel.ShortcutSystem
         /// </summary>
         public void SwitchToMainBackpackMode()
         {
-            if (!_isAttachmentMode) return; // 已经是主背包模式
+            if (!BackpackModConfig.EnableAttachmentSystem) return; // 已经是主背包模式
 
-            _isAttachmentMode = false;
             BackpackModConfig.EnableAttachmentSystem = false;
             BackpackModConfig.SaveConfig();
 
@@ -196,15 +191,15 @@ namespace Backpack_QuickWheel.ShortcutSystem
             _activeManager.Initialize();
 
             // 🆕 如果切换到配件模式，且当前有背包，通知管理器处理背包变化
-            if (_isAttachmentMode && _currentBackpack != null)
+            if (BackpackModConfig.EnableAttachmentSystem && _currentBackpack != null)
             {
                 Debug.Log($"[BackpackShortcutManager] 切换到配件模式，通知当前背包: {_currentBackpack.DisplayName}");
                 _activeManager.HandleBackpackChange(_currentBackpack);
             }
 
-            // 显示切换提示
-            string modeName = _isAttachmentMode ? "配件系统模式" : "主背包模式";
-            NotificationText.Push($"已切换到: {modeName}");
+            // 🗑️ 移除重复通知 - 由ToggleSystemMode统一处理显示
+            // string modeName = BackpackModConfig.EnableAttachmentSystem ? "配件系统模式" : "主背包模式";
+            // NotificationText.Push($"已切换到: {modeName}");
         }
 
         #endregion
@@ -805,7 +800,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
             }
 
             // 对于配件系统模式，仍然需要维护原有的配件逻辑以保持兼容性
-            if (_isAttachmentMode && _activeManager == _attachmentManager)
+            if (BackpackModConfig.EnableAttachmentSystem && _activeManager == _attachmentManager)
             {
                 // 🆕 智能激活机制：检查新背包是否支持配件系统
                 bool isSupportedBackpack = IsBackpackSupported(newBackpack);
@@ -1032,7 +1027,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
         private void EnableSystemAfterInit()
         {
             Debug.Log("[BackpackShortcutManager] 初始化完成，系统就绪，等待背包装备事件...");
-            Debug.Log($"[BackpackShortcutManager] 当前模式: {(_isAttachmentMode ? "配件系统模式" : "主背包模式")}");
+            Debug.Log($"[BackpackShortcutManager] 当前模式: {(BackpackModConfig.EnableAttachmentSystem ? "配件系统模式" : "主背包模式")}");
 
             // 初始化活跃管理器
             if (_activeManager != null)

@@ -284,6 +284,24 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
             Debug.Log($"[ItemWheelSelector] ItemDisplay模板已找到");
 
+            // 🔥 新架构：检查数据是否脏，如果脏则强制刷新
+            var wheelLayoutManager = WheelLayoutManager.Instance;
+            if (wheelLayoutManager != null && wheelLayoutManager.IsCategoryDirty(category))
+            {
+                Debug.LogWarning($"[ItemWheelSelector] 🚩 检测到类别 {category} 数据已变化，强制刷新");
+
+                // 重新获取最新数据
+                var backpackManager = BackpackShortcutManager.Instance;
+                if (backpackManager != null)
+                {
+                    items = backpackManager.GetAllItemsForCategory(category);
+                    Debug.Log($"[ItemWheelSelector] 🔄 已重新获取最新数据，物品数: {items?.Count ?? 0}");
+                }
+
+                // 清除脏标记
+                wheelLayoutManager.ClearDirtyFlag(category);
+            }
+
             // 🔧 修复：保持轮盘布局稳定性，使用null占位符代替已使用的物品
             _currentItems = CreateStableLayout(items);
             Debug.Log($"[ItemWheelSelector] 稳定布局创建完成，物品数: {_currentItems.Count}");
@@ -334,6 +352,64 @@ namespace Backpack_QuickWheel.ShortcutSystem
         public void ShowWheel(List<Item> items, int shortcutIndex)
         {
             ShowWheel(items, shortcutIndex, Input.mousePosition, Input.mousePosition);
+        }
+
+        /// <summary>
+        /// 🆕 实时刷新轮盘物品 - 解决轮盘显示时数据过期问题
+        /// 当MainBackpackWheelManager更新物品映射后调用此方法，确保轮盘显示最新数据
+        /// </summary>
+        public void RefreshWheelItems()
+        {
+            Debug.LogWarning($"🚨🚨🚨 RefreshWheelItems 被调用！轮盘状态: {_wheelActive}, 类别: {_currentCategory}");
+
+            if (!_wheelActive)
+            {
+                Debug.Log("[ItemWheelSelector] 轮盘未显示，跳过刷新");
+                return;
+            }
+
+            Debug.Log($"[ItemWheelSelector] 🔄 开始刷新轮盘物品，当前类别: {_currentCategory}");
+            Debug.Log($"[ItemWheelSelector] 刷新前物品数: {_currentItems.Count}");
+
+            // 强制刷新：不管数据是否变化，都重新创建显示
+            try
+            {
+                // 获取BackpackShortcutManager实例
+                var backpackManager = BackpackShortcutManager.Instance;
+                if (backpackManager == null)
+                {
+                    Debug.LogError("[ItemWheelSelector] BackpackShortcutManager为null，无法刷新");
+                    return;
+                }
+
+                // 获取最新物品数据
+                var freshItems = backpackManager.GetAllItemsForCategory(_currentCategory);
+                if (freshItems == null)
+                {
+                    Debug.LogWarning($"[ItemWheelSelector] 无法获取类别 {_currentCategory} 的最新物品");
+                    return;
+                }
+
+                Debug.Log($"[ItemWheelSelector] 获取到最新物品 {freshItems.Count} 个: {string.Join(", ", freshItems.ConvertAll(i => i?.DisplayName ?? "null"))}");
+
+                // 创建新的稳定布局
+                var newLayout = CreateStableLayout(freshItems);
+                Debug.Log($"[ItemWheelSelector] 新布局包含 {newLayout.Count} 个物品: {string.Join(", ", newLayout.ConvertAll(i => i?.DisplayName ?? "null"))}");
+
+                // 更新物品列表并重新创建显示
+                _currentItems = newLayout;
+                Debug.LogWarning($"🔄 正在清除旧的轮盘显示...");
+                ClearItemDisplays();
+                Debug.LogWarning($"🔄 正在创建新的轮盘显示...");
+                CreateItemDisplays();
+
+                Debug.LogWarning($"✅✅✅ 轮盘刷新完成！显示 {newLayout.Count} 个物品");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[ItemWheelSelector] 刷新轮盘失败: {ex.Message}");
+                Debug.LogError($"[ItemWheelSelector] 堆栈跟踪: {ex.StackTrace}");
+            }
         }
 
         /// <summary>

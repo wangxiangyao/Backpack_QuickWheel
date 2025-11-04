@@ -69,6 +69,10 @@ namespace Backpack_QuickWheel.ShortcutSystem
         // 🆕 新增：基于格子索引的选中状态管理
         private Dictionary<ItemCategory, int> _currentSelectedSlot = new Dictionary<ItemCategory, int>();
 
+        // 🔥 新架构：Dirty Flag 机制
+        // 标记数据是否已变化，需要展示层刷新
+        private Dictionary<ItemCategory, bool> _dataDirty = new Dictionary<ItemCategory, bool>();
+
         // 🗑️ 已删除：OnLayoutChanged事件
         // 轮盘现在直接更新UI，不再需要事件通知
 
@@ -345,6 +349,67 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
             // 🗑️ 已删除：OnLayoutChanged事件调用
             // 轮盘直接更新UI，不需要事件通知
+        }
+
+        /// <summary>
+        /// 🔧 添加物品到指定类别的指定位置
+        /// 用于确保映射系统与UI显示的一致性
+        /// </summary>
+        public void AddItemToCategoryAtPosition(ItemCategory category, Item newItem, int position)
+        {
+            if (newItem == null)
+            {
+                Debug.LogError("[WheelLayoutManager] AddItemToCategoryAtPosition: 物品为空");
+                return;
+            }
+
+            if (position < 0 || position >= FIXED_SLOT_COUNT)
+            {
+                Debug.LogError($"[WheelLayoutManager] AddItemToCategoryAtPosition: 无效的位置 {position}");
+                return;
+            }
+
+            // 获取或创建类别槽位数组
+            var slots = GetOrCreateCategorySlots(category);
+
+            // 检查物品是否已存在（直接引用比较）
+            for (int i = 0; i < FIXED_SLOT_COUNT; i++)
+            {
+                if (slots[i].Item == newItem)
+                {
+                    Debug.Log($"[WheelLayoutManager] 物品已存在于类别 {category} ：{newItem.DisplayName}，跳过添加");
+                    return;
+                }
+            }
+
+            // 检查指定位置是否为空
+            if (!slots[position].IsEmpty)
+            {
+                Debug.LogWarning($"[WheelLayoutManager] 类别 {category} 的位置 {position} 已被占用，无法添加物品: {newItem.DisplayName}");
+                return;
+            }
+
+            // 在指定位置放置物品
+            slots[position].Item = newItem;
+
+            Debug.Log($"[WheelLayoutManager] 成功添加物品 {newItem.DisplayName} 到类别 {category} 的位置 {position}");
+
+            // 检查是否是该类别的第一个物品，如果是则自动选中
+            bool wasEmpty = true;
+            for (int i = 0; i < FIXED_SLOT_COUNT; i++)
+            {
+                if (i != position && slots[i].HasItem)
+                {
+                    wasEmpty = false;
+                    break;
+                }
+            }
+
+            if (wasEmpty)
+            {
+                SetSelectedSlot(category, position);
+                Debug.Log($"[WheelLayoutManager] 自动选中类别 {category} 的第一个物品: {newItem.DisplayName}");
+            }
         }
 
         /// <summary>
@@ -828,6 +893,88 @@ namespace Backpack_QuickWheel.ShortcutSystem
 
         #endregion
 
+        #region Dirty Flag 管理
+
+        /// <summary>
+        /// 🔥 标记指定类别的数据已变化，需要刷新
+        /// </summary>
+        public void MarkCategoryDirty(ItemCategory category)
+        {
+            _dataDirty[category] = true;
+            Debug.Log($"[WheelLayoutManager] 🚩 标记类别 {category} 为脏数据");
+        }
+
+        /// <summary>
+        /// 🔥 检查指定类别的数据是否已变化
+        /// </summary>
+        public bool IsCategoryDirty(ItemCategory category)
+        {
+            return _dataDirty.TryGetValue(category, out bool dirty) && dirty;
+        }
+
+        /// <summary>
+        /// 🔥 清除指定类别的脏标记
+        /// </summary>
+        public void ClearDirtyFlag(ItemCategory category)
+        {
+            _dataDirty[category] = false;
+            Debug.Log($"[WheelLayoutManager] 🧹 清除类别 {category} 的脏标记");
+        }
+
+        /// <summary>
+        /// 🔥 从映射表同步槽位数据（核心同步方法）
+        /// 这是数据同步的唯一入口，确保槽位与映射表完全一致
+        /// </summary>
+        /// <param name="category">物品类别</param>
+        /// <param name="wheelMapping">轮盘位置 → 背包位置的映射数组（长度8）</param>
+        /// <param name="getItemFunc">根据背包位置获取物品的函数</param>
+        public void SyncFromMapping(ItemCategory category, int[] wheelMapping, System.Func<int, Item> getItemFunc)
+        {
+            Debug.Log($"[WheelLayoutManager] 🔄 开始同步类别 {category} 的槽位数据");
+
+            var slots = GetOrCreateCategorySlots(category);
+
+            // 清空所有槽位
+            for (int i = 0; i < 8; i++)
+            {
+                slots[i].Item = null;
+            }
+
+            // 根据映射表重建槽位
+            int syncedCount = 0;
+            for (int wheelPos = 0; wheelPos < 8; wheelPos++)
+            {
+                int backpackPos = wheelMapping[wheelPos];
+                if (backpackPos != -1)
+                {
+                    var item = getItemFunc(backpackPos);
+                    if (item != null)
+                    {
+                        slots[wheelPos].Item = item;
+                        syncedCount++;
+                        Debug.Log($"[WheelLayoutManager] 同步槽位 {wheelPos}: {item.DisplayName} (背包位置 {backpackPos})");
+                    }
+                }
+            }
+
+            Debug.Log($"[WheelLayoutManager] ✓ 同步完成，共同步 {syncedCount} 个物品");
+
+            // 🆕 轮盘交换后直接选中位置0
+            if (slots.Length > 0 && slots[0].HasItem)
+            {
+                SetSelectedSlot(category, 0);
+                Debug.Log($"[WheelLayoutManager] 轮盘交换后选中位置0: {slots[0].DisplayName}");
+            }
+
+            // 标记数据已变化
+            MarkCategoryDirty(category);
+
+            // 更新UI（现在会使用正确的选中状态）
+            DirectUpdateUI(category);
+        }
+
+        #endregion
+
         #region 布局恢复
 
         /// <summary>
@@ -1132,6 +1279,66 @@ namespace Backpack_QuickWheel.ShortcutSystem
             // 轮盘直接更新UI，不需要事件通知
 
             Debug.Log($"[WheelLayoutManager] 已应用恢复布局到类别 {category}，总计 8 个格子");
+        }
+
+        /// <summary>
+        /// 🔥 通知轮盘界面刷新（新架构 - 简化版）
+        /// 注意：在新架构中，轮盘会在ShowWheel时自动检查Dirty Flag并刷新
+        /// 此方法仅用于轮盘已显示时的实时刷新（可选）
+        /// </summary>
+        /// <param name="category">需要刷新的物品类别</param>
+        [System.Obsolete("新架构中使用Dirty Flag机制，轮盘会在ShowWheel时自动刷新，此方法仅用于实时刷新")]
+        public void NotifyWheelRefresh(ItemCategory category)
+        {
+            Debug.Log($"[WheelLayoutManager] 🔄 通知轮盘刷新类别: {category}（新架构：仅实时刷新）");
+
+            try
+            {
+                // 获取InputInterceptor实例
+                var inputInterceptorField = typeof(InputInterceptor).GetField("_instance",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+                var inputInterceptor = inputInterceptorField?.GetValue(null);
+
+                if (inputInterceptor == null)
+                {
+                    Debug.Log("[WheelLayoutManager] InputInterceptor未初始化，跳过实时刷新");
+                    return;
+                }
+
+                // 获取轮盘选择器
+                var wheelSelectorField = typeof(InputInterceptor).GetField("_wheelSelector",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                var wheelSelector = wheelSelectorField?.GetValue(inputInterceptor) as ItemWheelSelector;
+
+                // 🔥 新架构：只在轮盘显示时才实时刷新，否则依赖Dirty Flag机制
+                if (wheelSelector == null || !wheelSelector.IsWheelActive())
+                {
+                    Debug.Log("[WheelLayoutManager] 轮盘未显示，依赖Dirty Flag机制延迟刷新");
+                    return;
+                }
+
+                // 检查当前显示的类别
+                var currentCategoryField = typeof(ItemWheelSelector).GetField("_currentCategory",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                var currentCategory = currentCategoryField?.GetValue(wheelSelector);
+
+                if (currentCategory is ItemCategory wheelCategory && wheelCategory == category)
+                {
+                    // 轮盘正在显示该类别，执行实时刷新
+                    var refreshMethod = typeof(ItemWheelSelector).GetMethod("RefreshWheelItems",
+                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                    refreshMethod?.Invoke(wheelSelector, null);
+                    Debug.Log($"[WheelLayoutManager] ✓ 轮盘已实时刷新类别: {category}");
+                }
+                else
+                {
+                    Debug.Log($"[WheelLayoutManager] 轮盘显示其他类别 {currentCategory}，无需刷新 {category}");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[WheelLayoutManager] 轮盘实时刷新失败: {ex.Message}");
+            }
         }
 
         #endregion
