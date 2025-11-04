@@ -52,7 +52,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
         public void SetUIUpdater()
         {
             // ShortcutUIUpdater是静态类，无需持有引用
-            Debug.Log("[WheelLayoutManager] UI更新器已确认，轮盘可以直接更新UI");
         }
 
         #endregion
@@ -103,24 +102,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
         public List<Item> GetLayoutForUI(ItemCategory category)
         {
             var slots = GetOrCreateCategorySlots(category);
-            Debug.Log($"[WheelLayoutManager] GetLayoutForUI: 类别 {category}，总槽位数: {slots.Length}，有物品的槽位: {slots.Count(s => s.HasValidItem)}"); // Fixed: Count instead of Length, property access
-
-            var result = slots.Select(slot => slot.HasValidItem ? slot.Item : null).ToList(); // Fixed: property access instead of method call
-            Debug.Log($"[WheelLayoutManager] GetLayoutForUI: 返回 {result.Count} 个位置，其中 {result.Count(i => i != null)} 个有物品");
-
-            // 🆕 调试：详细显示每个槽位的内容
-            for (int i = 0; i < result.Count; i++)
-            {
-                if (result[i] != null)
-                {
-                    Debug.Log($"[WheelLayoutManager] GetLayoutForUI: 槽位 {i}: {result[i].DisplayName}");
-                }
-                else
-                {
-                    Debug.Log($"[WheelLayoutManager] GetLayoutForUI: 槽位 {i}: 空");
-                }
-            }
-
+            var result = slots.Select(slot => slot.HasValidItem ? slot.Item : null).ToList();
             return result;
         }
 
@@ -138,10 +120,20 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 {
                     _wheelSlots[category][i] = new SimpleWheelSlot { Item = null, Index = i };
                 }
-                Debug.Log($"[WheelLayoutManager] 初始化类别 {category} 的8个固定槽位");
             }
 
             return _wheelSlots[category];
+        }
+
+        /// <summary>
+        /// 清空所有类别的布局
+        /// </summary>
+        public void ClearAllCategories()
+        {
+            foreach (var category in _wheelSlots.Keys.ToList())
+            {
+                ClearCategory(category);
+            }
         }
 
         /// <summary>
@@ -156,11 +148,9 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 {
                     slots[i].Item = null;
                 }
-                Debug.Log($"[WheelLayoutManager] 已清空类别 {category} 的布局");
 
-                // 🆕 重置该类别的选中状态为未选中（-1）
+                // 重置该类别的选中状态为未选中（-1）
                 SetSelectedSlot(category, -1);
-                Debug.Log($"[WheelLayoutManager] 类别 {category} 已清空，选中状态已重置为-1");
             }
             else
             {
@@ -193,11 +183,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
         /// </summary>
         public void BatchUpdateMultipleCategories(ItemCategory category, List<Item> mixedCategoryItems)
         {
-            Debug.Log($"[WheelLayoutManager] 🔥 多类别批量更新 {category}，收集到 {mixedCategoryItems.Count} 个物品");
-
-            // 获取或创建槽位数组（自动创建不存在的类别）
             var slots = GetOrCreateCategorySlots(category);
-            Debug.Log($"[WheelLayoutManager] 类别 {category} 已准备就绪，槽位数: {slots.Length}");
 
             // 第一步：清理已消耗的物品
             for (int i = 0; i < FIXED_SLOT_COUNT; i++)
@@ -206,7 +192,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 {
                     // 物品被消耗，清空槽位
                     slots[i].Item = null;
-                    Debug.Log($"[WheelLayoutManager] 🔥 批量更新：清理已消耗物品，清空位置 {i}");
                 }
                 // 🎯 关键：如果物品还在，什么都不做！
             }
@@ -234,7 +219,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
                         if (slots[i].IsEmpty)
                         {
                             slots[i].Item = item;  // 设置物品
-                            Debug.Log($"[WheelLayoutManager] 🔥 批量更新：新物品放入位置 {i}: {item.DisplayName}");
                             break;
                         }
                     }
@@ -257,14 +241,11 @@ namespace Backpack_QuickWheel.ShortcutSystem
         /// </summary>
         public void UpdateLayoutFromUI(ItemCategory category, List<Item> newLayout)
         {
-            Debug.Log($"[WheelLayoutManager] 更新UI布局: {category}");
-
             // 获取或创建槽位数组
             var slots = GetOrCreateCategorySlots(category);
 
             // 记录当前选中的物品
             Item selectedItem = GetSelectedItem(category);
-            Debug.Log($"[WheelLayoutManager] 当前选中物品: {selectedItem?.DisplayName ?? "无"}");
 
             // 更新槽位
             for (int i = 0; i < 8; i++)
@@ -301,8 +282,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 Debug.LogError("[WheelLayoutManager] AddItemToCategory: 物品为空");
                 return;
             }
-
-            Debug.Log($"[WheelLayoutManager] 添加物品到类别 {category}: {newItem.DisplayName} (引用: {newItem.GetHashCode()})");
 
             // 获取或创建类别槽位数组
             var slots = GetOrCreateCategorySlots(category);
@@ -633,7 +612,8 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 }
             }
 
-            Debug.Log($"[WheelLayoutManager] {category} 无有效选中物品");
+            // 移除冗余的调试日志，避免影响调试体验
+            // Debug.Log($"[WheelLayoutManager] {category} 无有效选中物品");
             return null;
         }
 

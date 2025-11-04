@@ -90,13 +90,10 @@ namespace Backpack_QuickWheel.VoiceWheelSystem
         #region 初始化 - 完全复制ItemWheelSelector
         private void InitializeWheel()
         {
-            Debug.Log("[VoiceWheelSelector] 初始化九宫格轮盘（中心为空）...");
-
             // 创建Canvas
             var canvasObj = new GameObject("VoiceWheelCanvas");
             canvasObj.transform.SetParent(transform, false);
             canvasObj.transform.localPosition = Vector3.zero;
-            Debug.Log($"[VoiceWheelSelector] Canvas 父节点: {canvasObj.transform.parent.name}, Canvas 活跃: {canvasObj.activeInHierarchy}");
 
             // 配置Canvas的RectTransform
             var canvasRect = canvasObj.GetComponent<RectTransform>();
@@ -164,15 +161,7 @@ namespace Backpack_QuickWheel.VoiceWheelSystem
             {
                 VoiceItem voiceToDisplay = (i < _currentVoices.Count) ? _currentVoices[i] : null;
 
-                if (voiceToDisplay != null)
-                {
-                    Debug.Log($"[VoiceWheelSelector] 格子 {i} (位置 {GRID_POSITIONS[i]}): 创建 '{voiceToDisplay.displayName}'");
-                }
-                else
-                {
-                    Debug.Log($"[VoiceWheelSelector] 格子 {i} (位置 {GRID_POSITIONS[i]}): 空格子");
-                }
-
+                
                 var displayClone = CreateWheelItemDisplay(i, GRID_POSITIONS[i], voiceToDisplay);
                 if (displayClone != null)
                 {

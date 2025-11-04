@@ -269,6 +269,23 @@ namespace Backpack_QuickWheel.ShortcutSystem
         }
 
         /// <summary>
+        /// 处理模式切换按键（F9）
+        /// </summary>
+        public void HandleModeSwitchKey()
+        {
+            Debug.Log("[InputInterceptor] 处理F9模式切换按键");
+
+            if (BackpackShortcutManager.Instance != null)
+            {
+                BackpackShortcutManager.Instance.ToggleSystemMode();
+            }
+            else
+            {
+                Debug.LogWarning("[InputInterceptor] BackpackShortcutManager实例为null，无法切换模式");
+            }
+        }
+
+        /// <summary>
         /// 设置轮盘选择器引用
         /// </summary>
         public static void SetWheelSelector(ItemWheelSelector wheelSelector)

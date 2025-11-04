@@ -25,30 +25,22 @@ namespace Backpack_QuickWheel
 
         void Awake()
         {
-            Debug.Log("═══════════════════════════════════════");
-            Debug.Log("[ModBehaviour] Awake 被调用");
-            Debug.Log($"[ModBehaviour] 当前时间: {Time.time}");
-            Debug.Log($"[ModBehaviour] 游戏是否正在运行: {Application.isPlaying}");
-            Debug.Log($"[ModBehaviour] 当前场景: {UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}");
+            Debug.Log("[ModBehaviour] 模组初始化开始");
 
             // 确保ModBehaviour在场景切换时不被销毁
             DontDestroyOnLoad(this.gameObject);
-            Debug.Log("[ModBehaviour] 已设置 DontDestroyOnLoad");
 
             // 初始化Harmony
             harmony = new Harmony("com.yourname.great_backpack");
             harmony.PatchAll(); // 自动补丁所有带有[HarmonyPatch]的类
-            Debug.Log("Harmony补丁已应用");
 
             // 🆕 提前创建BackpackShortcutManager实例，解决依赖注入顺序问题
-            Debug.Log("[ModBehaviour] 创建BackpackShortcutManager实例");
             var backpackManagerObj = new GameObject("BackpackShortcutManager");
             DontDestroyOnLoad(backpackManagerObj);
             var backpackManager = backpackManagerObj.AddComponent<BackpackShortcutManager>();
-            Debug.Log("[ModBehaviour] BackpackShortcutManager实例已创建");
 
             // 🚀 优先初始化快捷键系统 - 在程序入口点尽早初始化，确保不会错过任何背包装备事件
-            Debug.Log("[ModBehaviour] 开始在程序入口点初始化快捷键系统");
+            Debug.Log("[ModBehaviour] 初始化快捷键系统");
             InitializeShortcutSystemAtEntryPoint();
 
             // 检测并导出支持的语言（开发时使用，完成后注释掉）

@@ -114,8 +114,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
         /// </summary>
         private void InitializeWheel()
         {
-            Debug.Log("[ItemWheelSelector] 初始化九宫格轮盘（中心为空）...");
-
             // 🆕 获取管理器引用
             _backpackManager = BackpackShortcutManager.Instance;
             if (_backpackManager != null)
@@ -126,7 +124,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 if (wheelLayoutManagerField != null)
                 {
                     _wheelLayoutManager = wheelLayoutManagerField.GetValue(_backpackManager) as WheelLayoutManager;
-                    Debug.Log("[ItemWheelSelector] ✓ 成功获取WheelLayoutManager引用");
                 }
                 else
                 {
@@ -142,8 +139,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
             var canvasObj = new GameObject("ItemWheelCanvas");
             canvasObj.transform.SetParent(transform, false);
             canvasObj.transform.localPosition = Vector3.zero;
-
-            Debug.Log($"[ItemWheelSelector] Canvas 父节点: {canvasObj.transform.parent.name}, Canvas 活跃: {canvasObj.activeInHierarchy}");
 
             // 配置Canvas的RectTransform
             var canvasRect = canvasObj.GetComponent<RectTransform>();

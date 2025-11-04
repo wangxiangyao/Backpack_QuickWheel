@@ -5,6 +5,7 @@ using UnityEngine;
 using ItemStatsSystem;
 using ItemStatsSystem.Items;
 using Duckov.Utilities;
+using Duckov.UI;
 using Backpack_QuickWheel.ShortcutSystem.Data;
 
 namespace Backpack_QuickWheel.ShortcutSystem
@@ -32,6 +33,26 @@ namespace Backpack_QuickWheel.ShortcutSystem
         /// 公共属性：访问轮盘布局管理器
         /// </summary>
         public WheelLayoutManager WheelLayoutManager => _wheelLayoutManager;
+
+        #endregion
+
+        #region 模式切换管理
+
+        // 模式切换相关字段
+        private bool _isAttachmentMode = true;
+        private AttachmentWheelManager _attachmentManager;
+        private MainBackpackWheelManager _mainBackpackManager;
+        private IWheelDataManager _activeManager;
+
+        /// <summary>
+        /// 当前是否为配件系统模式
+        /// </summary>
+        public bool IsAttachmentMode => _isAttachmentMode;
+
+        /// <summary>
+        /// 当前活跃的轮盘数据管理器
+        /// </summary>
+        public IWheelDataManager ActiveManager => _activeManager;
 
         #endregion
 
@@ -80,7 +101,115 @@ namespace Backpack_QuickWheel.ShortcutSystem
         // 原因：只用于已删除的IncrementalUpdateCategorizedItems方法，无其他用途
 
         #endregion
-      #region 生命周期初始化
+
+        #region 模式管理
+
+        /// <summary>
+        /// 初始化模式管理器
+        /// </summary>
+        private void InitializeModeManagers()
+        {
+            // 创建两个管理器实例
+            _attachmentManager = new AttachmentWheelManager(_wheelLayoutManager);
+            _mainBackpackManager = new MainBackpackWheelManager(_wheelLayoutManager);
+        }
+
+        /// <summary>
+        /// 从配置加载模式设置
+        /// </summary>
+        private void LoadModeFromConfig()
+        {
+            _isAttachmentMode = BackpackModConfig.EnableAttachmentSystem;
+            Debug.Log($"[BackpackShortcutManager] 从配置加载模式: {(_isAttachmentMode ? "配件系统模式" : "主背包模式")}");
+
+            // 设置初始活跃管理器
+            _activeManager = _isAttachmentMode ? (IWheelDataManager)_attachmentManager : (IWheelDataManager)_mainBackpackManager;
+        }
+
+        /// <summary>
+        /// 切换系统模式
+        /// </summary>
+        public void ToggleSystemMode()
+        {
+            // 1. 切换配置
+            _isAttachmentMode = !_isAttachmentMode;
+            BackpackModConfig.EnableAttachmentSystem = _isAttachmentMode;
+            BackpackModConfig.SaveConfig();
+
+            // 2. 使用统一的切换逻辑
+            IWheelDataManager targetManager = _isAttachmentMode ? (IWheelDataManager)_attachmentManager : (IWheelDataManager)_mainBackpackManager;
+            SwitchToManager(targetManager);
+
+            // 3. 显示切换提示
+            string modeName = _isAttachmentMode ? "配件系统模式" : "主背包模式";
+            NotificationText.Push($"已切换到: {modeName} (F9切换)");
+
+            Debug.Log($"[BackpackShortcutManager] 模式切换完成: {modeName}");
+        }
+
+        /// <summary>
+        /// 切换到配件系统模式
+        /// </summary>
+        public void SwitchToAttachmentMode()
+        {
+            if (_isAttachmentMode) return; // 已经是配件系统模式
+
+            _isAttachmentMode = true;
+            BackpackModConfig.EnableAttachmentSystem = true;
+            BackpackModConfig.SaveConfig();
+
+            SwitchToManager(_attachmentManager);
+        }
+
+        /// <summary>
+        /// 切换到主背包模式
+        /// </summary>
+        public void SwitchToMainBackpackMode()
+        {
+            if (!_isAttachmentMode) return; // 已经是主背包模式
+
+            _isAttachmentMode = false;
+            BackpackModConfig.EnableAttachmentSystem = false;
+            BackpackModConfig.SaveConfig();
+
+            SwitchToManager(_mainBackpackManager);
+        }
+
+        /// <summary>
+        /// 切换到指定管理器
+        /// </summary>
+        private void SwitchToManager(IWheelDataManager newManager)
+        {
+            if (newManager == null) return;
+
+            // 清空当前轮盘
+            _wheelLayoutManager.ClearAllCategories();
+
+            // 停用当前管理器
+            if (_activeManager != null)
+            {
+                _activeManager.Shutdown();
+            }
+
+            // 切换到新管理器
+            _activeManager = newManager;
+            _activeManager.Initialize();
+
+            // 🆕 如果切换到配件模式，且当前有背包，通知管理器处理背包变化
+            if (_isAttachmentMode && _currentBackpack != null)
+            {
+                Debug.Log($"[BackpackShortcutManager] 切换到配件模式，通知当前背包: {_currentBackpack.DisplayName}");
+                _activeManager.HandleBackpackChange(_currentBackpack);
+            }
+
+            // 显示切换提示
+            string modeName = _isAttachmentMode ? "配件系统模式" : "主背包模式";
+            NotificationText.Push($"已切换到: {modeName}");
+        }
+
+        #endregion
+
+        #region 生命周期初始化
 
         /// <summary>
         /// Unity生命周期：单例初始化
@@ -102,9 +231,14 @@ namespace Backpack_QuickWheel.ShortcutSystem
             // 确认轮盘可以直接更新UI
             _wheelLayoutManager.SetUIUpdater();
 
+            // 初始化模式管理器
+            InitializeModeManagers();
+
+            // 从配置加载模式设置
+            LoadModeFromConfig();
+
             // 初始化完成，但没有EquipmentController，系统还未就绪
             _hasEquipmentController = false;
-            Debug.Log("[BackpackShortcutManager] Awake完成，等待EquipmentController连接");
         }
 
         /// <summary>
@@ -148,12 +282,20 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 StopCoroutine(_pendingAttachmentUpdateCoroutine);
             }
 
+            // 清理模式管理器
+            if (_attachmentManager != null)
+            {
+                _attachmentManager.Shutdown();
+            }
+            if (_mainBackpackManager != null)
+            {
+                _mainBackpackManager.Shutdown();
+            }
+
             // 取消所有事件订阅
             UnsubscribeFromBackpackChanges();
             UnsubscribeFromCurrentItem();
             UIInputManager.OnShortcutInput -= OnUIShortcutInput;
-
-            Debug.Log("[BackpackShortcutManager] 已清理所有事件订阅");
         }
 
         #endregion
@@ -167,7 +309,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
         {
             // 监听快捷键输入事件
             UIInputManager.OnShortcutInput += OnUIShortcutInput;
-            Debug.Log("[BackpackShortcutManager] 已订阅 UIInputManager.OnShortcutInput 事件");
 
             // 监听背包装备变化
             if (_equipmentController != null)
@@ -179,7 +320,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
             // 监听物品的onDestroy和onSetStackCount事件
             // 这确保在物品真正被消耗后才触发UI更新
             // 注意：这些是实例事件，需要在收集物品时为每个物品实例订阅
-            Debug.Log("[BackpackShortcutManager] 物品消耗事件监听已准备（将在物品收集时为每个实例订阅）");
         }
 
         #endregion
@@ -213,19 +353,8 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 return new List<Item>();
             }
 
-            Debug.Log($"[BackpackShortcutManager] GetAllItemsForCategory: 查询类别 {category}");
-
             // 通过WheelLayoutManager获取有效物品
             var validItems = _wheelLayoutManager.GetValidItems(category);
-            Debug.Log($"[BackpackShortcutManager] GetAllItemsForCategory: 找到 {validItems.Count} 个有效物品");
-
-            // 详细日志
-            for (int i = 0; i < validItems.Count; i++)
-            {
-                var item = validItems[i];
-                Debug.Log($"[BackpackShortcutManager]   物品{i+1}: {item.DisplayName} (实例ID: {item.GetHashCode()})");
-            }
-
             return validItems;
         }
 
@@ -240,14 +369,8 @@ namespace Backpack_QuickWheel.ShortcutSystem
             var currentItem = _wheelLayoutManager.GetSelectedItem(category);
             if (currentItem != null)
             {
-                Debug.Log($"[BackpackShortcutManager] HandleShortcutInput - 准备使用物品: {currentItem.DisplayName}");
-
                 // 只负责使用物品，UI更新由物品销毁事件自动处理
                 ItemUsageHandler.UseItem(currentItem, category);
-            }
-            else
-            {
-                Debug.Log($"[BackpackShortcutManager] HandleShortcutInput - Category {category} 没有可用物品");
             }
         }
 
@@ -330,7 +453,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
                     if (ItemCategorizer.CategorizeItem(item) == targetCategory)
                     {
                         result.Add(item);
-                        Debug.Log($"[BackpackShortcutManager] 收集到目标类别物品: {item.DisplayName} (TypeID: {item.TypeID}, 引用: {item.GetHashCode()}, 类别: {targetCategory})");
                     }
 
                     // 🔧 递归检查配件中的物品，但只收集目标类别
@@ -360,7 +482,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
                     if (ItemCategorizer.CategorizeItem(item) == targetCategory)
                     {
                         result.Add(item);
-                        Debug.Log($"[BackpackShortcutManager] 递归收集到目标类别物品: {item.DisplayName} (TypeID: {item.TypeID}, 引用: {item.GetHashCode()}, 容器: {container.DisplayName})");
                     }
 
                     // 🔧 递归检查嵌套容器
@@ -410,8 +531,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
             item.onParentChanged += OnSelectedItemParentChanged;
             item.onUnpluggedFromSlot += OnSelectedItemUnplugged;
             item.onSlotTreeChanged += OnSelectedItemSlotTreeChanged;
-
-            Debug.Log($"[BackpackShortcutManager] 已为物品订阅事件: {item.DisplayName}");
         }
 
         /// <summary>
@@ -438,8 +557,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
             item.onParentChanged -= OnSelectedItemParentChanged;
             item.onUnpluggedFromSlot -= OnSelectedItemUnplugged;
             item.onSlotTreeChanged -= OnSelectedItemSlotTreeChanged;
-
-            Debug.Log($"[BackpackShortcutManager] 已取消物品事件订阅: {item.DisplayName}");
         }
 
         /// <summary>
@@ -466,8 +583,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
         private void OnSelectedItemDestroyed(Item destroyedItem)
         {
             if (!IsShortcutSystemEnabled || _isRefreshing) return;
-
-            Debug.Log($"[BackpackShortcutManager] 选中物品被销毁: {destroyedItem?.DisplayName}");
 
             if (destroyedItem == null) return;
 
@@ -667,33 +782,42 @@ namespace Backpack_QuickWheel.ShortcutSystem
         }
 
         /// <summary>
-        /// 背包变化处理 - 智能激活机制拦截
+        /// 背包变化处理 - 委托给活跃管理器
         /// </summary>
         public void OnBackpackChanged(Slot backpackSlot)
         {
-            Debug.Log($"[BackpackShortcutManager] OnBackpackChanged 被调用，背包: {backpackSlot?.Content?.DisplayName ?? "null"}");
-            Debug.Log($"[BackpackShortcutManager] 当前系统启用状态: {IsShortcutSystemEnabled}");
-
             var newBackpack = backpackSlot?.Content;
-            Debug.Log($"[BackpackShortcutManager] 新背包: {newBackpack?.DisplayName ?? "null"}, 当前背包: {_currentBackpack?.DisplayName ?? "null"}");
+
+            // 更新当前背包引用
+            _currentBackpack = newBackpack;
 
             // 🔧 无论什么情况，先清理当前状态
             UnsubscribeFromBackpackChanges();
-            Debug.Log("[BackpackShortcutManager] ✅ 已清理当前背包状态");
 
-            // 🆕 智能激活机制：检查新背包是否支持配件系统
-            bool isSupportedBackpack = IsBackpackSupported(newBackpack);
-            Debug.Log($"[BackpackShortcutManager] 🎯 智能激活检查: {newBackpack?.DisplayName ?? "null"} 支持配件系统: {isSupportedBackpack}");
-
-            if (isSupportedBackpack)
+            // 委托给活跃管理器处理
+            if (_activeManager != null)
             {
-                Debug.Log("[BackpackShortcutManager] ✅ 背包支持配件系统，启动完整功能");
-                HandleSupportedBackpack(newBackpack);
+                _activeManager.HandleBackpackChange(backpackSlot?.Content);
             }
             else
             {
-                Debug.Log($"[BackpackShortcutManager] ❌ 背包 {newBackpack?.DisplayName ?? "null"} 不支持配件系统，使用基础模式");
-                HandleUnsupportedBackpack(newBackpack);
+                Debug.LogWarning("[BackpackShortcutManager] 活跃管理器为null，无法处理背包变化");
+            }
+
+            // 对于配件系统模式，仍然需要维护原有的配件逻辑以保持兼容性
+            if (_isAttachmentMode && _activeManager == _attachmentManager)
+            {
+                // 🆕 智能激活机制：检查新背包是否支持配件系统
+                bool isSupportedBackpack = IsBackpackSupported(newBackpack);
+
+                if (isSupportedBackpack)
+                {
+                    HandleSupportedBackpack(newBackpack);
+                }
+                else
+                {
+                    HandleUnsupportedBackpack(newBackpack);
+                }
             }
         }
 
@@ -704,24 +828,11 @@ namespace Backpack_QuickWheel.ShortcutSystem
         {
             if (backpack == null)
             {
-                Debug.Log("[BackpackShortcutManager] 🎯 背包为null，不支持配件系统");
                 return false;
             }
 
             // 检查背包TypeID是否在支持列表中
-            bool isSupported = BackpackModConfig.BackpackTypeIDs.Contains(backpack.TypeID);
-            Debug.Log($"[BackpackShortcutManager] 🎯 背包 {backpack.DisplayName} (TypeID: {backpack.TypeID}) 支持状态: {isSupported}");
-
-            if (isSupported)
-            {
-                Debug.Log($"[BackpackShortcutManager] ✅ 背包 {backpack.DisplayName} 支持配件系统 - TypeID {backpack.TypeID} 在支持列表中");
-            }
-            else
-            {
-                Debug.Log($"[BackpackShortcutManager] ❌ 背包 {backpack.DisplayName} 不支持配件系统 - TypeID {backpack.TypeID} 不在支持列表 [{string.Join(", ", BackpackModConfig.BackpackTypeIDs)}] 中");
-            }
-
-            return isSupported;
+            return BackpackModConfig.BackpackTypeIDs.Contains(backpack.TypeID);
         }
 
         /// <summary>
@@ -731,34 +842,28 @@ namespace Backpack_QuickWheel.ShortcutSystem
         {
             // 更新当前背包
             _currentBackpack = backpack;
-            Debug.Log($"[BackpackShortcutManager] 更新当前背包为: {_currentBackpack?.DisplayName ?? "null"}");
 
             if (_currentBackpack != null)
             {
                 // 🧹 装备支持背包前，先清理官方快捷键UI显示
                 // 避免与玩家之前设置的官方快捷键冲突
-                Debug.Log("[BackpackShortcutManager] 🧹 装备支持背包前，清理官方快捷键UI显示");
                 for (int i = 0; i < 4; i++)
                 {
                     ShortcutUIUpdater.ClearShortcutUI(i);
                 }
-                Debug.Log("[BackpackShortcutManager] ✓ 已清空官方快捷键UI显示，准备启动配件系统");
 
                 // 🔧 注册背包类型到ItemTypeRegistry
                 ItemTypeRegistry.RegisterBackpack(_currentBackpack.TypeID);
 
                 SubscribeToBackpackChanges(_currentBackpack);
-                Debug.Log("[BackpackShortcutManager] 已订阅新背包变化事件");
 
                 // 启用完整的配件系统
                 if (!IsShortcutSystemEnabled)
                 {
                     SetShortcutSystemEnabled(true);
-                    Debug.Log("[BackpackShortcutManager] ✅ 已启用完整配件系统");
                 }
 
                 // 🆕 使用新架构刷新物品
-                Debug.Log("[BackpackShortcutManager] 开始刷新物品...");
                 RefreshItemsWithNewArchitecture();
             }
         }
@@ -805,8 +910,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
         {
             if (_currentBackpack == null)
             {
-                Debug.Log("[BackpackShortcutManager] 背包为空，清空所有物品");
-
                 // 清空所有类别
                 foreach (ItemCategory category in System.Enum.GetValues(typeof(ItemCategory)))
                 {
@@ -817,8 +920,6 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 }
                 return;
             }
-
-            Debug.Log("[BackpackShortcutManager] 开始收集背包物品");
 
             // 收集所有物品
             var allItems = new HashSet<Item>();
@@ -846,14 +947,7 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 var items = kvp.Value;
 
                 _wheelLayoutManager.BatchUpdateMultipleCategories(category, items);
-                Debug.Log($"[BackpackShortcutManager] 🔥 全量更新类别 {category}: {items.Count} 个物品");
             }
-
-            // 🏗️ 架构修复：移除直接UI调用，改为事件驱动
-            // BatchUpdateMultipleCategories会触发选中状态变化，从而直接更新UI
-            // 确保选中状态正确同步后再更新UI
-
-            Debug.Log("[BackpackShortcutManager] 事件驱动架构：物品刷新完成，等待UI更新事件");
         }
 
         // 🗑️ 已删除：OnWheelLayoutChanged事件处理器
@@ -933,11 +1027,19 @@ namespace Backpack_QuickWheel.ShortcutSystem
         // 4. BackpackShortcutManager不应直接操作UI
 
         /// <summary>
-        /// 初始化完成后启用系统（混合方案版本）
+        /// 初始化完成后启用系统（新模式切换版本）
         /// </summary>
         private void EnableSystemAfterInit()
         {
             Debug.Log("[BackpackShortcutManager] 初始化完成，系统就绪，等待背包装备事件...");
+            Debug.Log($"[BackpackShortcutManager] 当前模式: {(_isAttachmentMode ? "配件系统模式" : "主背包模式")}");
+
+            // 初始化活跃管理器
+            if (_activeManager != null)
+            {
+                _activeManager.Initialize();
+                Debug.Log($"[BackpackShortcutManager] 活跃管理器已初始化: {_activeManager.GetManagerType()}");
+            }
 
             // 启用系统框架
             if (!IsShortcutSystemEnabled)
@@ -946,8 +1048,8 @@ namespace Backpack_QuickWheel.ShortcutSystem
                 Debug.Log("[BackpackShortcutManager] 系统框架已启用，等待背包装备事件或主动检查...");
             }
 
-            // 🔧 混合方案：不再需要主动检查和延迟刷新
-            // 系统会通过OnBackpackChanged事件或ModBehaviour的CheckCurrentBackpackStatus来激活
+            // 🔧 新模式：系统会通过OnBackpackChanged事件或ModBehaviour的CheckCurrentBackpackStatus来激活
+            // 支持两种模式的动态切换
         }
 
         /// <summary>

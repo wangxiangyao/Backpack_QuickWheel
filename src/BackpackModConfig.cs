@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using Backpack_QuickWheel.AttachmentSystem;
 using Backpack_QuickWheel.Localization;
+using UnityEngine;
 
 namespace Backpack_QuickWheel
 {
@@ -8,6 +9,30 @@ namespace Backpack_QuickWheel
     {
         // 背包TypeID常量
         public static readonly int[] BackpackTypeIDs = { 36, 37, 38, 39, 40 };
+
+        // 🔧 配置开关：是否启用背包配件系统影响快捷键
+        // true: 背包配件会影响快捷键（完整功能）
+        // false: 仅使用轮盘功能，背包配件不影响快捷键
+        public static bool EnableAttachmentSystem = true;
+
+        /// <summary>
+        /// 加载配置设置
+        /// </summary>
+        public static void LoadConfig()
+        {
+            EnableAttachmentSystem = PlayerPrefs.GetInt("Backpack_EnableAttachmentSystem", 1) == 1;
+            Debug.Log($"[BackpackModConfig] 加载配置：配件系统 = {EnableAttachmentSystem}");
+        }
+
+        /// <summary>
+        /// 保存配置设置
+        /// </summary>
+        public static void SaveConfig()
+        {
+            PlayerPrefs.SetInt("Backpack_EnableAttachmentSystem", EnableAttachmentSystem ? 1 : 0);
+            PlayerPrefs.Save();
+            Debug.Log($"[BackpackModConfig] 保存配置：配件系统 = {EnableAttachmentSystem}");
+        }
 
         // 插槽类型定义
         public static readonly Dictionary<string, SlotConfig> SlotConfigs = new Dictionary<string, SlotConfig>
